@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+:root {
+  --bg-color: #f9fafb;
+  --text-color: #1f2937;
+  --wave-color: #f8fafc;
+  --card-color: #ffffff;
+}
+
+.dark {
+  --bg-color: #252B42;
+  --text-color: #f3f4f6;
+  --wave-color: #252B42;
+  --card-color: #2E3553;
+}
+
+/* cards */
+.card {
+  background-color: var(--card-color);
+  color: var(--text-color);
+  border-radius: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+html, body, #root {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  height: 100%;
+  font-family: 'Poppins', sans-serif;
+  transition: background-color 0.3s, color 0.3s;
+}
