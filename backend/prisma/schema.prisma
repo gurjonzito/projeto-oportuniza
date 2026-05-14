@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Canal {
+  id                String   @id @default(uuid())
+
+  youtubeChannelId  String   @unique
+  nome              String
+  descricao         String?
+  thumbnailUrl      String?
+
+  criadoEm          DateTime @default(now())
+
+  videos            Video[]
+
+  @@map("canais")
+}
+
+model Video {
+  id                String   @id @default(uuid())
+
+  youtubeVideoId    String   @unique
+
+  canalId           String
+  canal             Canal @relation(fields: [canalId], references: [id])
+
+  titulo            String
+  descricao         String?
+
+  thumbnailUrl      String?
+
+  duracaoSegundos   Int?
+
+  tags              String[]
+
+  publicadoEm       DateTime?
+
+  cachedEm          DateTime @default(now())
+  cacheExpiraEm     DateTime?
+
+  trilhas           TrilhaVideo[]
+
+  @@map("videos")
+}
+
+model Categoria {
+  id                String   @id @default(uuid())
+
+  nome              String   @unique
+  descricao         String?
+
+  criadaEm          DateTime @default(now())
+
+  trilhas           Trilha[]
+
+  @@map("categorias")
+}
+
+model Trilha {
+  id                String   @id @default(uuid())
+
+  categoriaId       String
+  categoria         Categoria @relation(fields: [categoriaId], references: [id])
+
+  titulo            String
+  descricao         String?
+
+  nivel             String?
+
+  thumbnailUrl      String?
+
+  ativa             Boolean @default(true)
+
+  criadaEm          DateTime @default(now())
+
+  videos            TrilhaVideo[]
+
+  @@map("trilhas")
+}
+
+model TrilhaVideo {
+  trilhaId          String
+  videoId           String
+
+  ordem             Int
+
+  trilha            Trilha @relation(fields: [trilhaId], references: [id])
+  video             Video @relation(fields: [videoId], references: [id])
+
+  @@id([trilhaId, videoId])
+
+  @@map("trilha_videos")
+}
+
+model BuscaCache {
+  id                String   @id @default(uuid())
+
+  termo             String   @unique
+
+  buscadoEm         DateTime @default(now())
+
+  expiraEm          DateTime?
+
+  resultadoIds      String[]
+
+  @@map("buscas_cache")
+}
