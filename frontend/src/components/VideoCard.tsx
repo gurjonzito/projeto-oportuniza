@@ -24,14 +24,22 @@ export default function VideoCard({
       <img src={thumbnail} alt={title} className="w-full h-40 object-cover" />
 
       <div className="p-4">
-        {channel && <p className="text-sm text-gray-500 dark:text-gray-400">{channel}</p>}
+        {channel && (
+          <p className="text-sm text-gray-500 dark:text-gray-400">{channel}</p>
+        )}
         <h3 className="font-semibold text-lg">{title}</h3>
         {duration && <p className="text-sm text-gray-400">{duration} min</p>}
-        {description && <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{description}</p>}
-        {videos !== undefined && <p className="text-sm text-blue-500 mt-2">{videos} vídeos</p>}
+        {description && (
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            {description}
+          </p>
+        )}
+        {videos !== undefined && (
+          <p className="text-sm text-blue-500 mt-2">{videos} vídeos</p>
+        )}
         {channel && duration && (
           <button
-            onClick={() => navigate(`/player/${title}`)}
+            onClick={() => navigate(`/player/${encodeURIComponent(title)}`)}
             className="mt-3 border border-blue-500 text-blue-500 px-4 py-1 rounded-lg hover:bg-blue-500 hover:text-white transition"
           >
             Assistir
