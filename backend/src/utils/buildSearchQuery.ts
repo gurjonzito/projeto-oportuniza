@@ -18,7 +18,7 @@ export function buildSearchQuery(termo: string) {
       return `
         ${termo}
         ${keywords[0]}
-educação
+tutorial
 profissional
       `;
     }

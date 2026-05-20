@@ -7,6 +7,7 @@ interface VideoCardProps {
   videos?: number; // para trilha
   channel?: string;
   duration?: string; // para vídeo
+  slug?: string;
 }
 
 export default function VideoCard({
@@ -16,6 +17,7 @@ export default function VideoCard({
   videos,
   channel,
   duration,
+  slug,
 }: VideoCardProps) {
   const navigate = useNavigate();
 
@@ -39,7 +41,11 @@ export default function VideoCard({
         )}
         {channel && duration && (
           <button
-            onClick={() => navigate(`/player/${encodeURIComponent(title)}`)}
+            onClick={() =>
+              slug
+                ? navigate(`/trilhas/${slug}`)
+                : navigate(`/player/${encodeURIComponent(title)}`)
+            }
             className="mt-3 border border-blue-500 text-blue-500 px-4 py-1 rounded-lg hover:bg-blue-500 hover:text-white transition"
           >
             Assistir

@@ -13,10 +13,6 @@ const BASE = "https://www.googleapis.com/youtube/v3";
 const KEY = process.env.YOUTUBE_API_KEY!;
 
 export async function buscarVideos(termo: string) {
-  /*
-    MELHORA PESQUISA
-  */
-
   const termoEducacional = buildSearchQuery(termo);
 
   const { data } = await axios.get(`${BASE}/search`, {
@@ -84,6 +80,52 @@ export async function buscarVideos(termo: string) {
 
     categoria: detectCategory(item.snippet.title),
   }));
+}
+
+export async function buscarPlaylist(
+  playlistId: string
+) {
+
+  const { data } =
+    await axios.get(
+      `${BASE}/playlists`,
+      {
+        params: {
+
+          part: "snippet",
+
+          id: playlistId,
+
+          key: KEY,
+        },
+      }
+    )
+
+  return data.items[0]
+}
+
+export async function buscarVideosPlaylist(
+  playlistId: string
+) {
+
+  const { data } =
+    await axios.get(
+      `${BASE}/playlistItems`,
+      {
+        params: {
+
+          part: "snippet",
+
+          playlistId,
+
+          maxResults: 50,
+
+          key: KEY,
+        },
+      }
+    )
+
+  return data.items
 }
 
 export async function buscarDetalhesVideo(videoId: string) {

@@ -8,106 +8,131 @@ datasource db {
 }
 
 model Canal {
-  id                String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  youtubeChannelId  String   @unique
-  nome              String
-  descricao         String?
-  thumbnailUrl      String?
+  youtubeChannelId String @unique
 
-  criadoEm          DateTime @default(now())
+  nome String
 
-  videos            Video[]
+  descricao String?
+
+  thumbnailUrl String?
+
+  criadoEm DateTime @default(now())
+
+  videos Video[]
+
+  trilhas Trilha[]
 
   @@map("canais")
 }
 
 model Video {
-  id                String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  youtubeVideoId    String   @unique
+  youtubeVideoId String @unique
 
-  canalId           String
-  canal             Canal @relation(fields: [canalId], references: [id])
+  canalId String
+  canal   Canal  @relation(fields: [canalId], references: [id])
 
-  titulo            String
-  descricao         String?
+  titulo String
 
-  thumbnailUrl      String?
+  descricao String?
 
-  duracaoSegundos   Int?
+  thumbnailUrl String?
 
-  tags              String[]
+  duracaoSegundos Int?
 
-  publicadoEm       DateTime?
+  tags String[]
 
-  cachedEm          DateTime @default(now())
-  cacheExpiraEm     DateTime?
+  publicadoEm DateTime?
 
-  trilhas           TrilhaVideo[]
+  isCurated Boolean @default(false)
+
+  cachedEm DateTime @default(now())
+
+  cacheExpiraEm DateTime?
+
+  trilhas TrilhaVideo[]
 
   @@map("videos")
 }
 
 model Categoria {
-  id                String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  nome              String   @unique
-  descricao         String?
+  nome      String  @unique
+  descricao String?
 
-  criadaEm          DateTime @default(now())
+  criadaEm DateTime @default(now())
 
-  trilhas           Trilha[]
+  trilhas Trilha[]
 
   @@map("categorias")
 }
 
 model Trilha {
-  id                String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  categoriaId       String
-  categoria         Categoria @relation(fields: [categoriaId], references: [id])
+  categoriaId String
+  categoria   Categoria @relation(fields: [categoriaId], references: [id])
 
-  titulo            String
-  descricao         String?
+  canalId String?
+  canal   Canal?  @relation(fields: [canalId], references: [id])
 
-  nivel             String?
+  youtubePlaylistId String? @unique
 
-  thumbnailUrl      String?
+  titulo String
 
-  ativa             Boolean @default(true)
+  slug String @unique
 
-  criadaEm          DateTime @default(now())
+  descricao String?
 
-  videos            TrilhaVideo[]
+  nivel String?
+
+  thumbnailUrl String?
+
+  duracaoTotalSegundos Int?
+
+  destaque Boolean @default(false)
+
+  isCurated Boolean @default(true)
+
+  ativa Boolean @default(true)
+
+  criadaEm DateTime @default(now())
+
+  videos TrilhaVideo[]
 
   @@map("trilhas")
 }
 
 model TrilhaVideo {
-  trilhaId          String
-  videoId           String
+  trilhaId String
+  videoId  String
 
-  ordem             Int
+  ordem Int
 
-  trilha            Trilha @relation(fields: [trilhaId], references: [id])
-  video             Video @relation(fields: [videoId], references: [id])
+  trilha Trilha @relation(fields: [trilhaId], references: [id])
+  video  Video  @relation(fields: [videoId], references: [id])
 
   @@id([trilhaId, videoId])
-
   @@map("trilha_videos")
 }
 
 model BuscaCache {
-  id                String   @id @default(uuid())
+  id String @id @default(uuid())
 
-  termo             String   @unique
+  termo String
 
-  buscadoEm         DateTime @default(now())
+  categoria String?
 
-  expiraEm          DateTime?
+  buscadoEm DateTime @default(now())
 
-  resultadoIds      String[]
+  expiraEm DateTime?
 
+  resultadoIds String[]
+
+  @@unique([termo, categoria])
   @@map("buscas_cache")
 }

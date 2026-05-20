@@ -1,12 +1,46 @@
-import express from 'express'
-import cors from 'cors'
+import express from "express";
 
-const app = express()
+import cors from "cors";
 
-app.use(cors({
-  origin: process.env.FRONTEND_URL
-}))
+import playlistRoutes from "./routes/playlistRoute";
 
-app.use(express.json())
+import { videoRoutes } from "./routes/videoRoute";
 
-export default app
+const app = express();
+
+/*
+  CORS
+*/
+
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  }),
+);
+
+/*
+  JSON
+*/
+
+app.use(express.json());
+
+/*
+  ROTAS
+*/
+
+app.use("/playlist", playlistRoutes);
+
+app.use("/videos", videoRoutes);
+
+/*
+  HEALTH CHECK
+*/
+
+app.get("/", (_, res) => {
+  return res.json({
+    status: "OK",
+    message: "API Oportuniza funcionando",
+  });
+});
+
+export default app;

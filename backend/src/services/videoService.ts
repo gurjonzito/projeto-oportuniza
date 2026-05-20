@@ -15,7 +15,7 @@ import {
   createCanal
 } from '../repositories/canalRepository'
 
-import { searchYoutubeVideos }
+import { buscarVideos }
   from './youtubeService'
 
 export async function searchVideos(
@@ -68,7 +68,7 @@ export async function searchVideos(
   */
 
   const youtubeVideos =
-    await searchYoutubeVideos(query)
+    await buscarVideos(query)
 
   const savedVideos = []
 
