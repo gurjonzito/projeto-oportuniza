@@ -1,7 +1,7 @@
 import { prisma } from '../config/prisma'
 
 export async function findCacheByTerm(termo: string) {
-  return prisma.buscaCache.findUnique({
+  return prisma.buscaCache.findFirst({
     where: {
       termo
     }

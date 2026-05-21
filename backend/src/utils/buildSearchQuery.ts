@@ -1,36 +1,39 @@
 import { searchKeywords } from "./searchKeywords";
 
-export function buildSearchQuery(termo: string) {
+export interface SearchQuery {
+  query: string;
+  channelId: string;
+}
+
+export function buildSearchQuery(
+  termo: string,
+  channels: {
+    youtubeChannelId: string;
+    nome: string;
+  }[]
+): SearchQuery[] {
+
   const lower = termo.toLowerCase();
 
-  /*
-    PROCURA CATEGORIA
-  */
+  let extraKeyword = "curso";
 
   for (const category in searchKeywords) {
-    const keywords = searchKeywords[category] ?? [];
+
+    const keywords =
+      searchKeywords[category] ?? [];
 
     const matched = keywords.some((keyword) =>
-      lower.includes(keyword.toLowerCase()),
+      lower.includes(keyword.toLowerCase())
     );
 
     if (matched) {
-      return `
-        ${termo}
-        ${keywords[0]}
-tutorial
-profissional
-      `;
+      extraKeyword = keywords[0] ?? "curso";
+      break;
     }
   }
 
-  /*
-    FALLBACK
-  */
-
-  return `
-    ${termo}
-educação
-profissional
-  `;
+  return channels.map((channel) => ({
+    query: `${termo} ${extraKeyword}`,
+    channelId: channel.youtubeChannelId,
+  }));
 }

@@ -28,13 +28,19 @@ export async function createVideo(data: any) {
   })
 }
 
-export async function findVideosByIds(youtubeVideoId: string) {
-  return prisma.video.findUnique({
+export async function findVideosByIds(
+  ids: string[]
+) {
+
+  return prisma.video.findMany({
     where: {
-      youtubeVideoId,
+      id: {
+        in: ids
+      }
     },
+
     include: {
       canal: true
     }
-  })
+  });
 }

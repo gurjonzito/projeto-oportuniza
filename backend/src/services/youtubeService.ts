@@ -2,165 +2,245 @@ import axios from "axios";
 
 import { buildSearchQuery } from "../utils/buildSearchQuery";
 
-import { isApprovedChannel } from "../utils/isApprovedChannel";
-
 import { blockedTerms } from "../utils/blockedTerms";
 
 import { detectCategory } from "../utils/categoryMapper";
+
+import { getActiveChannels } from "./canalService";
 
 const BASE = "https://www.googleapis.com/youtube/v3";
 
 const KEY = process.env.YOUTUBE_API_KEY!;
 
-export async function buscarVideos(termo: string) {
-  const termoEducacional = buildSearchQuery(termo);
+/*
+  BUSCA VÍDEOS
+*/
 
-  const { data } = await axios.get(`${BASE}/search`, {
+export async function buscarVideos(termo: string) {
+  /*
+    BUSCA CANAIS ATIVOS
+  */
+
+  const channels = await getActiveChannels();
+  console.log(channels);
+
+  /*
+    GERA QUERIES
+  */
+
+  const queries = buildSearchQuery(termo, channels);
+
+  let allVideos: any[] = [];
+
+  /*
+    BUSCA POR CADA CANAL
+  */
+
+  for (const queryData of queries) {
+    try {
+      const { data } = await axios.get(`${BASE}/search`, {
+        params: {
+          part: "snippet",
+
+          q: queryData.query,
+
+          channelId: queryData.channelId,
+
+          type: "video",
+
+          videoDuration: "medium",
+
+          maxResults: 10,
+
+          relevanceLanguage: "pt",
+
+          regionCode: "BR",
+
+          safeSearch: "strict",
+
+          key: KEY,
+        },
+      });
+
+      /*
+        GARANTE ARRAY
+      */
+
+      const items = data.items ?? [];
+
+      /*
+        FILTRO DE QUALIDADE
+      */
+
+      const filtered = items.filter((item: any) => {
+        const title = item?.snippet?.title?.toLowerCase?.() ?? "";
+
+        /*
+              REMOVE TERMOS BLOQUEADOS
+            */
+
+        const hasBlocked = blockedTerms.some((term) => title.includes(term));
+
+        /*
+              IGNORA VÍDEOS SEM ID
+            */
+
+        const hasVideoId = !!item?.id?.videoId;
+
+        return !hasBlocked && hasVideoId;
+      });
+
+      /*
+        FORMATA
+      */
+
+      const mapped = filtered.map((item: any) => ({
+        youtubeVideoId: item.id.videoId,
+
+        channelId: item.snippet.channelId,
+
+        titulo: item.snippet.title,
+
+        canal: item.snippet.channelTitle,
+
+        thumbnail:
+          item.snippet?.thumbnails?.high?.url ||
+          item.snippet?.thumbnails?.medium?.url ||
+          "",
+
+        descricao: item.snippet.description,
+
+        publishedAt: item.snippet.publishedAt,
+
+        categoria: detectCategory(item.snippet.title),
+      }));
+
+      allVideos.push(...mapped);
+    } catch (error) {
+      console.error("ERRO AO BUSCAR VÍDEOS:", error);
+    }
+  }
+
+  /*
+    REMOVE DUPLICADOS
+  */
+
+  const uniqueVideos = allVideos.filter(
+    (video, index, self) =>
+      index ===
+      self.findIndex((v) => v.youtubeVideoId === video.youtubeVideoId),
+  );
+
+  return uniqueVideos;
+}
+
+/*
+  BUSCA PLAYLIST
+*/
+
+export async function buscarPlaylist(playlistId: string) {
+  const { data } = await axios.get(`${BASE}/playlists`, {
     params: {
       part: "snippet",
 
-      q: termoEducacional,
-
-      videoDuration: "medium",
-
-      type: "video",
-
-      maxResults: 40,
-
-      relevanceLanguage: "pt",
-
-      regionCode: "BR",
-
-      safeSearch: "strict",
+      id: playlistId,
 
       key: KEY,
     },
   });
 
-  /*
-    FILTRO DE QUALIDADE
-  */
+  return data.items?.[0] ?? null;
+}
 
-  const filtered = data.items.filter((item: any) => {
-    const title = item.snippet.title.toLowerCase();
+/*
+  BUSCA VÍDEOS DA PLAYLIST
+*/
 
-    const channel = item.snippet.channelTitle;
+export async function buscarVideosPlaylist(playlistId: string) {
+  const { data } = await axios.get(`${BASE}/playlistItems`, {
+    params: {
+      part: "snippet",
 
-    /*
-          REMOVE TERMOS RUINS
-        */
+      playlistId,
 
-    const hasBlocked = blockedTerms.some((term) => title.includes(term));
+      maxResults: 50,
 
-    if (hasBlocked) {
-      return false;
-    }
-
-    /*
-          CANAIS APROVADOS
-        */
-
-    return isApprovedChannel(channel);
+      key: KEY,
+    },
   });
 
-  /*
-    FORMATA RETORNO
-  */
-
-  return filtered.map((item: any) => ({
-    youtubeVideoId: item.id.videoId,
-
-    titulo: item.snippet.title,
-
-    canal: item.snippet.channelTitle,
-
-    thumbnail: item.snippet.thumbnails.high.url,
-
-    descricao: item.snippet.description,
-
-    categoria: detectCategory(item.snippet.title),
-  }));
+  return data.items ?? [];
 }
 
-export async function buscarPlaylist(
-  playlistId: string
-) {
-
-  const { data } =
-    await axios.get(
-      `${BASE}/playlists`,
-      {
-        params: {
-
-          part: "snippet",
-
-          id: playlistId,
-
-          key: KEY,
-        },
-      }
-    )
-
-  return data.items[0]
-}
-
-export async function buscarVideosPlaylist(
-  playlistId: string
-) {
-
-  const { data } =
-    await axios.get(
-      `${BASE}/playlistItems`,
-      {
-        params: {
-
-          part: "snippet",
-
-          playlistId,
-
-          maxResults: 50,
-
-          key: KEY,
-        },
-      }
-    )
-
-  return data.items
-}
+/*
+  DETALHES DO VÍDEO
+*/
 
 export async function buscarDetalhesVideo(videoId: string) {
   const { data } = await axios.get(`${BASE}/videos`, {
     params: {
       part: "snippet,contentDetails,statistics",
+
       id: videoId,
+
       key: KEY,
     },
   });
-  const v = data.items[0];
+
+  const v = data.items?.[0];
+
+  if (!v) {
+    return null;
+  }
+
   return {
     youtubeVideoId: v.id,
+
     titulo: v.snippet.title,
+
     canal: v.snippet.channelTitle,
-    duracaoISO: v.contentDetails.duration, // ex: "PT12M34S"
+
+    duracaoISO: v.contentDetails.duration,
+
     visualizacoes: v.statistics.viewCount,
+
     tags: v.snippet.tags ?? [],
   };
 }
+
+/*
+  VÍDEOS DO CANAL
+*/
 
 export async function buscarVideosDoCanal(channelId: string) {
   const { data } = await axios.get(`${BASE}/search`, {
     params: {
       part: "snippet",
+
       channelId,
+
       type: "video",
+
       order: "date",
+
       maxResults: 10,
+
       key: KEY,
     },
   });
-  return data.items.map((item: any) => ({
+
+  const items = data.items ?? [];
+
+  return items.map((item: any) => ({
     youtubeVideoId: item.id.videoId,
+
     titulo: item.snippet.title,
-    thumbnail: item.snippet.thumbnails.high.url,
+
+    thumbnail:
+      item.snippet?.thumbnails?.high?.url ||
+      item.snippet?.thumbnails?.medium?.url ||
+      "",
+
+    descricao: item.snippet.description,
   }));
 }

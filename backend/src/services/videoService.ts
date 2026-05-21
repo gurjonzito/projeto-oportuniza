@@ -1,229 +1,155 @@
 import {
   findCacheByTerm,
   createCache,
-  updateCache
-} from '../repositories/buscaCacheRepository'
+  updateCache,
+} from "../repositories/buscaCacheRepository";
 
 import {
   findVideoByYoutubeId,
   createVideo,
-  findVideosByIds
-} from '../repositories/videoRepository'
+  findVideosByIds,
+} from "../repositories/videoRepository";
 
-import {
-  findCanalByYoutubeId,
-  createCanal
-} from '../repositories/canalRepository'
+import { findCanalByYoutubeId } from "../repositories/canalRepository";
 
-import { buscarVideos }
-  from './youtubeService'
+import { buscarVideos } from "./youtubeService";
 
-export async function searchVideos(
-  query: string
-) {
-
+export async function searchVideos(query: string) {
   /*
     DATA ATUAL
   */
 
-  const now = new Date()
+  const now = new Date();
 
   /*
     1. VERIFICA CACHE
   */
 
-  const cache =
-    await findCacheByTerm(query)
+  const cache = await findCacheByTerm(query);
 
   /*
-    2. CACHE EXISTE E ESTÁ VÁLIDO
+    2. CACHE VÁLIDO
   */
 
-  if (
-    cache &&
-    cache.expiraEm &&
-    cache.expiraEm > now
-  ) {
-
-    console.log('CACHE VÁLIDO')
+  if (cache && cache.expiraEm && cache.expiraEm > now) {
+    console.log("CACHE VÁLIDO");
 
     /*
-      BUSCA VÍDEOS PELOS IDS
+      BUSCA VÍDEOS SALVOS
     */
 
-    const cachedVideos =
-      await findVideosByIds(
-        cache.resultadoIds
-      )
+    const cachedVideos = await findVideosByIds(cache.resultadoIds);
 
-    return cachedVideos
+    return cachedVideos;
   }
 
-  console.log(
-    'CACHE EXPIRADO OU INEXISTENTE'
-  )
+  console.log("CACHE EXPIRADO OU INEXISTENTE");
 
   /*
-    3. CHAMA YOUTUBE API
+    3. BUSCA YOUTUBE
   */
 
-  const youtubeVideos =
-    await buscarVideos(query)
+  const youtubeVideos = await buscarVideos(query);
 
-  const savedVideos = []
+  const savedVideos = [];
 
   /*
     4. PERCORRE VÍDEOS
   */
 
   for (const item of youtubeVideos) {
-
-    const videoId =
-      item.id.videoId
-
-    const snippet =
-      item.snippet
-
     /*
-      5. VERIFICA SE CANAL EXISTE
+      VERIFICA CANAL — ignora vídeos de canais não cadastrados
     */
 
-    let canal =
-      await findCanalByYoutubeId(
-        snippet.channelId
-      )
-
-    /*
-      6. CRIA CANAL SE NÃO EXISTIR
-    */
+    const canal = await findCanalByYoutubeId(item.channelId);
 
     if (!canal) {
+      console.log(`Canal ignorado (não cadastrado): ${item.canal}`);
 
-      canal = await createCanal({
-
-        youtubeChannelId:
-          snippet.channelId,
-
-        nome:
-          snippet.channelTitle,
-
-        descricao: '',
-
-        thumbnailUrl:
-          snippet.thumbnails.high.url
-      })
+      continue;
     }
 
     /*
-      7. VERIFICA SE VÍDEO EXISTE
+      VERIFICA VÍDEO
     */
 
-    let video =
-      await findVideoByYoutubeId(
-        videoId
-      )
+    let video = await findVideoByYoutubeId(item.youtubeVideoId);
 
     /*
-      8. CRIA VÍDEO SE NÃO EXISTIR
+      CRIA VÍDEO
     */
 
     if (!video) {
-
       video = await createVideo({
+        youtubeVideoId: item.youtubeVideoId,
 
-        youtubeVideoId:
-          videoId,
+        canalId: canal.id,
 
-        canalId:
-          canal.id,
+        titulo: item.titulo,
 
-        titulo:
-          snippet.title,
+        descricao: item.descricao,
 
-        descricao:
-          snippet.description,
-
-        thumbnailUrl:
-          snippet.thumbnails.high.url,
+        thumbnailUrl: item.thumbnail,
 
         tags: [],
 
-        publicadoEm:
-          new Date(
-            snippet.publishedAt
-          ),
+        publicadoEm: new Date(item.publishedAt),
 
-        cacheExpiraEm:
-          new Date(
-            Date.now() +
-            7 * 24 * 60 * 60 * 1000
-          )
-      })
+        cacheExpiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
     }
 
-    savedVideos.push(video)
+    savedVideos.push(video);
   }
 
   /*
-    9. IDS DOS VÍDEOS
+    5. NENHUM VÍDEO DOS CANAIS CADASTRADOS
   */
 
-  const resultIds =
-    savedVideos.map(
-      video => video.id
-    )
+  if (savedVideos.length === 0) {
+    console.log("Nenhum vídeo encontrado dos canais cadastrados");
+
+    return [];
+  }
 
   /*
-    10. ATUALIZA CACHE
+    6. IDS DOS VÍDEOS
+  */
+
+  const resultIds = savedVideos.map((video) => video.id);
+
+  /*
+    7. ATUALIZA CACHE
   */
 
   if (cache) {
+    await updateCache(cache.id, {
+      resultadoIds: resultIds,
 
-    await updateCache(
-      cache.id,
-      {
+      buscadoEm: now,
 
-        resultadoIds:
-          resultIds,
-
-        buscadoEm:
-          now,
-
-        expiraEm:
-          new Date(
-            Date.now() +
-            7 * 24 * 60 * 60 * 1000
-          )
-      }
-    )
-
+      expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
   } else {
-
     /*
-      11. CRIA CACHE
+      8. CRIA CACHE
     */
 
     await createCache({
-
       termo: query,
 
-      resultadoIds:
-        resultIds,
+      resultadoIds: resultIds,
 
-      buscadoEm:
-        now,
+      buscadoEm: now,
 
-      expiraEm:
-        new Date(
-          Date.now() +
-          7 * 24 * 60 * 60 * 1000
-        )
-    })
+      expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    });
   }
 
   /*
-    12. RETORNA VÍDEOS
+    9. RETORNA
   */
 
-  return savedVideos
+  return savedVideos;
 }
