@@ -69,10 +69,9 @@ export default function Contato() {
               <label className="text-sm">
                 Seu nome *
               </label>
-
               <input
                 type="text"
-                className="w-full mt-1 p-3 rounded bg-gray-200 outline-none focus:ring-2 focus:ring-blue-400"
+                className="input-field w-full mt-1 p-3 rounded outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
 
@@ -80,10 +79,9 @@ export default function Contato() {
               <label className="text-sm">
                 Seu melhor e-mail *
               </label>
-
               <input
                 type="email"
-                className="w-full mt-1 p-3 rounded bg-gray-200 outline-none focus:ring-2 focus:ring-blue-400"
+                className="input-field w-full mt-1 p-3 rounded outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
 
@@ -91,10 +89,9 @@ export default function Contato() {
               <label className="text-sm">
                 Escreva sua mensagem *
               </label>
-
               <textarea
                 rows={5}
-                className="w-full mt-1 p-3 rounded bg-gray-200 outline-none resize-none focus:ring-2 focus:ring-blue-400"
+                className="input-field w-full mt-1 p-3 rounded outline-none resize-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
 

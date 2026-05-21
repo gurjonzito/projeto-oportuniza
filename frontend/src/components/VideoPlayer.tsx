@@ -7,9 +7,9 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ videoId, title }: VideoPlayerProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
   const storageKey = `video-progress-${videoId}`;
 
-  // Recupera tempo salvo
   const getSavedTime = () => {
     const saved = localStorage.getItem(storageKey);
     return saved ? parseFloat(saved) : 0;
@@ -17,7 +17,7 @@ export default function VideoPlayer({ videoId, title }: VideoPlayerProps) {
 
   const startTime = getSavedTime();
 
-  // Solicita tempo atual a cada 5 segundos
+  // tenta salvar progresso
   useEffect(() => {
     const interval = setInterval(() => {
       const iframe = iframeRef.current;
@@ -36,7 +36,7 @@ export default function VideoPlayer({ videoId, title }: VideoPlayerProps) {
     return () => clearInterval(interval);
   }, []);
 
-  // Escuta resposta da API do YouTube
+  // escuta mensagens
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (typeof event.data !== "string") return;
@@ -51,13 +51,22 @@ export default function VideoPlayer({ videoId, title }: VideoPlayerProps) {
           );
         }
       } catch {
-        // ignora mensagens inválidas
+        // ignora
       }
     };
 
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
   }, [storageKey]);
+
+  // 🔥 proteção contra ID inválido
+  if (!videoId) {
+    return (
+      <div className="text-white p-4">
+        Vídeo não encontrado (ID inválido)
+      </div>
+    );
+  }
 
   return (
     <div className="w-full rounded-2xl overflow-hidden shadow-xl">

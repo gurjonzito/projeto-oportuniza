@@ -45,7 +45,7 @@ export default function Navbar() {
           {/* Botão COMEÇAR Desktop */}
           <button
             onClick={() => navigate(`/trilhas`)}
-            className="hidden md:flex bg-[#23A6F0] text-white px-6 py-3 rounded-md font-semibold hover:brightness-110 transition"
+            className="hidden md:flex bg-[#23A6F0] text-white px-6 py-3 rounded-md font-semibold hover:brightness-110 transition cursor-pointer"
           >
             COMEÇAR →
           </button>

@@ -88,6 +88,7 @@ export default function Videos() {
           key={video.id}
           title={video.title}
           thumbnail={video.thumbnail}
+          videoId={video.videoId}
           channel={video.channel}
           duration={video.duration}
         />

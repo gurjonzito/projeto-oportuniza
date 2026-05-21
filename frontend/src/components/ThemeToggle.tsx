@@ -27,7 +27,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="p-2 rounded-md hover:bg-white/10 transition"
+      className="p-2 rounded-md hover:bg-white/10 transition cursor-pointer"
       style={{ color: "var(--text-color)" }}
     >
       {dark ? <Sun size={20} /> : <Moon size={20} />}

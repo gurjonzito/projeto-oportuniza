@@ -25,7 +25,11 @@ export default function LegalPage({ title, children, lastModified }: LegalPagePr
         >
           {children}
 
-          {lastModified}
+         {lastModified && (
+            <div className="mt-8 pt-4 text-sm opacity-70 border-t" style={{ borderColor: "var(--text-color)" }}>
+              Última atualização: {lastModified}
+            </div>
+          )}
         </div>
       </div>
     </div>
