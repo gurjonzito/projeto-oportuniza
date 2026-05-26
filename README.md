@@ -1,73 +1,92 @@
-# React + TypeScript + Vite
+<p align="center">
+  <img alt="GitHub language count" src="https://img.shields.io/github/languages/count/gurjonzito/projeto-oportuniza?color=%2304D361">
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+  <img alt="Repository size" src="https://img.shields.io/github/repo-size/gurjonzito/projeto-oportuniza">
+  
+  <a href="https://github.com/gurjonzito/projeto-oportuniza/commits/master">
+    <img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/gurjonzito/projeto-oportuniza">
+  </a>
+    
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-brightgreen">
 
-Currently, two official plugins are available:
+  <img alt="React" src="https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB">
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white">
 
-## React Compiler
+  <img alt="NodeJS" src="https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white">
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white">
 
-## Expanding the ESLint configuration
+  <img alt="TailwindCSS" src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white">
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white">
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+  <img alt="Prisma" src="https://img.shields.io/badge/Prisma-2D3748?style=for-the-badge&logo=prisma&logoColor=white">
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+</p>
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+<details>
+  <summary>Table of contents</summary>
+  <ol>
+    <li><a href="#about">About</a></li>
+    <li><a href="#technologies">Technologies</a></li>
+    <li><a href="#screenshots">Screenshots</a></li>
+    <li><a href="#development">Development</a></li>
+    <li><a href="#license">License</a></li>
+  </ol>
+</details>
+
+## About
+
+Oportuniza is a Full Stack web platform developed as a Final Course Project (TCC) for the Bachelor's Degree in Information Systems.
+The project was created with the purpose of helping young people in their professional development through a curated educational video platform, bringing together organized and accessible content focused on employability, technology, professional skills and career growth.
+
+---
+
+## Technologies
+
+### Frontend
+
+* [![React][React]][React-url]
+* [![Vite][Vite]][Vite-url]
+* [![TypeScript][TypeScript]][TypeScript-url]
+* [![TailwindCSS][TailwindCSS]][TailwindCSS-url]
+
+### Backend
+
+* [![NodeJS][NodeJS]][NodeJS-url]
+* [![Prisma][Prisma]][Prisma-url]
+
+### Database
+
+* [![PostgreSQL][PostgreSQL]][PostgreSQL-url]
+
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="./assets/home.png" width="250"/>
+    </td>
+    <td align="center">
+      <img src="./assets/contact.png" width="250"/>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Development
+
+Clone the repository:
+
+```bash
+git clone https://github.com/gurjonzito/projeto-oportuniza.git
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## License
+Distributed under the MIT License. See LICENSE.md for more information.
