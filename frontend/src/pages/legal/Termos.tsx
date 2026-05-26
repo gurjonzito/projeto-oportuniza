@@ -1,5 +1,5 @@
 import LegalPage from "../../components/LegalPage"
-import lastModifiedJson from "./lastModified/termos.json"
+import lastModifiedJson from "./lastModified/Termos.json"
 
 export default function Termos() {
   const dataFormatada = new Date(lastModifiedJson.date).toLocaleDateString(

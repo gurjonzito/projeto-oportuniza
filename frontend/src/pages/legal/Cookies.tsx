@@ -1,5 +1,5 @@
 import LegalPage from "../../components/LegalPage"
-import lastModifiedJson from "./lastModified/cookies.json"
+import lastModifiedJson from "./lastModified/Cookies.json"
 
 export default function Cookies() {
   const dataFormatada = new Date(lastModifiedJson.date).toLocaleDateString(
