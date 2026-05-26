@@ -1,5 +1,5 @@
 import LegalPage from "../../components/LegalPage"
-import lastModifiedJson from "./lastModified/Seguranca.json"
+import lastModifiedJson from "./lastModified/seguranca.json"
 
 export default function Seguranca() {
   const dataFormatada = new Date(lastModifiedJson.date).toLocaleDateString(
