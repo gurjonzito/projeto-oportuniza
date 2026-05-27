@@ -2,8 +2,15 @@ import { prisma } from '../config/prisma'
 
 export async function findVideoByYoutubeId(youtubeVideoId: string) {
   return prisma.video.findUnique({
-    where: {
-      youtubeVideoId
+    where: { youtubeVideoId }
+  })
+}
+
+export async function findVideoByYoutubeIdWithDetails(youtubeVideoId: string) {
+  return prisma.video.findUnique({
+    where: { youtubeVideoId },
+    include: {
+      canal: { select: { nome: true } }
     }
   })
 }
@@ -23,24 +30,16 @@ export async function searchVideosByTitle(query: string) {
 }
 
 export async function createVideo(data: any) {
-  return prisma.video.create({
-    data
-  })
+  return prisma.video.create({ data })
 }
 
-export async function findVideosByIds(
-  ids: string[]
-) {
-
+export async function findVideosByIds(ids: string[]) {
   return prisma.video.findMany({
     where: {
-      id: {
-        in: ids
-      }
+      id: { in: ids }
     },
-
     include: {
       canal: true
     }
-  });
+  })
 }

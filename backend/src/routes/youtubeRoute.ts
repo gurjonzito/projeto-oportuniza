@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import { buscarVideos, buscarDetalhesVideo, buscarVideosDoCanal } from '../services/youtubeService'
+import { findVideoByYoutubeIdWithDetails } from '../repositories/videoRepository'
 
 const router = Router()
 
@@ -14,8 +15,34 @@ router.get('/buscar', async (req, res, next) => {
 
 router.get('/detalhes/:videoId', async (req, res, next) => {
   try {
-    const detalhes = await buscarDetalhesVideo(req.params.videoId)
-    res.json(detalhes)
+    const { videoId } = req.params
+
+    // 1. Busca no banco
+    const videoBanco = await findVideoByYoutubeIdWithDetails(videoId)
+
+    if (videoBanco) {
+      return res.json({
+        youtubeVideoId: videoBanco.youtubeVideoId,
+        titulo: videoBanco.titulo,
+        canal: videoBanco.canal?.nome ?? '',
+        duracaoSegundos: videoBanco.duracaoSegundos ?? null,
+      })
+    }
+
+    // 2. Não achou no banco → busca no YouTube
+    const detalhesYT = await buscarDetalhesVideo(videoId)
+
+    if (!detalhesYT) {
+      return res.status(404).json({ erro: 'Vídeo não encontrado' })
+    }
+
+    return res.json({
+      youtubeVideoId: detalhesYT.youtubeVideoId,
+      titulo: detalhesYT.titulo,
+      canal: detalhesYT.canal,
+      duracaoSegundos: null, // YouTube retorna ISO, não segundos
+      duracaoISO: detalhesYT.duracaoISO ?? '',
+    })
   } catch (err) { next(err) }
 })
 

@@ -15,17 +15,9 @@ export default function TrailVideos() {
 
   useEffect(() => {
     if (!slug) return;
-
-    console.log("SLUG RECEBIDO:", slug);
-
     getTrilhaBySlug(slug)
-      .then((data) => {
-        console.log("TRILHA RECEBIDA:", data);
-        setTrail(data);
-      })
-      .catch((err) => {
-        console.error("ERRO AO BUSCAR TRILHA:", err);
-      })
+      .then((data) => setTrail(data))
+      .catch((err) => console.error("ERRO AO BUSCAR TRILHA:", err))
       .finally(() => setLoading(false));
   }, [slug]);
 
@@ -43,6 +35,22 @@ export default function TrailVideos() {
     videos.length > 0
       ? Math.round((watched.size / videos.length) * 100)
       : 0;
+
+  // Monta lista para passar ao player (anterior/próximo)
+  const trilhaVideos = videos.map((item) => ({
+    youtubeVideoId: item.video.youtubeVideoId,
+    titulo: item.video.titulo,
+  }));
+
+  function abrirVideo(youtubeVideoId: string, index: number) {
+    navigate(`/player/${youtubeVideoId}`, {
+      state: {
+        trilhaTitulo: trail?.titulo ?? "",
+        trilhaVideos,
+        currentIndex: index,
+      },
+    });
+  }
 
   if (loading) {
     return (
@@ -87,10 +95,7 @@ export default function TrailVideos() {
                 style={{ width: `${progress}%` }}
               />
             </div>
-
-            <span className="text-cyan-400 text-xs">
-              {progress}%
-            </span>
+            <span className="text-cyan-400 text-xs">{progress}%</span>
           </div>
         </div>
       </div>
@@ -98,69 +103,50 @@ export default function TrailVideos() {
       {/* LISTA */}
       <div className="max-w-3xl mx-auto px-5 pt-6">
         <ul className="flex flex-col gap-3">
-
           {videos.map((item, idx) => {
+            const videoId = item.video.youtubeVideoId;
+            const isWatched = watched.has(videoId);
 
-  const videoId = item.video.youtubeVideoId;
+            return (
+              <li
+                key={item.video.id}
+                onClick={() => abrirVideo(videoId, idx)}
+                className="group flex items-center gap-4 rounded-2xl border px-5 py-4 cursor-pointer bg-[#182f6a]/60 border-white/9"
+              >
+                <span className="text-sm text-white/30">{idx + 1}</span>
 
-  return (
-    <li
-      key={item.video.id}
-      onClick={() => navigate(`/player/${videoId}`)}
-      className="
-        group
-        flex
-        items-center
-        gap-4
-        rounded-2xl
-        border
-        px-5
-        py-4
-        cursor-pointer
-        bg-[#182f6a]/60
-        border-white/9
-      "
-    >
+                <button className="w-10 h-10 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center cursor-pointer">
+                  <Play size={15} fill="currentColor" />
+                </button>
 
-      <span className="text-sm text-white/30">
-        {idx + 1}
-      </span>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{item.video.titulo}</p>
 
-      <button className="w-10 h-10 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center cursor-pointer">
-        <Play size={15} fill="currentColor" />
-      </button>
+                  <div className="flex items-center gap-3 mt-1">
+                    {item.video.canal && (
+                      <span className="flex items-center gap-1 text-xs text-white/40">
+                        <User size={10} />
+                        {item.video.canal.nome}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-      <div className="flex-1">
-        <p className="text-sm font-medium">
-          {item.video.titulo}
-        </p>
-
-        <div className="flex items-center gap-3 mt-1">
-
-          {item.video.canal && (
-            <span className="flex items-center gap-1 text-xs text-white/40">
-              <User size={10} />
-              {item.video.canal.nome}
-            </span>
-          )}
-
-        </div>
-      </div>
-
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          toggleWatched(videoId); // 🔥 CORRETO
-        }}
-        className="text-white/20 cursor-pointer"
-      >
-        <CheckCircle size={18} />
-      </button>
-
-    </li>
-  );
-})}
-
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleWatched(videoId);
+                  }}
+                  className="cursor-pointer"
+                >
+                  <CheckCircle
+                    size={18}
+                    className={isWatched ? "text-cyan-400" : "text-white/20"}
+                  />
+                </button>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>
