@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import api from "../services/api";
 
 interface VideoDetails {
   titulo: string;
@@ -61,24 +62,23 @@ export default function Player() {
   const [details, setDetails] = useState<VideoDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    setDetails(null);
+useEffect(() => {
+  if (!id) return;
+  setLoading(true);
+  setDetails(null);
 
-    fetch(`/api/youtube/detalhes/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setDetails({
-          titulo: data.titulo ?? "",
-          canal: data.canal ?? "",
-          duracaoSegundos: data.duracaoSegundos ?? null,
-          duracaoISO: data.duracaoISO ?? null,
-        });
-      })
-      .catch(() => setDetails(null))
-      .finally(() => setLoading(false));
-  }, [id]);
+  api.get(`/youtube/detalhes/${id}`)
+    .then(({ data }) => {
+      setDetails({
+        titulo: data.titulo ?? "",
+        canal: data.canal ?? "",
+        duracaoSegundos: data.duracaoSegundos ?? null,
+        duracaoISO: data.duracaoISO ?? null,
+      });
+    })
+    .catch(() => setDetails(null))
+    .finally(() => setLoading(false));
+}, [id]);
 
   function goTo(index: number) {
     const video = trilhaVideos[index];
@@ -105,7 +105,7 @@ export default function Player() {
           <button
             onClick={() => goTo(currentIndex - 1)}
             disabled={!hasPrev}
-            className="flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            className="shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
             aria-label="Vídeo anterior"
           >
             <ChevronLeft size={28} />
@@ -118,7 +118,7 @@ export default function Player() {
           <button
             onClick={() => goTo(currentIndex + 1)}
             disabled={!hasNext}
-            className="flex-shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition"
+            className="shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
             aria-label="Próximo vídeo"
           >
             <ChevronRight size={28} />

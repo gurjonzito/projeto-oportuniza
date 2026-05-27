@@ -1,46 +1,38 @@
 import express from "express";
-
 import cors from "cors";
-
 import playlistRoutes from "./routes/playlistRoute";
-
 import { videoRoutes } from "./routes/videoRoute";
+import { youtubeRoutes } from "./routes/youtubeRoute";
+import { categoriaRoutes } from "./routes/categoriaRoute";
 
 const app = express();
 
-/*
-  CORS
-*/
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL,
+];
 
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
   }),
 );
 
-/*
-  JSON
-*/
-
 app.use(express.json());
 
-/*
-  ROTAS
-*/
-
 app.use("/playlist", playlistRoutes);
-
 app.use("/videos", videoRoutes);
-
-/*
-  HEALTH CHECK
-*/
+app.use("/youtube", youtubeRoutes);
+app.use("/categorias", categoriaRoutes);
 
 app.get("/", (_, res) => {
-  return res.json({
-    status: "OK",
-    message: "API Oportuniza funcionando",
-  });
+  return res.json({ status: "OK", message: "API Oportuniza funcionando" });
 });
 
 export default app;

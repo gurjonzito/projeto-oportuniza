@@ -1,25 +1,22 @@
 import { useEffect, useState } from "react";
-
 import Search from "../components/Search";
-
 import VideoCard from "../components/VideoCard";
-
 import type { Trilha } from "../types/trilha";
-
 import { getTrilhas } from "../services/trilhaService";
+import { getCategorias } from "../services/categoriaService";
 
 export default function Trilhas() {
   const [trilhas, setTrilhas] = useState<Trilha[]>([]);
-
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(["todos"]);
 
   useEffect(() => {
-    getTrilhas()
-      .then(setTrilhas)
-
-      .finally(() => {
-        setLoading(false);
-      });
+    Promise.all([getTrilhas(), getCategorias()])
+      .then(([trilhasData, categoriasData]) => {
+        setTrilhas(trilhasData);
+        setCategories(categoriasData);
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -28,14 +25,12 @@ export default function Trilhas() {
       loading={loading}
       placeholder="Buscar trilhas..."
       itemsPerPage={6}
-      categories={["todos", "emprego", "tecnologia", "educação", "finanças"]}
+      categories={categories}
       filterFn={(trilha, search, selectedCategories) => {
         const titulo = trilha.titulo || "";
-
         const categoria = trilha.categoria?.nome || "";
 
         const matchSearch = titulo.toLowerCase().includes(search.toLowerCase());
-
         const matchFilter =
           selectedCategories.length === 0 ||
           selectedCategories.includes("todos") ||

@@ -1,69 +1,38 @@
 import { useEffect, useState } from "react";
-
 import Search from "../components/Search";
-
 import VideoCard from "../components/VideoCard";
-
 import type { Video } from "../types/video";
-
 import { getVideos, searchVideos } from "../services/videoService";
+import { getCategorias } from "../services/categoriaService";
 
 export default function Videos() {
   const [videos, setVideos] = useState<Video[]>([]);
-
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<string[]>(["todos"]);
 
-  /*
-    CARREGA VÍDEOS
-  */
-
+  // Carrega vídeos e categorias juntos
   useEffect(() => {
-    getVideos()
-      .then((data) => {
-        setVideos(data);
+    Promise.all([getVideos(), getCategorias()])
+      .then(([videosData, categoriasData]) => {
+        setVideos(videosData);
+        setCategories(categoriasData);
       })
-
-      .catch((error) => {
-        console.error(error);
-      })
-
-      .finally(() => {
-        setLoading(false);
-      });
+      .catch((error) => console.error(error))
+      .finally(() => setLoading(false));
   }, []);
-
-  /*
-    PESQUISA BACKEND
-  */
 
   async function handleSearch(query: string, categories: string[]) {
     setLoading(true);
 
     try {
-      /*
-        SEM PESQUISA
-      */
-
       if (!query && (categories.length === 0 || categories.includes("todos"))) {
         const data = await getVideos();
-
         setVideos(data);
-
         return;
       }
 
-      /*
-        PEGA CATEGORIA
-      */
-
       const category = categories.find((c) => c !== "todos");
-
-      /*
-        BUSCA API
-      */
-
       const data = await searchVideos(query || "", category);
-
       setVideos(data);
     } catch (error) {
       console.error(error);
@@ -72,9 +41,6 @@ export default function Videos() {
     }
   }
 
-  console.log(videos);
-  console.log(loading);
-
   return (
     <Search<Video>
       items={videos}
@@ -82,7 +48,7 @@ export default function Videos() {
       onSearch={handleSearch}
       placeholder="O que você quer aprender hoje?"
       itemsPerPage={6}
-      categories={["todos", "emprego", "tecnologia", "educação", "finanças"]}
+      categories={categories}
       renderItem={(video) => (
         <VideoCard
           key={video.id}
