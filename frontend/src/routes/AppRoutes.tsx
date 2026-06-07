@@ -1,5 +1,7 @@
 import { Routes, Route } from "react-router-dom";
+
 import MainLayout from "../layout/MainLayout";
+import AdminLayout from "../layout/AdminLayout";
 
 import Home from "../pages/Home";
 import Sobre from "../pages/Sobre";
@@ -9,16 +11,24 @@ import Contato from "../pages/Contato";
 import Player from "../pages/Player";
 import Mobile from "../pages/Mobile";
 import Playlist from "../pages/TrilhaDetalhe";
+import Integracoes from "../pages/Integracoes";
+
 import Seguranca from "../pages/legal/Seguranca";
 import Termos from "../pages/legal/Termos";
 import Cookies from "../pages/legal/Cookies";
 import Privacidade from "../pages/legal/Privacidade";
-import Integracoes from "../pages/Integracoes";
+
+import AdminOverview from "../pages/admin/AdminOverview";
+import AdminCanais from "../pages/admin/AdminCanais";
+import AdminVideos from "../pages/admin/AdminVideos";
+import AdminTrilhas from "../pages/admin/AdminTrilhas";
+import AdminCategorias from "../pages/admin/AdminCategorias";
 
 export default function AppRoutes() {
   return (
-    <MainLayout>
-      <Routes>
+    <Routes>
+      {/* Site */}
+      <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/trilhas" element={<Trilhas />} />
@@ -27,12 +37,21 @@ export default function AppRoutes() {
         <Route path="/player/:id" element={<Player />} />
         <Route path="/mobile" element={<Mobile />} />
         <Route path="/trilhas/:slug" element={<Playlist />} />
+        <Route path="/integracoes" element={<Integracoes />} />
         <Route path="/seguranca" element={<Seguranca />} />
         <Route path="/termos" element={<Termos />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/privacidade" element={<Privacidade />} />
-        <Route path="/integracoes" element={<Integracoes />} />
-      </Routes>
-    </MainLayout>
+      </Route>
+
+      {/* Admin */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminOverview />} />
+        <Route path="canais" element={<AdminCanais />} />
+        <Route path="videos" element={<AdminVideos />} />
+        <Route path="trilhas" element={<AdminTrilhas />} />
+        <Route path="categorias" element={<AdminCategorias />} />
+      </Route>
+    </Routes>
   );
 }

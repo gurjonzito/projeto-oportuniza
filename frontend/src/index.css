@@ -5,13 +5,23 @@
   --text-color: #1f2937;
   --wave-color: #f8fafc;
   --card-color: #ffffff;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
+  --text-muted: #6b7280;
+  --table-head-bg: #f9fafb;
+  --hover-bg: #eff6ff;
 }
 
 .dark {
-  --bg-color: #252B42;
+  --bg-color: #252b42;
   --text-color: #f3f4f6;
-  --wave-color: #252B42;
-  --card-color: #2E3553;
+  --wave-color: #252b42;
+  --card-color: #2e3553;
+  --card-bg: #2e3553;
+  --border-color: #3d4566;
+  --text-muted: #9ca3af;
+  --table-head-bg: #1f2540;
+  --hover-bg: #1e3a5f;
 }
 
 /* cards */
@@ -19,26 +29,64 @@
   background-color: var(--card-color);
   color: var(--text-color);
   border-radius: 1rem;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   background-color: var(--bg-color);
   color: var(--text-color);
   height: 100%;
-  font-family: 'Poppins', sans-serif;
-  transition: background-color 0.3s, color 0.3s;
+  font-family: "Poppins", sans-serif;
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 /* Adicione no seu CSS */
 .input-field {
-  background-color: color-mix(in srgb, var(--card-color) 80%, var(--text-color) 10%);
+  background-color: color-mix(
+    in srgb,
+    var(--card-color) 80%,
+    var(--text-color) 10%
+  );
   color: var(--text-color);
-  border: 1px solid rgba(0,0,0,0.1);
-  transition: background-color 0.3s, color 0.3s;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  transition:
+    background-color 0.3s,
+    color 0.3s;
 }
 
 .input-field:focus {
   outline: none;
+}
+
+.input-admin {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background-color: var(--bg-color, #f9fafb);
+  color: var(--text-color);
+  font-size: 13px;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.input-admin:focus {
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.08);
+}
+
+.input-admin:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+select.input-admin {
+  cursor: pointer;
 }
