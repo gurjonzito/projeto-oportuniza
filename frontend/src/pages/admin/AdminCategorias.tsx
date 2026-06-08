@@ -9,16 +9,12 @@ const emptyForm = { nome: "", descricao: "" };
 
 export default function AdminCategorias() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Categoria | null>(null);
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => {
-    adminApi
-      .listarCategorias()
-      .then(setCategorias)
-      .finally(() => setLoading(false));
+    adminApi.listarCategorias().then(setCategorias);
   }, []);
 
   function openNew() {
