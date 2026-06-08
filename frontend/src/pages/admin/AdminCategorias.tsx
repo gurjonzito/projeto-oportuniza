@@ -33,28 +33,32 @@ export default function AdminCategorias() {
     setModalOpen(true);
   }
 
-async function handleSave() {
-  if (!form.nome) return;
-  try {
-    if (editing) {
-      await adminApi.editarCategoria(editing.id, form);
-      setCategorias((prev) =>
-        prev.map((c) => (c.id === editing.id ? { ...editing, ...form } : c)),
-      );
-    } else {
-      const nova = await adminApi.criarCategoria(form);
-      setCategorias((prev) => [...prev, nova]);
+  async function handleSave() {
+    if (!form.nome) return;
+    try {
+      if (editing) {
+        await adminApi.editarCategoria(editing.id, form);
+        setCategorias((prev) =>
+          prev.map((c) => (c.id === editing.id ? { ...editing, ...form } : c)),
+        );
+      } else {
+        const nova = await adminApi.criarCategoria(form);
+        setCategorias((prev) => [...prev, nova]);
+      }
+      setModalOpen(false);
+    } catch (err: any) {
+      console.error("Erro ao salvar:", err?.response?.data);
     }
-    setModalOpen(false);
-  } catch (err: any) {
-    console.error("Erro ao salvar:", err?.response?.data);
   }
-}
 
   async function handleDelete(id: string) {
     if (!confirm("Remover esta categoria?")) return;
-    await adminApi.deletarCategoria(id);
-    setCategorias((prev) => prev.filter((c) => c.id !== id));
+    try {
+      await adminApi.deletarCategoria(id);
+      setCategorias((prev) => prev.filter((c) => c.id !== id));
+    } catch (err: any) {
+      alert(err?.response?.data?.erro ?? "Erro ao remover categoria.");
+    }
   }
 
   const columns: Column<Categoria>[] = [

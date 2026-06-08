@@ -117,7 +117,7 @@ export async function listarTrilhasService() {
       canal: true,
       videos: true,
     },
-    orderBy: { criadaEm: "desc" },
+    orderBy: { ordem: "asc" },
   });
 }
 

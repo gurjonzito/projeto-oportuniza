@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { importarPlaylistService, listarTrilhasService, buscarTrilhaService } from '../services/playlistService'
-import { criarTrilhaService, editarTrilhaService, deletarTrilhaService, listarTodasTrilhasService } from '../services/trilhaService'
+import { criarTrilhaService, editarTrilhaService, deletarTrilhaService, listarTodasTrilhasService, reordenarTrilhasService } from '../services/trilhaService'
 
 export async function importarPlaylist(req: Request, res: Response) {
   try {
@@ -69,5 +69,24 @@ export async function deletarTrilha(req: Request, res: Response) {
     return res.json({ ok: true })
   } catch (error: any) {
     return res.status(400).json({ error: error.message })
+  }
+}
+
+export async function reordenarTrilhas(
+  req: Request,
+  res: Response
+) {
+  try {
+    const { trilhas } = req.body
+
+    await reordenarTrilhasService(trilhas)
+
+    return res.json({
+      ok: true,
+    })
+  } catch (error: any) {
+    return res.status(400).json({
+      error: error.message,
+    })
   }
 }

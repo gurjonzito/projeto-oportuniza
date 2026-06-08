@@ -1,35 +1,41 @@
 import api from "./api";
 
-// ─── TOKEN ───────────────────────────────────────────────────────────────────
+// Habilita envio de cookies em todas as requisições
+api.defaults.withCredentials = true;
 
-export const authStorage = {
-  get: () => localStorage.getItem("admin_token"),
-  set: (token: string) => localStorage.setItem("admin_token", token),
-  remove: () => localStorage.removeItem("admin_token"),
-}
-
-// Injeta token em todas as requisições
-api.interceptors.request.use((config) => {
-  const token = authStorage.get()
-  if (token) config.headers.Authorization = `Bearer ${token}`
-  return config
-})
-
-// Redireciona para login se token expirar
+// Redireciona para login se não autenticado
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      authStorage.remove()
-      window.location.href = "/admin/login"
+    if (
+      err.response?.status === 401 &&
+      !window.location.pathname.includes("/admin/login")
+    ) {
+      window.location.href = "/admin/login";
     }
-    return Promise.reject(err)
-  }
-)
+    return Promise.reject(err);
+  },
+);
 
-export async function loginAdmin(email: string, password: string): Promise<void> {
-  const { data } = await api.post("/auth/login", { email, password })
-  authStorage.set(data.token)
+export async function loginAdmin(
+  email: string,
+  password: string,
+): Promise<void> {
+  await api.post("/auth/login", { email, password });
+  // sem localStorage — o cookie é setado automaticamente pelo browser
+}
+
+export async function logoutAdmin(): Promise<void> {
+  await api.post("/auth/logout");
+}
+
+export async function checkAuth(): Promise<boolean> {
+  try {
+    await api.get("/auth/me");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export interface Canal {
@@ -49,6 +55,7 @@ export interface Categoria {
 
 export interface Trilha {
   id: string;
+  ordem?: number;
   titulo: string;
   slug: string;
   categoriaId: string;
@@ -74,7 +81,6 @@ export interface Video {
 }
 
 export const adminApi = {
-
   // ─── CATEGORIAS ──────────────────────────────────────────────────────────
 
   async listarCategorias(): Promise<Categoria[]> {
@@ -82,12 +88,18 @@ export const adminApi = {
     return data.categorias;
   },
 
-  async criarCategoria(form: { nome: string; descricao?: string }): Promise<Categoria> {
+  async criarCategoria(form: {
+    nome: string;
+    descricao?: string;
+  }): Promise<Categoria> {
     const { data } = await api.post("/categorias", form);
     return data.categoria;
   },
 
-  async editarCategoria(id: string, form: { nome: string; descricao?: string }): Promise<void> {
+  async editarCategoria(
+    id: string,
+    form: { nome: string; descricao?: string },
+  ): Promise<void> {
     await api.put(`/categorias/${id}`, form);
   },
 
@@ -105,13 +117,13 @@ export const adminApi = {
     }));
   },
 
-async importarPlaylist(url: string, categoriaId: string): Promise<Trilha> {
-  const { data } = await api.post("/playlist/import", { url, categoriaId });
-  return {
-    ...data.trilha,
-    categoriaNome: data.trilha.categoria?.nome ?? "",
-  };
-},
+  async importarPlaylist(url: string, categoriaId: string): Promise<Trilha> {
+    const { data } = await api.post("/playlist/import", { url, categoriaId });
+    return {
+      ...data.trilha,
+      categoriaNome: data.trilha.categoria?.nome ?? "",
+    };
+  },
 
   async criarTrilha(form: Omit<Trilha, "id">): Promise<Trilha> {
     const { data } = await api.post("/playlist", form);
@@ -125,6 +137,19 @@ async importarPlaylist(url: string, categoriaId: string): Promise<Trilha> {
   async deletarTrilha(id: string): Promise<void> {
     await api.delete(`/playlist/${id}`);
   },
+
+async reordenarTrilhas(
+  trilhas: {
+    id: string;
+    ordem: number;
+  }[],
+) {
+  const { data } = await api.patch("/playlist/reorder", {
+    trilhas,
+  });
+
+  return data;
+},
 
   // ─── VÍDEOS ──────────────────────────────────────────────────────────────
 

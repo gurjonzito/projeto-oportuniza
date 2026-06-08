@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import playlistRoutes from "./routes/playlistRoute";
 import { videoRoutes } from "./routes/videoRoute";
 import { youtubeRoutes } from "./routes/youtubeRoute";
@@ -22,9 +23,11 @@ app.use(cors({
       callback(new Error("Not allowed by CORS"));
     }
   },
+  credentials: true, // necessário para cookies
 }));
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.use("/auth", authRoutes);
 app.use("/playlist", playlistRoutes);

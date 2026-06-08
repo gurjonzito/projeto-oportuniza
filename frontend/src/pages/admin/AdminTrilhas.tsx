@@ -1,9 +1,19 @@
 import { useState, useEffect } from "react";
 import { adminApi, type Trilha, type Categoria } from "../../services/adminApi";
-import { Pencil, Trash2, Star, Download } from "lucide-react";
-import AdminPageHeader from "../../components/admin/AdminPageHeader";
-import AdminTable, { type Column } from "../../components/admin/AdminTable";
+import { GripVertical, Pencil, Trash2, Download } from "lucide-react";
 import AdminModal from "../../components/admin/AdminModal";
+import AdminPageHeader from "../../components/admin/AdminPageHeader";
+
+import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
+
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
+
+import { CSS } from "@dnd-kit/utilities";
 
 const niveis = ["Iniciante", "Intermediário", "Avançado", "Todos os níveis"];
 
@@ -19,10 +29,109 @@ const emptyEditForm = {
   descricao: "",
 };
 
+function SortableRow({
+  trilha,
+  openEdit,
+  handleDelete,
+}: {
+  trilha: Trilha;
+  openEdit: (t: Trilha) => void;
+  handleDelete: (id: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transition, transform } =
+    useSortable({
+      id: trilha.id,
+    });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={{
+        ...style,
+        borderBottom: "1px solid var(--border-color, #f3f4f6)",
+      }}
+    >
+      <td
+        className="px-4 py-3"
+        style={{
+          color: "var(--text-color)",
+        }}
+      >
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing"
+          style={{
+            color: "var(--text-muted, #9ca3af)",
+          }}
+        >
+          <GripVertical size={16} />
+        </button>
+      </td>
+
+      <td className="px-4 py-3">{trilha.titulo}</td>
+
+      <td className="px-4 py-3">{trilha.categoriaNome}</td>
+
+      <td className="px-4 py-3">{trilha.nivel || "—"}</td>
+
+      <td className="px-4 py-3">{trilha.destaque ? "⭐" : "—"}</td>
+
+      <td className="px-4 py-3">
+        {trilha.ativa ? (
+          <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs">
+            Ativa
+          </span>
+        ) : (
+          <span className="px-2 py-1 rounded bg-gray-100 text-gray-500 text-xs">
+            Inativa
+          </span>
+        )}
+      </td>
+
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => openEdit(trilha)}
+            className="p-1.5 rounded-lg transition"
+            style={{
+              color: "#3b82f6",
+            }}
+          >
+            <Pencil size={14} />
+          </button>
+
+          <button
+            onClick={() => handleDelete(trilha.id)}
+            className="p-1.5 rounded-lg transition"
+            style={{
+              color: "#ef4444",
+            }}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export default function AdminTrilhas() {
   const [trilhas, setTrilhas] = useState<Trilha[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  console.log(
+    "render",
+    trilhas.map((t) => ({
+      id: t.id,
+      titulo: t.titulo,
+    })),
+  );
 
   // Modal de importação
   const [importOpen, setImportOpen] = useState(false);
@@ -36,11 +145,64 @@ export default function AdminTrilhas() {
   const [editing, setEditing] = useState<Trilha | null>(null);
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [saving, setSaving] = useState(false);
+  const [ordemAlterada, setOrdemAlterada] = useState(false);
+
+  async function handleDragEnd(event: DragEndEvent) {
+    console.log("drag end", event);
+
+    const { active, over } = event;
+
+    if (!over) return;
+
+    console.log(active.id, over.id);
+
+    if (active.id === over.id) return;
+
+    const oldIndex = trilhas.findIndex((t) => t.id === active.id);
+
+    const newIndex = trilhas.findIndex((t) => t.id === over.id);
+
+    console.log({
+      oldIndex,
+      newIndex,
+    });
+
+    const novaLista = arrayMove(trilhas, oldIndex, newIndex);
+
+    console.log(
+      "antes",
+      trilhas.map((t) => t.id),
+    );
+
+    setTrilhas(novaLista);
+    setOrdemAlterada(true);
+  }
+
+  async function handleSalvarOrdem() {
+    try {
+      await adminApi.reordenarTrilhas(
+        trilhas.map((trilha, index) => ({
+          id: trilha.id,
+          ordem: index,
+        })),
+      );
+
+      setOrdemAlterada(false);
+
+      alert("Ordem salva com sucesso!");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao salvar ordem.");
+    }
+  }
 
   useEffect(() => {
-    Promise.all([adminApi.listarTrilhas(), adminApi.listarCategorias()])
-      .then(([t, c]) => { setTrilhas(t); setCategorias(c); })
-      .finally(() => setLoading(false));
+    Promise.all([adminApi.listarTrilhas(), adminApi.listarCategorias()]).then(
+      ([t, c]) => {
+        setTrilhas(t);
+        setCategorias(c);
+      },
+    );
   }, []);
 
   // ─── IMPORTAR ──────────────────────────────────────────────────────────────
@@ -57,14 +219,22 @@ export default function AdminTrilhas() {
       setImportError("Preencha a URL e a categoria.");
       return;
     }
+
     setImporting(true);
     setImportError("");
+
     try {
-      const trilha = await adminApi.importarPlaylist(importUrl, importCategoriaId);
+      const trilha = await adminApi.importarPlaylist(
+        importUrl,
+        importCategoriaId,
+      );
+
       setTrilhas((prev) => [trilha, ...prev]);
       setImportOpen(false);
     } catch (err: any) {
-      setImportError(err?.response?.data?.error ?? "Erro ao importar playlist.");
+      setImportError(
+        err?.response?.data?.error ?? "Erro ao importar playlist.",
+      );
     } finally {
       setImporting(false);
     }
@@ -99,7 +269,9 @@ export default function AdminTrilhas() {
             ? {
                 ...t,
                 ...editForm,
-                categoriaNome: categorias.find((c) => c.id === editForm.categoriaId)?.nome ?? t.categoriaNome,
+                categoriaNome:
+                  categorias.find((c) => c.id === editForm.categoriaId)?.nome ??
+                  t.categoriaNome,
               }
             : t,
         ),
@@ -118,73 +290,81 @@ export default function AdminTrilhas() {
     setTrilhas((prev) => prev.filter((t) => t.id !== id));
   }
 
-  // ─── COLUNAS ───────────────────────────────────────────────────────────────
-
-  const columns: Column<Trilha>[] = [
-    { key: "titulo", label: "Título" },
-    { key: "categoriaNome", label: "Categoria" },
-    { key: "nivel", label: "Nível" },
-    {
-      key: "destaque",
-      label: "Destaque",
-      render: (row) => (
-        <span className={`inline-flex items-center gap-1 text-xs font-semibold ${row.destaque ? "text-yellow-600" : "text-gray-400"}`}>
-          <Star size={12} fill={row.destaque ? "currentColor" : "none"} />
-          {row.destaque ? "Sim" : "Não"}
-        </span>
-      ),
-    },
-    {
-      key: "ativa",
-      label: "Status",
-      render: (row) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${row.ativa ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-          {row.ativa ? "Ativa" : "Inativa"}
-        </span>
-      ),
-    },
-    {
-      key: "isCurated",
-      label: "Curada",
-      render: (row) => (
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${row.isCurated ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400"}`}>
-          {row.isCurated ? "Sim" : "Não"}
-        </span>
-      ),
-    },
-    {
-      key: "acoes",
-      label: "",
-      render: (row) => (
-        <div className="flex items-center gap-1">
-          <button onClick={(e) => { e.stopPropagation(); openEdit(row); }} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition">
-            <Pencil size={14} />
-          </button>
-          <button onClick={(e) => { e.stopPropagation(); handleDelete(row.id); }} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition">
-            <Trash2 size={14} />
-          </button>
-        </div>
-      ),
-    },
-  ];
-
   return (
-    <div>
+    <>
       <AdminPageHeader
         title="Trilhas"
         description="Trilhas de aprendizado organizadas por categoria."
         actions={
-          <button
-            onClick={openImport}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition"
-          >
-            <Download size={15} />
-            Importar Playlist
-          </button>
+          <div className="flex gap-2">
+            {ordemAlterada && (
+              <button
+                onClick={handleSalvarOrdem}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+              >
+                Salvar Ordem
+              </button>
+            )}
+
+            <button
+              onClick={openImport}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition"
+            >
+              <Download size={15} />
+              Importar Playlist
+            </button>
+          </div>
         }
       />
+      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <div
+          className="rounded-xl border overflow-hidden"
+          style={{
+            backgroundColor: "var(--card-bg, white)",
+            borderColor: "var(--border-color, #e5e7eb)",
+          }}
+        >
+          <table className="w-full text-sm">
+            <thead>
+              <tr
+                style={{
+                  backgroundColor: "var(--table-head-bg, #f9fafb)",
+                  borderBottom: "1px solid var(--border-color, #e5e7eb)",
+                }}
+              >
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
+                  style={{
+                    color: "var(--text-muted, #9ca3af)",
+                  }}
+                ></th>
+                <th className="px-4 py-3 text-left">Título</th>
+                <th className="px-4 py-3 text-left">Categoria</th>
+                <th className="px-4 py-3 text-left">Nível</th>
+                <th className="px-4 py-3 text-left">Destaque</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Ações</th>
+              </tr>
+            </thead>
 
-      <AdminTable columns={columns} data={trilhas} loading={loading} emptyMessage="Nenhuma trilha encontrada." />
+            <tbody>
+              <SortableContext
+                items={trilhas.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {trilhas.map((trilha) => (
+                  <SortableRow
+                    key={trilha.id}
+                    trilha={trilha}
+                    openEdit={openEdit}
+                    handleDelete={handleDelete}
+                  />
+                ))}
+              </SortableContext>
+            </tbody>
+          </table>
+        </div>
+      </DndContext>
 
       {/* Modal de importação */}
       <AdminModal
@@ -197,7 +377,10 @@ export default function AdminTrilhas() {
             <button
               onClick={() => setImportOpen(false)}
               className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
-              style={{ borderColor: "var(--border-color, #e5e7eb)", color: "var(--text-color)" }}
+              style={{
+                borderColor: "var(--border-color, #e5e7eb)",
+                color: "var(--text-color)",
+              }}
             >
               Cancelar
             </button>
@@ -206,7 +389,9 @@ export default function AdminTrilhas() {
               disabled={importing}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
             >
-              {importing && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {importing && (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
               {importing ? "Importando..." : "Importar"}
             </button>
           </>
@@ -229,7 +414,9 @@ export default function AdminTrilhas() {
             >
               <option value="">Selecionar...</option>
               {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
               ))}
             </select>
           </Field>
@@ -250,7 +437,10 @@ export default function AdminTrilhas() {
             <button
               onClick={() => setEditOpen(false)}
               className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
-              style={{ borderColor: "var(--border-color, #e5e7eb)", color: "var(--text-color)" }}
+              style={{
+                borderColor: "var(--border-color, #e5e7eb)",
+                color: "var(--text-color)",
+              }}
             >
               Cancelar
             </button>
@@ -259,7 +449,9 @@ export default function AdminTrilhas() {
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
             >
-              {saving && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {saving && (
+                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
               Salvar
             </button>
           </>
@@ -270,7 +462,9 @@ export default function AdminTrilhas() {
             <Field label="Título *">
               <input
                 value={editForm.titulo}
-                onChange={(e) => setEditForm({ ...editForm, titulo: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, titulo: e.target.value })
+                }
                 className="input-admin"
               />
             </Field>
@@ -278,36 +472,48 @@ export default function AdminTrilhas() {
           <Field label="Slug *">
             <input
               value={editForm.slug}
-              onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, slug: e.target.value })
+              }
               className="input-admin"
             />
           </Field>
           <Field label="Categoria">
             <select
               value={editForm.categoriaId}
-              onChange={(e) => setEditForm({ ...editForm, categoriaId: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, categoriaId: e.target.value })
+              }
               className="input-admin"
             >
               <option value="">Selecionar...</option>
               {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
               ))}
             </select>
           </Field>
           <Field label="Nível">
             <select
               value={editForm.nivel}
-              onChange={(e) => setEditForm({ ...editForm, nivel: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, nivel: e.target.value })
+              }
               className="input-admin"
             >
               <option value="">Selecionar...</option>
-              {niveis.map((n) => <option key={n}>{n}</option>)}
+              {niveis.map((n) => (
+                <option key={n}>{n}</option>
+              ))}
             </select>
           </Field>
           <Field label="YouTube Playlist ID">
             <input
               value={editForm.youtubePlaylistId}
-              onChange={(e) => setEditForm({ ...editForm, youtubePlaylistId: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, youtubePlaylistId: e.target.value })
+              }
               className="input-admin"
             />
           </Field>
@@ -315,7 +521,9 @@ export default function AdminTrilhas() {
             <Field label="Descrição">
               <textarea
                 value={editForm.descricao}
-                onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, descricao: e.target.value })
+                }
                 rows={2}
                 className="input-admin resize-none"
               />
@@ -323,29 +531,67 @@ export default function AdminTrilhas() {
           </div>
           <div className="col-span-2 flex items-center gap-6">
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={editForm.ativa} onChange={(e) => setEditForm({ ...editForm, ativa: e.target.checked })} className="w-4 h-4 accent-blue-600" />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>Trilha ativa</span>
+              <input
+                type="checkbox"
+                checked={editForm.ativa}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, ativa: e.target.checked })
+                }
+                className="w-4 h-4 accent-blue-600"
+              />
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>
+                Trilha ativa
+              </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={editForm.destaque} onChange={(e) => setEditForm({ ...editForm, destaque: e.target.checked })} className="w-4 h-4 accent-yellow-500" />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>Destaque</span>
+              <input
+                type="checkbox"
+                checked={editForm.destaque}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, destaque: e.target.checked })
+                }
+                className="w-4 h-4 accent-yellow-500"
+              />
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>
+                Destaque
+              </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={editForm.isCurated} onChange={(e) => setEditForm({ ...editForm, isCurated: e.target.checked })} className="w-4 h-4 accent-blue-600" />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>Curada</span>
+              <input
+                type="checkbox"
+                checked={editForm.isCurated}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, isCurated: e.target.checked })
+                }
+                className="w-4 h-4 accent-blue-600"
+              />
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>
+                Curada
+              </span>
             </label>
           </div>
         </div>
       </AdminModal>
-    </div>
+    </>
   );
-}
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-semibold" style={{ color: "var(--text-muted, #6b7280)" }}>{label}</label>
-      {children}
-    </div>
-  );
+  function Field({
+    label,
+    children,
+  }: {
+    label: string;
+    children: React.ReactNode;
+  }) {
+    return (
+      <div className="flex flex-col gap-1.5">
+        <label
+          className="text-xs font-semibold"
+          style={{ color: "var(--text-muted, #6b7280)" }}
+        >
+          {label}
+        </label>
+        {children}
+      </div>
+    );
+  }
 }

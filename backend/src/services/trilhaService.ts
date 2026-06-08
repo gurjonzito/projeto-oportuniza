@@ -1,4 +1,4 @@
-import { createTrilha, updateTrilha, deleteTrilha, getTrilhas } from '../repositories/playlistRepository'
+import { createTrilha, updateTrilha, deleteTrilha, getTrilhas, reorderTrilhas } from '../repositories/playlistRepository'
 import { slugify } from '../utils/slugify'
 
 export async function listarTodasTrilhasService() {
@@ -39,4 +39,13 @@ export async function editarTrilhaService(id: string, data: {
 
 export async function deletarTrilhaService(id: string) {
   return deleteTrilha(id)
+}
+
+export async function reordenarTrilhasService(
+  trilhas: {
+    id: string
+    ordem: number
+  }[]
+) {
+  return reorderTrilhas(trilhas)
 }

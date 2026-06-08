@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
+import { authMiddleware } from '../middleware/auth'
 
 const router = Router()
+
+const COOKIE_NAME = 'admin_token'
+const IS_PROD = process.env.NODE_ENV === 'production'
 
 router.post('/login', async (req, res) => {
   const { email, password } = req.body
@@ -18,24 +22,37 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Configuração do servidor incompleta' })
   }
 
-  console.log('RECEBIDO:', { email, password })
-  console.log('ESPERADO:', { email: adminEmail, password: adminPassword })
-  console.log('email match:', email.trim() === adminEmail.trim())
-  console.log('password match:', password.trim() === adminPassword.trim())
-  console.log('email lengths:', email.length, adminEmail.trim().length)
-  console.log('password lengths:', password.length, adminPassword.trim().length)
-
   if (email.trim() !== adminEmail.trim() || password.trim() !== adminPassword.trim()) {
     return res.status(401).json({ error: 'Credenciais inválidas' })
   }
 
   const token = jwt.sign(
     { email: adminEmail, role: 'admin' },
-    jwtSecret as string,
-    { expiresIn: '8h' }
+    jwtSecret,
+    { expiresIn: '2h' }
   )
 
-  return res.json({ token })
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,                // JS não consegue ler
+    secure: IS_PROD,               // HTTPS only em produção
+    sameSite: IS_PROD ? 'none' : 'lax', // cross-site em produção
+    maxAge: 2 * 60 * 60 * 1000, 
+  })
+
+  return res.json({ ok: true })
+})
+
+router.post('/logout', (req, res) => {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    secure: IS_PROD,
+    sameSite: IS_PROD ? 'none' : 'lax',
+  })
+  return res.json({ ok: true })
+})
+
+router.get('/me', authMiddleware, (req, res) => {
+  return res.json({ admin: (req as any).admin })
 })
 
 export { router as authRoutes }

@@ -74,6 +74,8 @@ model Categoria {
 model Trilha {
   id String @id @default(uuid())
 
+  ordem Int @default(0)
+
   categoriaId String
   categoria   Categoria @relation(fields: [categoriaId], references: [id])
 
