@@ -43,3 +43,11 @@ export async function findVideosByIds(ids: string[]) {
     }
   })
 }
+
+export async function updateVideoCurated(id: string, isCurated: boolean) {
+  return prisma.video.update({ where: { id }, data: { isCurated } })
+}
+
+export async function updateVideoTags(id: string, tags: string[]) {
+  return prisma.video.update({ where: { id }, data: { tags } })
+}

@@ -1,55 +1,53 @@
-import { Router } from "express";
-import { searchVideos } from "../services/videoService";
+import { Router } from 'express'
+import { authMiddleware } from '../middleware/auth'
+import { searchVideos } from '../services/videoService'
+import { updateVideoCurated, updateVideoTags } from '../repositories/videoRepository'
 
-const router = Router();
-
-/*
-  MAPEAMENTO
-*/
+const router = Router()
 
 function mapVideo(v: any) {
   return {
     id: v.id,
     videoId: v.youtubeVideoId,
     title: v.titulo,
-    channel: v.canal?.nome ?? "",
+    channel: v.canal?.nome ?? '',
     thumbnail: v.thumbnailUrl,
-    duration: v.duracao ?? "",
+    duration: v.duracao ?? '',
     summary: v.descricao,
-    category: v.categoria ?? "geral",
-  };
+    category: v.categoria ?? 'geral',
+    isCurated: v.isCurated,
+    tags: v.tags ?? [],
+  }
 }
 
-/*
-  GET /videos
-*/
-
-router.get("/", async (req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
-    const query = (req.query.q as string) || "mercado de trabalho jovem";
+    const query = (req.query.q as string) || 'mercado de trabalho jovem'
+    const videos = await searchVideos(query)
+    res.json({ videos: videos.map(mapVideo) })
+  } catch (err) { next(err) }
+})
 
-    const videos = await searchVideos(query);
-
-    res.json({ videos: videos.map(mapVideo) });
-  } catch (err) {
-    next(err);
-  }
-});
-
-/*
-  GET /videos/search
-*/
-
-router.get("/search", async (req, res, next) => {
+router.get('/search', async (req, res, next) => {
   try {
-    const query = (req.query.q as string) || "mercado de trabalho jovem";
+    const query = (req.query.q as string) || 'mercado de trabalho jovem'
+    const videos = await searchVideos(query)
+    res.json({ videos: videos.map(mapVideo) })
+  } catch (err) { next(err) }
+})
 
-    const videos = await searchVideos(query);
+router.patch('/:id/curated', authMiddleware, async (req, res, next) => {
+  try {
+    const video = await updateVideoCurated(req.params.id as string, req.body.isCurated)
+    res.json({ video })
+  } catch (err) { next(err) }
+})
 
-    res.json({ videos: videos.map(mapVideo) });
-  } catch (err) {
-    next(err);
-  }
-});
+router.patch('/:id/tags', authMiddleware, async (req, res, next) => {
+  try {
+    const video = await updateVideoTags(req.params.id as string, req.body.tags)
+    res.json({ video })
+  } catch (err) { next(err) }
+})
 
-export { router as videoRoutes };
+export { router as videoRoutes }

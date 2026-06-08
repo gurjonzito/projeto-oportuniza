@@ -1,29 +1,23 @@
-import { Router } from "express";
-
+import { Router } from 'express'
+import { authMiddleware } from '../middleware/auth'
 import {
   importarPlaylist,
   listarTrilhas,
   buscarTrilha,
-} from "../controllers/playlistController";
+  listarTodasTrilhas,
+  criarTrilha,
+  editarTrilha,
+  deletarTrilha,
+} from '../controllers/playlistController'
 
-const router = Router();
+const router = Router()
 
-/*
-  IMPORTAR PLAYLIST
-*/
+router.post('/import', authMiddleware, importarPlaylist)
+router.get('/admin', authMiddleware, listarTodasTrilhas)
+router.get('/', listarTrilhas)
+router.get('/:slug', buscarTrilha)
+router.post('/', authMiddleware, criarTrilha)
+router.put('/:id', authMiddleware, editarTrilha)
+router.delete('/:id', authMiddleware, deletarTrilha)
 
-router.post("/import", importarPlaylist);
-
-/*
-  LISTAR TRILHAS
-*/
-
-router.get("/", listarTrilhas);
-
-/*
-  DETALHE TRILHA
-*/
-
-router.get("/:slug", buscarTrilha);
-
-export default router;
+export default router

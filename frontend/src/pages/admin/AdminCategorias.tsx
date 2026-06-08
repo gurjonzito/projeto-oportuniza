@@ -33,8 +33,9 @@ export default function AdminCategorias() {
     setModalOpen(true);
   }
 
-  async function handleSave() {
-    if (!form.nome) return;
+async function handleSave() {
+  if (!form.nome) return;
+  try {
     if (editing) {
       await adminApi.editarCategoria(editing.id, form);
       setCategorias((prev) =>
@@ -45,7 +46,10 @@ export default function AdminCategorias() {
       setCategorias((prev) => [...prev, nova]);
     }
     setModalOpen(false);
+  } catch (err: any) {
+    console.error("Erro ao salvar:", err?.response?.data);
   }
+}
 
   async function handleDelete(id: string) {
     if (!confirm("Remover esta categoria?")) return;

@@ -21,3 +21,11 @@ export async function findCategoriaById(id: string) {
     }
   })
 }
+
+export async function updateCategoria(id: string, data: { nome?: string; descricao?: string }) {
+  return prisma.categoria.update({ where: { id }, data })
+}
+
+export async function deleteCategoria(id: string) {
+  return prisma.categoria.delete({ where: { id } })
+}

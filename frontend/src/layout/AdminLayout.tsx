@@ -1,4 +1,5 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
+import { authStorage } from "../services/adminApi";
 import {
   LayoutDashboard,
   Tv2,
@@ -69,9 +70,8 @@ export default function AdminLayout() {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  active ? "bg-[#1E40AF]" : ""
-                }`}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${active ? "bg-[#1E40AF]" : ""
+                  }`}
                 style={{
                   color,
                   backgroundColor: active ? "#1E40AF" : undefined,
@@ -79,14 +79,14 @@ export default function AdminLayout() {
                 onMouseEnter={
                   !active
                     ? (e) =>
-                        (e.currentTarget.style.backgroundColor =
-                          "var(--hover-bg)")
+                    (e.currentTarget.style.backgroundColor =
+                      "var(--hover-bg)")
                     : undefined
                 }
                 onMouseLeave={
                   !active
                     ? (e) =>
-                        (e.currentTarget.style.backgroundColor = "transparent")
+                      (e.currentTarget.style.backgroundColor = "transparent")
                     : undefined
                 }
               >
@@ -117,7 +117,10 @@ export default function AdminLayout() {
         </button>
 
         <button
-          onClick={() => navigate("/")}
+          onClick={() => {
+            authStorage.remove();
+            navigate("/admin/login");
+          }}
           className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 transition"
         >
           <LogOut size={16} />

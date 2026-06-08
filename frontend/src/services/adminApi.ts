@@ -1,5 +1,37 @@
 import api from "./api";
 
+// ─── TOKEN ───────────────────────────────────────────────────────────────────
+
+export const authStorage = {
+  get: () => localStorage.getItem("admin_token"),
+  set: (token: string) => localStorage.setItem("admin_token", token),
+  remove: () => localStorage.removeItem("admin_token"),
+}
+
+// Injeta token em todas as requisições
+api.interceptors.request.use((config) => {
+  const token = authStorage.get()
+  if (token) config.headers.Authorization = `Bearer ${token}`
+  return config
+})
+
+// Redireciona para login se token expirar
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      authStorage.remove()
+      window.location.href = "/admin/login"
+    }
+    return Promise.reject(err)
+  }
+)
+
+export async function loginAdmin(email: string, password: string): Promise<void> {
+  const { data } = await api.post("/auth/login", { email, password })
+  authStorage.set(data.token)
+}
+
 export interface Canal {
   id: string;
   nome: string;
@@ -19,12 +51,14 @@ export interface Trilha {
   id: string;
   titulo: string;
   slug: string;
-  categoriaNome: string;
+  categoriaId: string;
+  categoriaNome?: string;
   nivel?: string;
   destaque: boolean;
   ativa: boolean;
   isCurated: boolean;
   youtubePlaylistId?: string;
+  descricao?: string;
 }
 
 export interface Video {
@@ -40,49 +74,59 @@ export interface Video {
 }
 
 export const adminApi = {
+
+  // ─── CATEGORIAS ──────────────────────────────────────────────────────────
+
   async listarCategorias(): Promise<Categoria[]> {
     const { data } = await api.get("/categorias");
     return data.categorias;
   },
 
-  async criarCategoria(form: {
-    nome: string;
-    descricao?: string;
-  }): Promise<Categoria> {
-    return {
-      id: Date.now().toString(),
-      criadaEm: new Date().toISOString().split("T")[0],
-      ...form,
-    };
+  async criarCategoria(form: { nome: string; descricao?: string }): Promise<Categoria> {
+    const { data } = await api.post("/categorias", form);
+    return data.categoria;
   },
-  async editarCategoria(
-    id: string,
-    form: { nome: string; descricao?: string },
-  ): Promise<void> {
-    void id;
-    void form;
+
+  async editarCategoria(id: string, form: { nome: string; descricao?: string }): Promise<void> {
+    await api.put(`/categorias/${id}`, form);
   },
+
   async deletarCategoria(id: string): Promise<void> {
-    void id;
+    await api.delete(`/categorias/${id}`);
   },
+
+  // ─── TRILHAS ─────────────────────────────────────────────────────────────
 
   async listarTrilhas(): Promise<Trilha[]> {
-    const { data } = await api.get("/playlist");
-    return Array.isArray(data) ? data : (data.trilhas ?? []);
+    const { data } = await api.get("/playlist/admin");
+    return (data.trilhas ?? []).map((t: any) => ({
+      ...t,
+      categoriaNome: t.categoria?.nome ?? "",
+    }));
   },
+
+async importarPlaylist(url: string, categoriaId: string): Promise<Trilha> {
+  const { data } = await api.post("/playlist/import", { url, categoriaId });
+  return {
+    ...data.trilha,
+    categoriaNome: data.trilha.categoria?.nome ?? "",
+  };
+},
 
   async criarTrilha(form: Omit<Trilha, "id">): Promise<Trilha> {
-    return { id: Date.now().toString(), ...form };
-  },
-  async editarTrilha(id: string, form: Partial<Trilha>): Promise<void> {
-    void id;
-    void form;
-  },
-  async deletarTrilha(id: string): Promise<void> {
-    void id;
+    const { data } = await api.post("/playlist", form);
+    return { ...data.trilha, categoriaNome: data.trilha.categoria?.nome ?? "" };
   },
 
-  // ─── VÍDEOS ────────────────────────────────────────────────────────────────
+  async editarTrilha(id: string, form: Partial<Trilha>): Promise<void> {
+    await api.put(`/playlist/${id}`, form);
+  },
+
+  async deletarTrilha(id: string): Promise<void> {
+    await api.delete(`/playlist/${id}`);
+  },
+
+  // ─── VÍDEOS ──────────────────────────────────────────────────────────────
 
   async listarVideos(): Promise<Video[]> {
     const { data } = await api.get("/videos");
@@ -97,27 +141,30 @@ export const adminApi = {
   },
 
   async toggleCurated(id: string, value: boolean): Promise<void> {
-    void id;
-    void value;
-  },
-  async atualizarTags(id: string, tags: string[]): Promise<void> {
-    void id;
-    void tags;
+    await api.patch(`/videos/${id}/curated`, { isCurated: value });
   },
 
-  // ─── CANAIS ────────────────────────────────────────────────────────────────
+  async atualizarTags(id: string, tags: string[]): Promise<void> {
+    await api.patch(`/videos/${id}/tags`, { tags });
+  },
+
+  // ─── CANAIS ──────────────────────────────────────────────────────────────
 
   async listarCanais(): Promise<Canal[]> {
-    return [];
+    const { data } = await api.get("/canais");
+    return data.canais;
   },
+
   async criarCanal(form: Omit<Canal, "id">): Promise<Canal> {
-    return { id: Date.now().toString(), ...form };
+    const { data } = await api.post("/canais", form);
+    return data.canal;
   },
+
   async editarCanal(id: string, form: Omit<Canal, "id">): Promise<void> {
-    void id;
-    void form;
+    await api.put(`/canais/${id}`, form);
   },
+
   async deletarCanal(id: string): Promise<void> {
-    void id;
+    await api.delete(`/canais/${id}`);
   },
 };

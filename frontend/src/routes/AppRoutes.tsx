@@ -1,7 +1,9 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import MainLayout from "../layout/MainLayout";
 import AdminLayout from "../layout/AdminLayout";
+import AdminGuard from "../components/admin/AdminGuard";
+import AdminLogin from "../pages/admin/AdminLogin";
 
 import Home from "../pages/Home";
 import Sobre from "../pages/Sobre";
@@ -44,14 +46,27 @@ export default function AppRoutes() {
         <Route path="/privacidade" element={<Privacidade />} />
       </Route>
 
-      {/* Admin */}
-      <Route path="/admin" element={<AdminLayout />}>
+      {/* Login admin — fora do AdminLayout */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+
+      {/* Admin protegido */}
+      <Route
+        path="/admin"
+        element={
+          <AdminGuard>
+            <AdminLayout />
+          </AdminGuard>
+        }
+      >
         <Route index element={<AdminOverview />} />
         <Route path="canais" element={<AdminCanais />} />
         <Route path="videos" element={<AdminVideos />} />
         <Route path="trilhas" element={<AdminTrilhas />} />
         <Route path="categorias" element={<AdminCategorias />} />
       </Route>
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
