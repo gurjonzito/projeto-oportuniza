@@ -1,16 +1,21 @@
 import { BookOpen, PlayCircle, Link } from "lucide-react";
 import { useEffect, useState } from "react";
-import { getContinueWatching } from "../services/continueWatching";
 import { useNavigate } from "react-router-dom";
+
 import Card from "../components/Card";
+import {
+  getTrilhasEmAndamento,
+  removerTrilhaDaHome,
+  type TrilhaProgress,
+} from "../services/trilhaProgress";
 
 export default function Home() {
   return (
-    <div className="transition-colors">
+    <>
       <Hero />
+      <ContinueTrilhas />
       <Categorias />
-      <ContinueAprendendo />
-    </div>
+    </>
   );
 }
 
@@ -18,11 +23,16 @@ function Hero() {
   const navigate = useNavigate();
 
   return (
-    <section className="pt-20 pb-20 relative transition-colors" style={{ backgroundColor: "#1E40AF", color: "white" }}>
-      <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center text-center md:text-left">
-        {/* TEXTO */}
+    <section
+      className="pt-20 pb-20 relative transition-colors"
+      style={{
+        backgroundColor: "#1E40AF",
+        color: "white",
+      }}
+    >
+      <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
         <div>
-          <p className="text-sm text-blue-200 mb-3">
+          <p className="text-sm font-medium text-cyan-300 mb-4">
             Aprenda. Evolua. Conquiste.
           </p>
 
@@ -34,22 +44,21 @@ function Hero() {
 
           <div className="mt-8 flex gap-4 justify-center md:justify-start flex-wrap">
             <button
-              onClick={() => navigate(`/trilhas`)}
-              className="bg-[#23A6F0] text-white font-semibold px-6 py-3 rounded-lg transition hover:bg-[#4fc3f7]"
+              onClick={() => navigate("/trilhas")}
+              className="cursor-pointer bg-[#23A6F0] text-white font-semibold px-6 py-3 rounded-lg transition hover:bg-[#4fc3f7]"
             >
               Começar
             </button>
 
             <button
-              onClick={() => navigate(`/sobre`)}
-              className="border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-[#1E40AF] transition"
+              onClick={() => navigate("/sobre")}
+              className="cursor-pointer border border-white px-6 py-3 rounded-lg hover:bg-white hover:text-[#1E40AF] transition"
             >
               Saiba Mais
             </button>
           </div>
         </div>
 
-        {/* IMAGEM */}
         <div className="flex justify-center">
           <img
             src="/pics/pic-home.jpg"
@@ -58,7 +67,6 @@ function Hero() {
         </div>
       </div>
 
-      {/* CURVA */}
       <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-0">
         <svg
           className="relative block w-full h-20"
@@ -76,91 +84,215 @@ function Hero() {
   );
 }
 
-function Categorias() {
-  const itens = [
-    { titulo: "Trilhas", icon: BookOpen },
-    { titulo: "Vídeos", icon: PlayCircle },
-    { titulo: "Materiais", icon: Link },
-  ];
+function ContinueTrilhas() {
+  const navigate = useNavigate();
+
+  const [trilhas, setTrilhas] = useState<TrilhaProgress[]>([]);
+
+  useEffect(() => {
+    const trilhasEmAndamento = getTrilhasEmAndamento();
+
+    setTrilhas(trilhasEmAndamento);
+  }, []);
+
+  function removerTrilha(slug: string) {
+    removerTrilhaDaHome(slug);
+
+    setTrilhas((trilhasAtuais) =>
+      trilhasAtuais.filter((trilha) => trilha.slug !== slug)
+    );
+  }
+
+  if (trilhas.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="pb-20 pt-15 transition-colors" style={{ backgroundColor: "var(--bg-color)" }}>
-      <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-6">
-        {itens.map((item) => {
-          const Icon = item.icon;
+    <section
+      className="py-20 transition-colors"
+      style={{
+        backgroundColor: "var(--bg-color)",
+      }}
+    >
+      <div className="max-w-6xl mx-auto px-6">
+        <p
+          className="text-sm text-center"
+          style={{
+            color: "var(--text-color)",
+          }}
+        >
+          Continue aprendendo
+        </p>
 
-          return (
-            <Card key={item.titulo} className="hover:shadow-lg transition">
-              <div className="bg-green-100 text-green-600 w-12 h-12 flex items-center justify-center rounded-lg">
-                <Icon size={26} />
-              </div>
+        <h2
+          className="text-2xl md:text-3xl font-semibold text-center mt-2"
+          style={{
+            color: "var(--text-color)",
+          }}
+        >
+          Continue de onde parou
+        </h2>
 
-              <h3 className="mt-4 font-semibold text-lg" style={{ color: "var(--text-color)" }}>
-                {item.titulo}
-              </h3>
+        <p
+          className="text-sm mt-3 mb-12 text-center"
+          style={{
+            color: "var(--text-color)",
+          }}
+        >
+          Retome suas trilhas e continue evoluindo.
+        </p>
 
-              <p className="text-sm mt-2" style={{ color: "var(--text-color)" }}>
-                Conteúdos organizados para evolução gradual.
-              </p>
-            </Card>
-          );
-        })}
+        <div
+          className={
+            trilhas.length === 1
+              ? "flex justify-center"
+              : "grid md:grid-cols-2 gap-8"
+          }
+        >
+          {trilhas.map((trilha) => {
+            const progresso = Math.round(
+              (trilha.videosConcluidos / trilha.totalVideos) * 100
+            );
+
+            return (
+              <Card
+                key={trilha.slug}
+                className={
+                  trilhas.length === 1 ? "w-full max-w-xl" : ""
+                }
+              >
+                <span className="text-blue-500 text-sm font-semibold">
+                  Trilha em andamento
+                </span>
+
+                <h3
+                  className="text-xl font-semibold mt-2"
+                  style={{
+                    color: "var(--text-color)",
+                  }}
+                >
+                  {trilha.titulo}
+                </h3>
+
+                <p
+                  className="text-sm mt-2"
+                  style={{
+                    color: "var(--text-color)",
+                  }}
+                >
+                  {trilha.videosConcluidos} de {trilha.totalVideos} aulas
+                  concluídas
+                </p>
+
+                <div className="mt-5 h-2 bg-black/10 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-cyan-400 transition-all"
+                    style={{
+                      width: `${progresso}%`,
+                    }}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between mt-3">
+                  <span
+                    className="text-xs"
+                    style={{
+                      color: "var(--text-color)",
+                    }}
+                  >
+                    {progresso}% concluído
+                  </span>
+
+                  <button
+                    onClick={() => navigate(`/trilhas/${trilha.slug}`)}
+                    className="cursor-pointer border border-blue-500 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-500 hover:text-white transition"
+                  >
+                    Continuar →
+                  </button>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-black/10 flex items-center justify-between gap-4">
+                  <span
+                    className="text-xs"
+                    style={{
+                      color: "var(--text-color)",
+                    }}
+                  >
+                    Não quer continuar agora?
+                  </span>
+
+                  <button
+                    onClick={() => removerTrilha(trilha.slug)}
+                    className="cursor-pointer text-xs text-gray-500 hover:text-red-500 transition"
+                  >
+                    Remover
+                  </button>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
 }
 
-function ContinueAprendendo() {
-  const [videos, setVideos] = useState<any[]>([]);
-
-  useEffect(() => {
-    const saved = getContinueWatching();
-    setVideos(saved);
-  }, []);
-
-  if (videos.length === 0) return null;
+function Categorias() {
+  const itens = [
+    {
+      titulo: "Trilhas",
+      icon: BookOpen,
+    },
+    {
+      titulo: "Vídeos",
+      icon: PlayCircle,
+    },
+    {
+      titulo: "Materiais",
+      icon: Link,
+    },
+  ];
 
   return (
-    <section className="py-20 transition-colors" style={{ backgroundColor: "var(--bg-color)" }}>
-      <div className="max-w-6xl mx-auto px-6">
-        <p className="text-blue-500 text-sm text-center">
-          Continue aprendendo
-        </p>
+    <section
+      className="pb-20 pt-15 transition-colors"
+      style={{
+        backgroundColor: "var(--bg-color)",
+      }}
+    >
+      <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+        {itens.map((item) => {
+          const Icon = item.icon;
 
-        <h2 className="text-2xl md:text-3xl font-semibold text-center mt-2" style={{ color: "var(--text-color)" }}>
-          Continue de onde parou
-        </h2>
+          return (
+            <Card
+              key={item.titulo}
+              className="hover:shadow-lg transition"
+            >
+              <div className="bg-green-100 text-green-600 w-12 h-12 flex items-center justify-center rounded-lg">
+                <Icon size={26} />
+              </div>
 
-        <p className="text-sm mt-3 mb-12 text-center" style={{ color: "var(--text-color)" }}>
-          Retome seus estudos e continue evoluindo.
-        </p>
-
-        <div className="grid md:grid-cols-2 gap-8">
-          {videos.map((video) => (
-            <Card key={video.id} className="overflow-hidden">
-              <img
-                src={video.thumbnail}
-                className="w-full h-40 object-cover rounded-lg mb-4"
-              />
-
-              <span className="text-blue-500 text-sm font-semibold">
-                {video.category}
-              </span>
-
-              <h3 className="font-semibold mt-2" style={{ color: "var(--text-color)" }}>
-                {video.title}
+              <h3
+                className="mt-4 font-semibold text-lg"
+                style={{
+                  color: "var(--text-color)",
+                }}
+              >
+                {item.titulo}
               </h3>
 
-              <p className="text-sm mt-2" style={{ color: "var(--text-color)" }}>
-                {video.description}
+              <p
+                className="text-sm mt-2"
+                style={{
+                  color: "var(--text-color)",
+                }}
+              >
+                Conteúdos organizados para evolução gradual.
               </p>
-
-              <button className="mt-5 border border-blue-500 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-500 hover:text-white transition">
-                Continuar ▶
-              </button>
             </Card>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </section>
   );

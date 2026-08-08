@@ -8,7 +8,11 @@ interface SearchProps<T> {
 
   renderItem: (item: T) => React.ReactNode;
 
-  filterFn?: (item: T, search: string, categories: string[]) => boolean;
+  filterFn?: (
+    item: T,
+    search: string,
+    categories: string[]
+  ) => boolean;
 
   placeholder?: string;
 
@@ -18,110 +22,140 @@ interface SearchProps<T> {
 
   loading?: boolean;
 
-  onSearch?: (query: string, categories: string[]) => void | Promise<void>;
+  onSearch?: (
+    query: string,
+    categories: string[]
+  ) => void | Promise<void>;
 }
 
 export default function Search<T>({
   items = [],
-
   renderItem,
-
   filterFn,
-
   placeholder = "Pesquisar...",
-
   itemsPerPage = 6,
-
   categories = [],
-
   loading = false,
-
   onSearch,
 }: SearchProps<T>) {
   const [search, setSearch] = useState("");
 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([
-    "todos",
-  ]);
+  const [selectedCategories, setSelectedCategories] =
+    useState<string[]>([
+      "todos",
+    ]);
 
   const [page, setPage] = useState(1);
 
-  /*
-    NORMALIZA TEXTO
-  */
-
-  const normalizeText = (text: string) =>
-    String(text || "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase();
 
   /*
     TOGGLE CATEGORIA
   */
 
-  const toggleCategory = async (category: string) => {
+  const toggleCategory = async (
+    category: string
+  ) => {
     let updatedCategories: string[] = [];
 
-    /*
-        TODOS
-      */
+    const categoriesWithoutTodos =
+      categories.filter(
+        (cat) => cat !== "todos"
+      );
+
 
     if (category === "todos") {
-      updatedCategories = ["todos"];
+      updatedCategories = [
+        "todos",
+      ];
     } else {
-      const withoutTodos = selectedCategories.filter((c) => c !== "todos");
 
-      updatedCategories = selectedCategories.includes(category)
-        ? withoutTodos.filter((c) => c !== category)
-        : [...withoutTodos, category];
+      const selectedWithoutTodos =
+        selectedCategories.filter(
+          (c) => c !== "todos"
+        );
+
+
+      if (
+        selectedWithoutTodos.includes(category)
+      ) {
+        updatedCategories =
+          selectedWithoutTodos.filter(
+            (c) => c !== category
+          );
+      } else {
+        updatedCategories = [
+          ...selectedWithoutTodos,
+          category,
+        ];
+      }
+
+
+      // Se todas as categorias foram marcadas
+      // volta automaticamente para Todos
+      if (
+        updatedCategories.length ===
+        categoriesWithoutTodos.length
+      ) {
+        updatedCategories = [
+          "todos",
+        ];
+      }
+
+
+      // Se nenhuma categoria ficou marcada
+      // mantém Todos
+      if (
+        updatedCategories.length === 0
+      ) {
+        updatedCategories = [
+          "todos",
+        ];
+      }
     }
 
-    setSelectedCategories(updatedCategories);
+
+    setSelectedCategories(
+      updatedCategories
+    );
 
     setPage(1);
 
-    /*
-        BACKEND SEARCH
-      */
 
     if (onSearch) {
-      await onSearch(search, updatedCategories);
+      await onSearch(
+        search,
+        updatedCategories
+      );
     }
   };
+
 
   /*
     FILTRO
   */
 
-  const filteredItems = (items || []).filter((item) => {
-    if (filterFn) {
-      try {
-        return filterFn(item, search, selectedCategories);
-      } catch (error) {
-        console.error("Erro no filterFn:", error);
+  const filteredItems =
+    (items || []).filter((item) => {
+      if (filterFn) {
+        try {
+          return filterFn(
+            item,
+            search,
+            selectedCategories
+          );
+        } catch (error) {
+          console.error(
+            "Erro no filterFn:",
+            error
+          );
 
-        return true;
+          return true;
+        }
       }
-    }
 
-    const title = String((item as any)?.title || "");
+      return true;
+    });
 
-    const category = String((item as any)?.category || "");
-
-    const matchSearch = normalizeText(title).includes(normalizeText(search));
-
-    if (!category) {
-      return matchSearch;
-    }
-
-    const matchFilter =
-      selectedCategories.length === 0 ||
-      selectedCategories.includes("todos") ||
-      selectedCategories.includes(category);
-
-    return matchSearch && matchFilter;
-  });
 
   /*
     PAGINAÇÃO
@@ -129,23 +163,33 @@ export default function Search<T>({
 
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredItems.length / itemsPerPage),
+    Math.ceil(
+      filteredItems.length /
+      itemsPerPage
+    )
   );
 
-  /*
-    RESETA PÁGINA
-  */
 
   useEffect(() => {
-    if (page > totalPages) {
+    if (
+      page > totalPages
+    ) {
       setPage(1);
     }
-  }, [page, totalPages]);
+  }, [
+    page,
+    totalPages,
+  ]);
 
-  const displayedItems = filteredItems.slice(
-    (page - 1) * itemsPerPage,
-    page * itemsPerPage,
-  );
+
+  const displayedItems =
+    filteredItems.slice(
+      (page - 1) *
+      itemsPerPage,
+      page *
+      itemsPerPage
+    );
+
 
   return (
     <div
@@ -155,18 +199,20 @@ export default function Search<T>({
         py-10
       "
       style={{
-        backgroundColor: "var(--bg-color)",
+        backgroundColor:
+          "var(--bg-color)",
       }}
     >
-      {/* INPUT */}
+
+      {/* BUSCA */}
 
       <div
         className="
-        max-w-2xl
-        mx-auto
-        mb-6
-        relative
-      "
+          max-w-2xl
+          mx-auto
+          mb-6
+          relative
+        "
       >
         <SearchIcon
           className="
@@ -180,21 +226,24 @@ export default function Search<T>({
 
         <input
           type="text"
-          placeholder={placeholder}
+          placeholder={
+            placeholder
+          }
           value={search}
           onChange={async (e) => {
-            const value = e.target.value;
+            const value =
+              e.target.value;
 
             setSearch(value);
 
             setPage(1);
 
-            /*
-              BACKEND SEARCH
-            */
 
             if (onSearch) {
-              await onSearch(value, selectedCategories);
+              await onSearch(
+                value,
+                selectedCategories
+              );
             }
           }}
           className="
@@ -209,14 +258,15 @@ export default function Search<T>({
             transition-colors
           "
           style={{
-            backgroundColor: "var(--card-color)",
+            color:
+              "var(--text-color)",
 
-            color: "var(--text-color)",
-
-            borderColor: "var(--text-color)",
+            borderColor:
+              "var(--text-color)",
           }}
         />
       </div>
+
 
       {/* CATEGORIAS */}
 
@@ -226,72 +276,98 @@ export default function Search<T>({
             max-w-4xl
             mx-auto
             mb-8
-            p-5
-            rounded-xl
-            shadow
           "
-          style={{
-            backgroundColor: "var(--card-color)",
-
-            color: "var(--text-color)",
-          }}
         >
+
           <h3
             className="
-            font-semibold
-            mb-3
-          "
+              font-semibold
+              mb-4
+            "
+            style={{
+              color:
+                "var(--text-color)",
+            }}
           >
             Categorias
           </h3>
 
+
           <div
             className="
-            flex
-            flex-wrap
-            gap-4
-          "
+              flex
+              flex-wrap
+              gap-3
+            "
           >
-            {categories.map((cat) => (
-              <label
-                key={cat}
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  cursor-pointer
-                "
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedCategories.includes(cat)}
-                  onChange={() => toggleCategory(cat)}
-                  className="
-                    w-4
-                    h-4
-                    accent-[#1E40AF]
-                  "
-                />
 
-                <span className="capitalize">{cat}</span>
-              </label>
-            ))}
+            {categories.map(
+              (cat) => {
+
+                const selected =
+                  selectedCategories.includes(
+                    cat
+                  );
+
+
+                return (
+                  <button
+                    key={cat}
+                    onClick={() =>
+                      toggleCategory(cat)
+                    }
+                    className={`
+                      cursor-pointer
+                      px-4
+                      py-2
+                      rounded-full
+                      text-sm
+                      font-medium
+                      border
+                      transition
+                      ${
+                        selected
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : ""
+                      }
+                    `}
+                    style={
+                      !selected
+                        ? {
+                            backgroundColor:
+                              "var(--card-color)",
+
+                            color:
+                              "var(--text-color)",
+
+                            borderColor:
+                              "rgba(128,128,128,.3)",
+                          }
+                        : {}
+                    }
+                  >
+                    {cat
+                      .charAt(0)
+                      .toUpperCase() +
+                      cat.slice(1)}
+                  </button>
+                );
+              }
+            )}
+
           </div>
         </div>
       )}
 
+
       {/* LOADING */}
 
       {loading && (
-        <div
-          className="
-          text-center
-          py-10
-        "
-        >
+        <div className="text-center py-10">
           <p
             style={{
-              color: "var(--text-color)",
+              color:
+                "var(--text-color)",
             }}
           >
             Carregando vídeos...
@@ -299,53 +375,61 @@ export default function Search<T>({
         </div>
       )}
 
+
       {/* SEM RESULTADOS */}
 
-      {!loading && filteredItems.length === 0 && (
-        <div
-          className="
-          text-center
-          py-10
-        "
-        >
-          <p
-            style={{
-              color: "var(--text-color)",
-            }}
-          >
-            Nenhum vídeo encontrado.
-          </p>
-        </div>
-      )}
+      {!loading &&
+        filteredItems.length === 0 && (
+          <div className="text-center py-10">
+            <p
+              style={{
+                color:
+                  "var(--text-color)",
+              }}
+            >
+              Nenhum vídeo encontrado.
+            </p>
+          </div>
+        )}
+
 
       {/* GRID */}
 
-      {!loading && filteredItems.length > 0 && (
-        <div
-          className="
-            grid
-            md:grid-cols-2
-            lg:grid-cols-3
-            gap-6
-            max-w-6xl
-            mx-auto
-          "
-        >
-          {displayedItems.map((item, index) => (
-            <div key={index}>{renderItem(item)}</div>
-          ))}
-        </div>
-      )}
+      {!loading &&
+        filteredItems.length > 0 && (
+          <div
+            className="
+              grid
+              md:grid-cols-2
+              lg:grid-cols-3
+              gap-6
+              max-w-6xl
+              mx-auto
+            "
+          >
+            {displayedItems.map(
+              (item, index) => (
+                <div key={index}>
+                  {renderItem(item)}
+                </div>
+              )
+            )}
+          </div>
+        )}
+
 
       {/* PAGINAÇÃO */}
 
-      {!loading && filteredItems.length > 0 && totalPages > 1 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          onPageChange={setPage}
-        />
-      )}
+      {!loading &&
+        filteredItems.length > 0 &&
+        totalPages > 1 && (
+          <Pagination
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+          />
+        )}
+
     </div>
   );
 }

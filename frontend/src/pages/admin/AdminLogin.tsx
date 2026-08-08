@@ -41,7 +41,7 @@ async function handleLogin() {
             <LayoutDashboard size={18} color="white" />
           </div>
           <h1 className="text-lg font-bold" style={{ color: "var(--text-color)" }}>
-            Oportuniza Admin
+            Oportuniza
           </h1>
           <p className="text-xs" style={{ color: "var(--text-muted, #6b7280)" }}>
             Acesso restrito ao administrador

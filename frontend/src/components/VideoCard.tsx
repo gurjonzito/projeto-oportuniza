@@ -82,7 +82,7 @@ export default function VideoCard({
             e.stopPropagation();
             handleNavigate();
           }}
-          className="mt-3 border border-blue-500 text-blue-500 px-4 py-1 rounded-lg hover:bg-blue-500 hover:text-white transition"
+          className="cursor-pointer mt-3 border border-blue-500 text-blue-500 px-4 py-1 rounded-lg hover:bg-blue-500 hover:text-white transition"
         >
           {isTrack ? "Ver trilha" : "Assistir"}
         </button>

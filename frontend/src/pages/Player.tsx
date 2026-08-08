@@ -1,8 +1,27 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Volume2,
+  Pause,
+  Loader2,
+  Download,
+} from "lucide-react";
 import api from "../services/api";
+
+import {
+  ouvirResumo,
+  pausarResumo,
+  continuarResumo,
+  pararResumo,
+} from "../services/speechService";
+
+import { gerarResumo } from "../services/resumoService";
+
+import { baixarPDF } from "../services/pdfService";
 
 interface VideoDetails {
   titulo: string;
@@ -21,6 +40,14 @@ interface LocationState {
   trilhaVideos?: TrilhaVideo[];
   currentIndex?: number;
 }
+
+type AudioStatus = "parado" | "tocando" | "pausado";
+
+const MENSAGENS_LOADING = [
+  "Analisando o vídeo...",
+  "Organizando os principais pontos...",
+  "Quase lá...",
+];
 
 function formatSeconds(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -62,23 +89,88 @@ export default function Player() {
   const [details, setDetails] = useState<VideoDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-useEffect(() => {
-  if (!id) return;
-  setLoading(true);
-  setDetails(null);
+  const [resumo, setResumo] = useState("");
+  const [gerandoResumo, setGerandoResumo] = useState(false);
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0);
 
-  api.get(`/youtube/detalhes/${id}`)
-    .then(({ data }) => {
-      setDetails({
-        titulo: data.titulo ?? "",
-        canal: data.canal ?? "",
-        duracaoSegundos: data.duracaoSegundos ?? null,
-        duracaoISO: data.duracaoISO ?? null,
-      });
-    })
-    .catch(() => setDetails(null))
-    .finally(() => setLoading(false));
-}, [id]);
+  const [audioStatus, setAudioStatus] = useState<AudioStatus>("parado");
+
+  async function gerarResumoVideo() {
+    pararResumo(() => setAudioStatus("parado"));
+
+    setResumo("");
+    setGerandoResumo(true);
+
+    try {
+      // Delay artificial só pra dar a sensação de que está processando de verdade.
+      const [texto] = await Promise.all([
+        gerarResumo(id),
+        new Promise((resolve) => setTimeout(resolve, 2200)),
+      ]);
+      setResumo(texto as string);
+    } finally {
+      setGerandoResumo(false);
+    }
+  }
+
+  function controlarAudio() {
+    if (audioStatus === "tocando") {
+      pausarResumo();
+      setAudioStatus("pausado");
+      return;
+    }
+
+    if (audioStatus === "pausado") {
+      continuarResumo();
+      setAudioStatus("tocando");
+      return;
+    }
+
+    ouvirResumo(
+      resumo,
+      () => setAudioStatus("tocando"),
+      () => setAudioStatus("parado")
+    );
+  }
+
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setDetails(null);
+
+    api.get(`/youtube/detalhes/${id}`)
+      .then(({ data }) => {
+        setDetails({
+          titulo: data.titulo ?? "",
+          canal: data.canal ?? "",
+          duracaoSegundos: data.duracaoSegundos ?? null,
+          duracaoISO: data.duracaoISO ?? null,
+        });
+      })
+      .catch(() => setDetails(null))
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // Ao trocar de vídeo, paramos qualquer áudio em andamento e limpamos o resumo anterior
+  useEffect(() => {
+    pararResumo(() => setAudioStatus("parado"));
+    setResumo("");
+    setGerandoResumo(false);
+  }, [id]);
+
+  // Troca as mensagens de "carregando" enquanto o resumo está sendo gerado
+  useEffect(() => {
+    if (!gerandoResumo) {
+      setLoadingMsgIndex(0);
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setLoadingMsgIndex((i) => (i + 1) % MENSAGENS_LOADING.length);
+    }, 1200);
+
+    return () => clearInterval(interval);
+  }, [gerandoResumo]);
 
   function goTo(index: number) {
     const video = trilhaVideos[index];
@@ -105,7 +197,7 @@ useEffect(() => {
           <button
             onClick={() => goTo(currentIndex - 1)}
             disabled={!hasPrev}
-            className="shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+            className="shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
             aria-label="Vídeo anterior"
           >
             <ChevronLeft size={28} />
@@ -118,7 +210,7 @@ useEffect(() => {
           <button
             onClick={() => goTo(currentIndex + 1)}
             disabled={!hasNext}
-            className="shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition cursor-pointer"
+            className="shrink-0 p-2 rounded-full bg-white/10 hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all duration-200 hover:scale-110 active:scale-95 cursor-pointer"
             aria-label="Próximo vídeo"
           >
             <ChevronRight size={28} />
@@ -140,6 +232,73 @@ useEffect(() => {
           ) : (
             <p className="text-sm opacity-60">Detalhes não disponíveis</p>
           )}
+        </div>
+
+        {/* Caixa do Resumo por IA */}
+        <div className="mt-6 rounded-2xl bg-white/10 border border-white/10 p-5">
+
+          {/* Estado inicial: nada gerado ainda */}
+          {!resumo && !gerandoResumo && (
+            <button
+              onClick={gerarResumoVideo}
+              className="flex items-center gap-2 rounded-full bg-white text-[#1E40AF] font-semibold px-5 py-2.5
+                         transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95 cursor-pointer"
+            >
+              <Sparkles size={18} />
+              Gerar Resumo por IA
+            </button>
+          )}
+
+          {/* Estado de carregamento */}
+          {gerandoResumo && (
+            <div className="flex flex-col items-center justify-center gap-3 py-8">
+              <Loader2 size={28} className="animate-spin" />
+              <p className="text-sm opacity-80 animate-pulse transition-opacity duration-300">
+                {MENSAGENS_LOADING[loadingMsgIndex]}
+              </p>
+            </div>
+          )}
+
+          {/* Estado com resumo pronto */}
+          {resumo && !gerandoResumo && (
+            <div className="space-y-4 animate-[fadeIn_0.3s_ease-out]">
+              <h2 className="font-semibold flex items-center gap-2">
+                <Sparkles size={18} />
+                Resumo por IA
+              </h2>
+
+              <p className="text-sm leading-relaxed whitespace-pre-line">{resumo}</p>
+
+              <div className="flex flex-wrap gap-3 pt-3 border-t border-white/10">
+                <button
+                  onClick={controlarAudio}
+                  className="flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2.5
+                             transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  {audioStatus === "tocando" ? (
+                    <Pause size={18} />
+                  ) : (
+                    <Volume2 size={18} />
+                  )}
+                  {audioStatus === "tocando"
+                    ? "Pausar"
+                    : audioStatus === "pausado"
+                    ? "Continuar"
+                    : "Ouvir Resumo"}
+                </button>
+
+                <button
+                  onClick={() => baixarPDF(details?.titulo ?? "Resumo", resumo)}
+                  className="flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2.5
+                             transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <Download size={18} />
+                  Baixar PDF
+                </button>
+              </div>
+            </div>
+          )}
+
         </div>
 
       </div>

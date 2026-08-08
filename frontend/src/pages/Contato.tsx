@@ -1,10 +1,51 @@
-import { Linkedin, Github } from "lucide-react"
+import { useState } from "react";
+import { Linkedin, Github } from "lucide-react";
+import { enviarEmail } from "../services/emailService";
 
 export default function Contato() {
-  return (
-    <main className="min-h-screen px-6 py-16 flex items-center justify-center" style={{ backgroundColor: "var(--bg-color)" }}>
 
-      <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-12">
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [mensagem, setMensagem] = useState("");
+
+  const [enviando, setEnviando] = useState(false);
+  const [status, setStatus] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    try {
+      setEnviando(true);
+      setStatus("");
+
+      await enviarEmail({
+        nome,
+        email,
+        mensagem,
+      });
+
+      setStatus("Mensagem enviada com sucesso!");
+
+      setNome("");
+      setEmail("");
+      setMensagem("");
+
+    } catch (error) {
+      console.error(error);
+      setStatus("Erro ao enviar mensagem.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+
+  return (
+    <main
+      className="min-h-screen px-6 py-16 flex items-center justify-center"
+      style={{ backgroundColor: "var(--bg-color)" }}
+    >
+
+      <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-12">
 
         {/* ESQUERDA */}
         <div className="space-y-8 text-center lg:text-left">
@@ -18,6 +59,7 @@ export default function Contato() {
             a desenvolver soluções que atendam melhor às necessidades dos jovens!
           </p>
 
+
           <div>
             <h2 className="font-semibold text-lg mb-2">
               Localização
@@ -30,6 +72,7 @@ export default function Contato() {
             </p>
           </div>
 
+
           <div>
             <h2 className="font-semibold text-lg mb-3">
               Redes Sociais
@@ -41,14 +84,14 @@ export default function Contato() {
                 href="#"
                 className="text-blue-600 hover:scale-110 transition"
               >
-                <Linkedin size={28} />
+                <Linkedin size={28}/>
               </a>
 
               <a
                 href="#"
                 className="text-blue-600 hover:scale-110 transition"
               >
-                <Github size={28} />
+                <Github size={28}/>
               </a>
 
             </div>
@@ -56,51 +99,79 @@ export default function Contato() {
 
         </div>
 
-        {/* FORMULÁRIO */}
+
+        {/* FORM */}
         <div className="card rounded-xl p-6 md:p-8 shadow-xl w-full max-w-md mx-auto">
 
           <h2 className="text-xl font-semibold mb-6 text-center">
             Envie sua sugestão!
           </h2>
 
-          <form className="flex flex-col gap-4">
+
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-4"
+          >
 
             <div>
               <label className="text-sm">
                 Seu nome *
               </label>
+
               <input
+                value={nome}
+                onChange={(e)=>setNome(e.target.value)}
                 type="text"
+                required
                 className="input-field w-full mt-1 p-3 rounded outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
+
 
             <div>
               <label className="text-sm">
                 Seu melhor e-mail *
               </label>
+
               <input
+                value={email}
+                onChange={(e)=>setEmail(e.target.value)}
                 type="email"
+                required
                 className="input-field w-full mt-1 p-3 rounded outline-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
+
 
             <div>
               <label className="text-sm">
                 Escreva sua mensagem *
               </label>
+
               <textarea
+                value={mensagem}
+                onChange={(e)=>setMensagem(e.target.value)}
                 rows={5}
+                required
                 className="input-field w-full mt-1 p-3 rounded outline-none resize-none focus:ring-2 focus:ring-blue-400"
               />
             </div>
 
+
             <button
               type="submit"
-              className="mt-3 border border-blue-400 text-blue-400 py-2 rounded hover:bg-blue-500 hover:text-white transition"
+              disabled={enviando}
+              className="cursor-pointer mt-3 border border-blue-400 text-blue-400 py-2 rounded hover:bg-blue-500 hover:text-white transition disabled:opacity-50"
             >
-              Enviar
+              {enviando ? "Enviando..." : "Enviar"}
             </button>
+
+
+            {status && (
+              <p className="text-sm text-center mt-2">
+                {status}
+              </p>
+            )}
 
           </form>
 
@@ -109,5 +180,5 @@ export default function Contato() {
       </div>
 
     </main>
-  )
+  );
 }
