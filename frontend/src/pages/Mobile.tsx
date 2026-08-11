@@ -1,11 +1,60 @@
+import { useEffect, useState } from "react";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
 export default function Mobile() {
+  const [installPrompt, setInstallPrompt] =
+    useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    // Navegador dispara esse evento quando o app pode ser instalado
+    const handler = (e: Event) => {
+      e.preventDefault(); // impede o banner automático do Chrome
+      setInstallPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    // Detecta se já foi instalado
+    window.addEventListener("appinstalled", () => setIsInstalled(true));
+
+    // iOS não suporta beforeinstallprompt — detecta via display-mode
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    }
+  };
+
+  // Decide o estado do botão
+  const buttonLabel = isInstalled
+    ? "✓ Aplicativo instalado"
+    : "INSTALAR APLICATIVO";
+
+  const buttonDisabled = isInstalled || !installPrompt;
+
   return (
     <main
       className="min-h-screen px-6 py-16 flex items-center justify-center"
       style={{ backgroundColor: "var(--bg-color)" }}
     >
       <div className="max-w-5xl w-full flex flex-col md:flex-row gap-10 items-center">
-        {/* Conteúdo */}
         <div className="flex flex-col gap-6 w-full md:w-1/2">
           <h1 className="text-3xl md:text-4xl font-bold text-center md:text-left">
             Baixar App
@@ -19,8 +68,19 @@ export default function Mobile() {
             celular.
           </p>
 
-          <button className="bg-green-500 text-white font-semibold py-3 px-6 rounded-lg w-max self-center md:self-start hover:bg-green-600 transition">
-            INSTALAR APLICATIVO
+          <button
+            onClick={handleInstall}
+            disabled={buttonDisabled}
+            className={`font-semibold py-3 px-6 rounded-lg w-max self-center md:self-start transition
+              ${
+                isInstalled
+                  ? "bg-gray-500 text-white cursor-default"
+                  : installPrompt
+                    ? "bg-green-500 text-white hover:bg-green-600 cursor-pointer"
+                    : "bg-gray-400 text-white cursor-not-allowed opacity-60"
+              }`}
+          >
+            {buttonLabel}
           </button>
 
           <div className="card p-6 w-full">
@@ -45,13 +105,12 @@ export default function Mobile() {
             </div>
           </div>
 
-          <p className="text-sm text-[var(--text-color)/80] text-center md:text-left">
+          <p className="text-sm text-center md:text-left opacity-80">
             Após a instalação, o aplicativo aparecerá na tela inicial do celular
             e funcionará como um app.
           </p>
         </div>
 
-        {/* Imagem */}
         <div className="flex justify-center md:justify-end items-center w-full md:w-1/2">
           <img
             src="/pics/iphone.png"
