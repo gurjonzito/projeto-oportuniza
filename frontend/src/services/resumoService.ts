@@ -1,11 +1,13 @@
-export async function gerarResumo(videoId?: string): Promise<string> {
-  return `
-Resumo provisório da aula.
+import api from "./api";
 
-Neste momento o resumo está sendo gerado manualmente.
+export async function gerarResumo(videoId: string | undefined): Promise<string> {
+  if (!videoId) return "ID do vídeo inválido.";
 
-Futuramente este conteúdo será substituído pelo resumo criado pela inteligência artificial.
-
-Principais pontos apresentados no vídeo serão exibidos aqui para facilitar a revisão.
-  `;
+  try {
+    const { data } = await api.get(`/api/resumo/${videoId}`);
+    return data.resumo ?? "Resumo indisponível.";
+  } catch (error) {
+    console.error("Erro ao buscar resumo:", error);
+    return "Não foi possível gerar o resumo. Tente novamente.";
+  }
 }

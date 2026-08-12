@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import VideoPlayer from "../components/VideoPlayer";
 import {
@@ -68,7 +69,8 @@ function formatISO(iso: string): string {
 }
 
 function formatDuration(details: VideoDetails): string {
-  if (details.duracaoSegundos != null) return formatSeconds(details.duracaoSegundos);
+  if (details.duracaoSegundos != null)
+    return formatSeconds(details.duracaoSegundos);
   if (details.duracaoISO) return formatISO(details.duracaoISO);
   return "";
 }
@@ -129,7 +131,7 @@ export default function Player() {
     ouvirResumo(
       resumo,
       () => setAudioStatus("tocando"),
-      () => setAudioStatus("parado")
+      () => setAudioStatus("parado"),
     );
   }
 
@@ -138,7 +140,8 @@ export default function Player() {
     setLoading(true);
     setDetails(null);
 
-    api.get(`/youtube/detalhes/${id}`)
+    api
+      .get(`/youtube/detalhes/${id}`)
       .then(({ data }) => {
         setDetails({
           titulo: data.titulo ?? "",
@@ -180,7 +183,9 @@ export default function Player() {
   }
 
   if (!id) {
-    return <p className="p-10 text-white">Vídeo não encontrado (ID inválido)</p>;
+    return (
+      <p className="p-10 text-white">Vídeo não encontrado (ID inválido)</p>
+    );
   }
 
   const duracao = details ? formatDuration(details) : "";
@@ -188,7 +193,6 @@ export default function Player() {
   return (
     <div className="bg-[#1E40AF] min-h-screen text-white pb-16">
       <div className="max-w-5xl mx-auto pt-10 px-6">
-
         {/* Título da trilha */}
         <h1 className="text-3xl font-bold mb-6">{trilhaTitulo}</h1>
 
@@ -220,14 +224,14 @@ export default function Player() {
         {/* Detalhes do vídeo */}
         <div className="mt-6 space-y-1">
           {loading ? (
-            <p className="text-sm opacity-60 animate-pulse">Carregando detalhes...</p>
+            <p className="text-sm opacity-60 animate-pulse">
+              Carregando detalhes...
+            </p>
           ) : details ? (
             <>
               <p className="text-lg font-semibold">{details.titulo}</p>
               <p className="text-sm opacity-80">{details.canal}</p>
-              {duracao && (
-                <p className="text-sm opacity-60">⏱ {duracao}</p>
-              )}
+              {duracao && <p className="text-sm opacity-60">⏱ {duracao}</p>}
             </>
           ) : (
             <p className="text-sm opacity-60">Detalhes não disponíveis</p>
@@ -236,7 +240,6 @@ export default function Player() {
 
         {/* Caixa do Resumo por IA */}
         <div className="mt-6 rounded-2xl bg-white/10 border border-white/10 p-5">
-
           {/* Estado inicial: nada gerado ainda */}
           {!resumo && !gerandoResumo && (
             <button
@@ -267,7 +270,15 @@ export default function Player() {
                 Resumo por IA
               </h2>
 
-              <p className="text-sm leading-relaxed whitespace-pre-line">{resumo}</p>
+              <div
+                className="text-sm leading-relaxed text-justify prose prose-invert prose-sm max-w-none
+    prose-p:mb-3
+    prose-strong:text-white prose-strong:font-semibold
+    prose-ul:mt-2 prose-ul:space-y-1
+    prose-li:marker:text-blue-300"
+              >
+                <ReactMarkdown>{resumo}</ReactMarkdown>
+              </div>
 
               <div className="flex flex-wrap gap-3 pt-3 border-t border-white/10">
                 <button
@@ -283,8 +294,8 @@ export default function Player() {
                   {audioStatus === "tocando"
                     ? "Pausar"
                     : audioStatus === "pausado"
-                    ? "Continuar"
-                    : "Ouvir Resumo"}
+                      ? "Continuar"
+                      : "Ouvir Resumo"}
                 </button>
 
                 <button
@@ -298,9 +309,7 @@ export default function Player() {
               </div>
             </div>
           )}
-
         </div>
-
       </div>
     </div>
   );

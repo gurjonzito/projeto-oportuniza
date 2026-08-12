@@ -55,6 +55,8 @@ model Video {
 
   trilhas TrilhaVideo[]
 
+  resumoIA String?
+
   @@map("videos")
 }
 
