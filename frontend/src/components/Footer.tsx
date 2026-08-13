@@ -19,7 +19,6 @@ export default function Footer() {
             <ul className="space-y-2 text-gray-300 text-sm">
               <li><Link to="/sobre">Sobre</Link></li>
               <li><Link to="/mobile">Download</Link></li>
-              <li><Link to="/integracoes">Integrações</Link></li>
             </ul>
           </div>
 

@@ -253,47 +253,54 @@ function Categorias() {
     },
   ];
 
-  return (
-    <section
-      className="pb-20 pt-15 transition-colors"
-      style={{
-        backgroundColor: "var(--bg-color)",
-      }}
-    >
-      <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
-        {itens.map((item) => {
-          const Icon = item.icon;
+return (
+  <section
+    className="pb-20 pt-15 transition-colors"
+    style={{
+      backgroundColor: "var(--bg-color)",
+    }}
+  >
+    <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+      {itens.map((item) => {
+        const Icon = item.icon;
 
-          return (
-            <Card
-              key={item.titulo}
-              className="hover:shadow-lg transition"
+        return (
+          <Card
+            key={item.titulo}
+            className="hover:shadow-lg transition"
+          >
+            <div className="bg-green-100 text-green-600 w-12 h-12 flex items-center justify-center rounded-lg">
+              <Icon size={26} />
+            </div>
+
+            <h3
+              className="mt-4 font-semibold text-lg"
+              style={{
+                color: "var(--text-color)",
+              }}
             >
-              <div className="bg-green-100 text-green-600 w-12 h-12 flex items-center justify-center rounded-lg">
-                <Icon size={26} />
-              </div>
+              {item.titulo}
+            </h3>
 
-              <h3
-                className="mt-4 font-semibold text-lg"
-                style={{
-                  color: "var(--text-color)",
-                }}
-              >
-                {item.titulo}
-              </h3>
+            <p
+              className="text-sm mt-2"
+              style={{
+                color: "var(--text-color)",
+              }}
+            >
+              {item.titulo === "Trilhas" &&
+                "Percursos de aprendizagem organizados por temas, reunindo conteúdos em uma sequência para desenvolver conhecimentos e habilidades profissionais."}
 
-              <p
-                className="text-sm mt-2"
-                style={{
-                  color: "var(--text-color)",
-                }}
-              >
-                Conteúdos organizados para evolução gradual.
-              </p>
-            </Card>
-          );
-        })}
-      </div>
-    </section>
-  );
+              {item.titulo === "Vídeos" &&
+                "Videoaulas selecionadas para facilitar o aprendizado de forma prática, acessível e objetiva."}
+
+              {item.titulo === "Materiais" &&
+                "Materiais complementares para aprofundar os conhecimentos e apoiar a preparação para o mercado de trabalho."}
+            </p>
+          </Card>
+        );
+      })}
+    </div>
+  </section>
+);
 }

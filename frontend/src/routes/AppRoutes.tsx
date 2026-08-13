@@ -13,7 +13,6 @@ import Contato from "../pages/Contato";
 import Player from "../pages/Player";
 import Mobile from "../pages/Mobile";
 import Playlist from "../pages/TrilhaDetalhe";
-import Integracoes from "../pages/Integracoes";
 
 import Seguranca from "../pages/legal/Seguranca";
 import Termos from "../pages/legal/Termos";
@@ -39,7 +38,6 @@ export default function AppRoutes() {
         <Route path="/player/:id" element={<Player />} />
         <Route path="/mobile" element={<Mobile />} />
         <Route path="/trilhas/:slug" element={<Playlist />} />
-        <Route path="/integracoes" element={<Integracoes />} />
         <Route path="/seguranca" element={<Seguranca />} />
         <Route path="/termos" element={<Termos />} />
         <Route path="/cookies" element={<Cookies />} />

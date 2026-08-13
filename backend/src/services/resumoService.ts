@@ -147,9 +147,13 @@ Não adicione conceitos que não tenham sido explicados ou claramente apresentad
 8. ESTRUTURA
 Comece com um pequeno parágrafo explicando o assunto geral da aula.
 
-Depois, apresente os principais conceitos aprendidos em tópicos.
+Depois, apresente os principais conceitos aprendidos em tópicos no formato:
+"- Nome do conceito: explicação do que significa e para que serve."
 
 Cada tópico deve explicar uma IDEIA ou CONCEITO, e não uma ação realizada no vídeo.
+
+NÃO use markdown, asteriscos, hashtags, negrito, itálico ou qualquer formatação especial.
+Escreva apenas texto simples.
 
 9. FOCO NO APRENDIZADO
 Imagine que o vídeo será removido e o aluno terá apenas este resumo para revisar o conteúdo.

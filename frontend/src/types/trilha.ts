@@ -32,6 +32,8 @@ export interface Trilha {
 
   thumbnailUrl?: string;
 
+  nivel: string;
+
   slug: string;
 
   categoria?: {
