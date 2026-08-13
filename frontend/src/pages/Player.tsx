@@ -42,7 +42,7 @@ interface LocationState {
   currentIndex?: number;
 }
 
-type AudioStatus = "parado" | "tocando" | "pausado";
+type AudioStatus = "parado" | "carregando" | "tocando" | "pausado";
 
 const MENSAGENS_LOADING = [
   "Analisando o vídeo...",
@@ -116,6 +116,10 @@ export default function Player() {
   }
 
   function controlarAudio() {
+    if (audioStatus === "carregando") {
+      return;
+    }
+
     if (audioStatus === "tocando") {
       pausarResumo();
       setAudioStatus("pausado");
@@ -123,10 +127,12 @@ export default function Player() {
     }
 
     if (audioStatus === "pausado") {
+      setAudioStatus("carregando");
       continuarResumo();
-      setAudioStatus("tocando");
       return;
     }
+
+    setAudioStatus("carregando");
 
     ouvirResumo(
       resumo,
@@ -283,19 +289,32 @@ export default function Player() {
               <div className="flex flex-wrap gap-3 pt-3 border-t border-white/10">
                 <button
                   onClick={controlarAudio}
+                  disabled={audioStatus === "carregando"}
                   className="flex items-center gap-2 rounded-full bg-white/10 hover:bg-white/20 px-5 py-2.5
-                             transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+             transition-all duration-200 hover:scale-105 active:scale-95
+             disabled:opacity-60 disabled:cursor-wait"
                 >
-                  {audioStatus === "tocando" ? (
-                    <Pause size={18} />
+                  {audioStatus === "carregando" ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Carregando áudio...
+                    </>
+                  ) : audioStatus === "tocando" ? (
+                    <>
+                      <Pause size={18} />
+                      Pausar
+                    </>
+                  ) : audioStatus === "pausado" ? (
+                    <>
+                      <Volume2 size={18} />
+                      Continuar
+                    </>
                   ) : (
-                    <Volume2 size={18} />
+                    <>
+                      <Volume2 size={18} />
+                      Ouvir Resumo
+                    </>
                   )}
-                  {audioStatus === "tocando"
-                    ? "Pausar"
-                    : audioStatus === "pausado"
-                      ? "Continuar"
-                      : "Ouvir Resumo"}
                 </button>
 
                 <button
