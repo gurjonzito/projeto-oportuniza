@@ -80,6 +80,17 @@ export interface Video {
   tags: string[];
 }
 
+export interface Recurso {
+  id: string;
+  nome: string;
+  descricao: string;
+  url: string;
+  categoria: string;
+  imagemUrl?: string | null;
+  criadoEm: string;
+  ativo: boolean;
+}
+
 export const adminApi = {
   // ─── CATEGORIAS ──────────────────────────────────────────────────────────
 
@@ -111,14 +122,22 @@ export const adminApi = {
 
   async listarTrilhas(): Promise<Trilha[]> {
     const { data } = await api.get("/playlist/admin");
+
     return (data.trilhas ?? []).map((t: any) => ({
       ...t,
       categoriaNome: t.categoria?.nome ?? "",
     }));
   },
 
-  async importarPlaylist(url: string, categoriaId: string): Promise<Trilha> {
-    const { data } = await api.post("/playlist/import", { url, categoriaId });
+  async importarPlaylist(
+    url: string,
+    categoriaId: string,
+  ): Promise<Trilha> {
+    const { data } = await api.post("/playlist/import", {
+      url,
+      categoriaId,
+    });
+
     return {
       ...data.trilha,
       categoriaNome: data.trilha.categoria?.nome ?? "",
@@ -127,10 +146,17 @@ export const adminApi = {
 
   async criarTrilha(form: Omit<Trilha, "id">): Promise<Trilha> {
     const { data } = await api.post("/playlist", form);
-    return { ...data.trilha, categoriaNome: data.trilha.categoria?.nome ?? "" };
+
+    return {
+      ...data.trilha,
+      categoriaNome: data.trilha.categoria?.nome ?? "",
+    };
   },
 
-  async editarTrilha(id: string, form: Partial<Trilha>): Promise<void> {
+  async editarTrilha(
+    id: string,
+    form: Partial<Trilha>,
+  ): Promise<void> {
     await api.put(`/playlist/${id}`, form);
   },
 
@@ -138,23 +164,24 @@ export const adminApi = {
     await api.delete(`/playlist/${id}`);
   },
 
-async reordenarTrilhas(
-  trilhas: {
-    id: string;
-    ordem: number;
-  }[],
-) {
-  const { data } = await api.patch("/playlist/reorder", {
-    trilhas,
-  });
+  async reordenarTrilhas(
+    trilhas: {
+      id: string;
+      ordem: number;
+    }[],
+  ) {
+    const { data } = await api.patch("/playlist/reorder", {
+      trilhas,
+    });
 
-  return data;
-},
+    return data;
+  },
 
   // ─── VÍDEOS ──────────────────────────────────────────────────────────────
 
   async listarVideos(): Promise<Video[]> {
     const { data } = await api.get("/videos");
+
     return (data.videos ?? []).map((v: any) => ({
       ...v,
       youtubeVideoId: v.videoId ?? v.youtubeVideoId ?? "",
@@ -165,11 +192,19 @@ async reordenarTrilhas(
     }));
   },
 
-  async toggleCurated(id: string, value: boolean): Promise<void> {
-    await api.patch(`/videos/${id}/curated`, { isCurated: value });
+  async toggleCurated(
+    id: string,
+    value: boolean,
+  ): Promise<void> {
+    await api.patch(`/videos/${id}/curated`, {
+      isCurated: value,
+    });
   },
 
-  async atualizarTags(id: string, tags: string[]): Promise<void> {
+  async atualizarTags(
+    id: string,
+    tags: string[],
+  ): Promise<void> {
     await api.patch(`/videos/${id}/tags`, { tags });
   },
 
@@ -180,16 +215,64 @@ async reordenarTrilhas(
     return data.canais;
   },
 
-  async criarCanal(form: Omit<Canal, "id">): Promise<Canal> {
+  async criarCanal(
+    form: Omit<Canal, "id">,
+  ): Promise<Canal> {
     const { data } = await api.post("/canais", form);
     return data.canal;
   },
 
-  async editarCanal(id: string, form: Omit<Canal, "id">): Promise<void> {
+  async editarCanal(
+    id: string,
+    form: Omit<Canal, "id">,
+  ): Promise<void> {
     await api.put(`/canais/${id}`, form);
   },
 
   async deletarCanal(id: string): Promise<void> {
     await api.delete(`/canais/${id}`);
+  },
+
+  // ─── RECURSOS ───────────────────────────────────────────────────────────
+
+  async listarRecursos(): Promise<Recurso[]> {
+    const { data } = await api.get("/recursos");
+
+    return data.recursos ?? [];
+  },
+
+  async criarRecurso(
+    form: {
+      nome: string;
+      descricao: string;
+      url: string;
+      categoria: string;
+      imagemUrl?: string;
+      ativo: boolean;
+    },
+  ): Promise<Recurso> {
+    const { data } = await api.post("/recursos", form);
+
+    return data.recurso;
+  },
+
+  async editarRecurso(
+    id: string,
+    form: {
+      nome: string;
+      descricao: string;
+      url: string;
+      categoria: string;
+      imagemUrl?: string;
+      ativo: boolean;
+    },
+  ): Promise<Recurso> {
+    const { data } = await api.put(`/recursos/${id}`, form);
+
+    return data.recurso;
+  },
+
+  async deletarRecurso(id: string): Promise<void> {
+    await api.delete(`/recursos/${id}`);
   },
 };

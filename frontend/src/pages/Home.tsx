@@ -248,7 +248,7 @@ function Categorias() {
       icon: PlayCircle,
     },
     {
-      titulo: "Materiais",
+      titulo: "Recursos",
       icon: Link,
     },
   ];
@@ -294,8 +294,8 @@ return (
               {item.titulo === "Vídeos" &&
                 "Videoaulas selecionadas para facilitar o aprendizado de forma prática, acessível e objetiva."}
 
-              {item.titulo === "Materiais" &&
-                "Materiais complementares para aprofundar os conhecimentos e apoiar a preparação para o mercado de trabalho."}
+              {item.titulo === "Recursos" &&
+                "Recursos úteis para aprofundar os conhecimentos e apoiar a preparação para o mercado de trabalho."}
             </p>
           </Card>
         );

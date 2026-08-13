@@ -69,7 +69,6 @@ model Trilha {
   videos               TrilhaVideo[]
   canal                Canal?        @relation(fields: [canalId], references: [id])
   categoria            Categoria     @relation(fields: [categoriaId], references: [id])
-  materiais            Material[]
 
   @@map("trilhas")
 }
@@ -97,17 +96,14 @@ model BuscaCache {
   @@map("buscas_cache")
 }
 
-model Material {
-  id         Int      @id @default(autoincrement())
-  nome       String
-  descricao  String?
-  arquivoUrl String
-  tipo       String
-  tamanho    Int?
-  trilhaId   String
-  criadoEm   DateTime @default(now())
+model Recurso {
+  id          String   @id @default(uuid())
+  nome        String
+  descricao   String
+  url         String
+  categoria   String
+  criadoEm    DateTime @default(now())
+  ativo       Boolean  @default(true)
 
-  trilha Trilha @relation(fields: [trilhaId], references: [id], onDelete: Cascade)
-
-  @@map("materiais")
+  @@map("recursos")
 }

@@ -8,6 +8,7 @@ import { categoriaRoutes } from "./routes/categoriaRoute";
 import { canalRoutes } from "./routes/canalRoute";
 import { authRoutes } from "./routes/authRoute";
 import { resumoRoutes } from "./routes/resumoRoute";
+import { recursoRoutes } from "./routes/recursoRoute";
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/youtube", youtubeRoutes);
 app.use("/categorias", categoriaRoutes);
 app.use("/canais", canalRoutes);
 app.use("/api/resumo", resumoRoutes);
+app.use("/recursos", recursoRoutes);
 
 app.get("/", (_, res) => {
   return res.json({ status: "OK", message: "API Oportuniza funcionando" });

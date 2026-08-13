@@ -1,4 +1,4 @@
-import { Tv2, PlayCircle, BookOpen, Tag } from "lucide-react";
+import { Tv2, PlayCircle, BookOpen, Tag, Link } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const sections = [
@@ -33,6 +33,14 @@ const sections = [
     path: "/admin/categorias",
     color: "text-orange-600",
     bg: "bg-orange-100",
+  },
+  {
+    label: "Recursos",
+    description: "Ferramentas, plataformas e sites úteis.",
+    icon: Link,
+    path: "/admin/recursos",
+    color: "text-teal-600",
+    bg: "bg-teal-100",
   },
 ];
 

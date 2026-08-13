@@ -17,6 +17,7 @@ export default function Footer() {
           <div className="flex flex-col items-center md:items-start">
             <h3 className="font-semibold text-lg mb-4">Plataforma</h3>
             <ul className="space-y-2 text-gray-300 text-sm">
+              <li><Link to="/">Início</Link></li>
               <li><Link to="/sobre">Sobre</Link></li>
               <li><Link to="/mobile">Download</Link></li>
             </ul>
@@ -26,9 +27,9 @@ export default function Footer() {
           <div className="flex flex-col items-center md:items-start">
             <h3 className="font-semibold text-lg mb-4">Navegação</h3>
             <ul className="space-y-2 text-gray-300 text-sm">
-              <li><Link to="/">Início</Link></li>
               <li><Link to="/trilhas">Trilhas</Link></li>
               <li><Link to="/videos">Vídeos</Link></li>
+              <li><Link to="/recursos">Recursos</Link></li>
             </ul>
           </div>
 

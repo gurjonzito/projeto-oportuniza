@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  Link,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -19,6 +20,7 @@ const navItems = [
   { label: "Vídeos", icon: PlayCircle, path: "/admin/videos" },
   { label: "Trilhas", icon: BookOpen, path: "/admin/trilhas" },
   { label: "Categorias", icon: Tag, path: "/admin/categorias" },
+  { label: "Recursos", icon: Link, path: "/admin/recursos" },
 ];
 
 export default function AdminLayout() {

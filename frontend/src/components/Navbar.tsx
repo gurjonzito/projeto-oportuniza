@@ -30,6 +30,9 @@ export default function Navbar() {
           <Link to="/videos" className="hover:opacity-80 transition">
             Vídeos
           </Link>
+          <Link to="/recursos" className="hover:opacity-80 transition">
+            Recursos
+          </Link>
           <Link to="/contato" className="hover:opacity-80 transition">
             Contato
           </Link>
@@ -107,6 +110,13 @@ export default function Navbar() {
           </Link>
           <Link
             to="/contato"
+            className="hover:opacity-80 transition"
+            onClick={() => setMenuOpen(false)}
+          >
+            Recursos
+          </Link>
+          <Link
+            to="/recursos"
             className="hover:opacity-80 transition"
             onClick={() => setMenuOpen(false)}
           >

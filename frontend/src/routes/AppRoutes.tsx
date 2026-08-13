@@ -9,6 +9,7 @@ import Home from "../pages/Home";
 import Sobre from "../pages/Sobre";
 import Trilhas from "../pages/Trilhas";
 import Videos from "../pages/Videos";
+import Recursos from "../pages/Recursos";
 import Contato from "../pages/Contato";
 import Player from "../pages/Player";
 import Mobile from "../pages/Mobile";
@@ -24,6 +25,7 @@ import AdminCanais from "../pages/admin/AdminCanais";
 import AdminVideos from "../pages/admin/AdminVideos";
 import AdminTrilhas from "../pages/admin/AdminTrilhas";
 import AdminCategorias from "../pages/admin/AdminCategorias";
+import AdminRecursos from "../pages/admin/AdminRecursos";
 
 export default function AppRoutes() {
   return (
@@ -34,6 +36,7 @@ export default function AppRoutes() {
         <Route path="/sobre" element={<Sobre />} />
         <Route path="/trilhas" element={<Trilhas />} />
         <Route path="/videos" element={<Videos />} />
+        <Route path="/recursos" element={<Recursos />} />
         <Route path="/contato" element={<Contato />} />
         <Route path="/player/:id" element={<Player />} />
         <Route path="/mobile" element={<Mobile />} />
@@ -61,6 +64,7 @@ export default function AppRoutes() {
         <Route path="videos" element={<AdminVideos />} />
         <Route path="trilhas" element={<AdminTrilhas />} />
         <Route path="categorias" element={<AdminCategorias />} />
+        <Route path="recursos" element={<AdminRecursos />} />
       </Route>
 
       {/* Fallback */}
