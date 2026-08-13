@@ -5,49 +5,69 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+function detectarSistema(): "ios" | "android" | "outros" {
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod/.test(ua)) return "ios";
+  if (/android/.test(ua)) return "android";
+  return "outros";
+}
+
+const instrucoesPorSistema = {
+  ios: [
+    'Toque no botão de compartilhar (↑) na barra do Safari',
+    'Role para baixo e selecione "Adicionar à Tela de Início"',
+    'Confirme tocando em "Adicionar"',
+  ],
+  android: [
+    'Toque no menu do navegador ( ⋮ ) no canto superior direito',
+    'Selecione "Adicionar à tela inicial" ou "Instalar aplicativo"',
+    'Confirme a instalação',
+  ],
+  outros: [
+    'Abra o menu do seu navegador',
+    'Procure por "Instalar aplicativo" ou "Adicionar à tela inicial"',
+    'Confirme a instalação',
+  ],
+};
+
 export default function Mobile() {
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const sistema = detectarSistema();
 
   useEffect(() => {
-    // Navegador dispara esse evento quando o app pode ser instalado
     const handler = (e: Event) => {
-      e.preventDefault(); // impede o banner automático do Chrome
+      e.preventDefault();
       setInstallPrompt(e as BeforeInstallPromptEvent);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
-
-    // Detecta se já foi instalado
     window.addEventListener("appinstalled", () => setIsInstalled(true));
 
-    // iOS não suporta beforeinstallprompt — detecta via display-mode
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
     }
 
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
-    };
+    return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
   const handleInstall = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-      setInstallPrompt(null);
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === "accepted") {
+        setIsInstalled(true);
+        setInstallPrompt(null);
+      }
+    } else {
+      document.getElementById("instrucoes-instalacao")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
     }
   };
 
-  // Decide o estado do botão
-  const buttonLabel = isInstalled
-    ? "✓ Aplicativo instalado"
-    : "INSTALAR APLICATIVO";
-
-  const buttonDisabled = isInstalled || !installPrompt;
+  const buttonLabel = isInstalled ? "✓ Aplicativo instalado" : "INSTALAR APLICATIVO";
 
   return (
     <main
@@ -60,54 +80,37 @@ export default function Mobile() {
             Baixar App
           </h1>
           <p className="text-lg text-center md:text-left">
-            Adicione a plataforma à tela inicial do seu celular e utilize como
-            um aplicativo
+            Adicione a plataforma à tela inicial do seu celular e utilize como um aplicativo
           </p>
           <p className="text-center md:text-left">
-            Acesse trilhas, vídeos e materiais de forma rápida diretamente do
-            celular.
+            Acesse trilhas, vídeos e materiais de forma rápida diretamente do celular.
           </p>
 
           <button
             onClick={handleInstall}
-            disabled={buttonDisabled}
+            disabled={isInstalled}
             className={`font-semibold py-3 px-6 rounded-lg w-max self-center md:self-start transition
               ${
                 isInstalled
                   ? "bg-gray-500 text-white cursor-default"
-                  : installPrompt
-                    ? "bg-green-500 text-white hover:bg-green-600 cursor-pointer"
-                    : "bg-gray-400 text-white cursor-not-allowed opacity-60"
+                  : "bg-green-500 text-white hover:bg-green-600 cursor-pointer"
               }`}
           >
             {buttonLabel}
           </button>
 
-          <div className="card p-6 w-full">
+          {/* Card de instruções detectando o sistema */}
+          <div id="instrucoes-instalacao" className="card p-6 w-full">
             <h2 className="font-bold mb-3">COMO INSTALAR</h2>
-
-            <div className="mb-4">
-              <h3 className="font-semibold">Android</h3>
-              <ol className="list-decimal list-inside ml-2">
-                <li>Toque no menu do navegador ( ⋮ )</li>
-                <li>Selecione "Adicionar à tela inicial"</li>
-                <li>Confirme a instalação</li>
-              </ol>
-            </div>
-
-            <div>
-              <h3 className="font-semibold">iOS (iPhone)</h3>
-              <ol className="list-decimal list-inside ml-2">
-                <li>Toque no botão de compartilhar (↑)</li>
-                <li>Selecione "Adicionar à Tela de Início"</li>
-                <li>Confirme para criar o atalho</li>
-              </ol>
-            </div>
+            <ol className="list-decimal list-inside space-y-2 text-sm ml-1">
+              {instrucoesPorSistema[sistema].map((passo, i) => (
+                <li key={i}>{passo}</li>
+              ))}
+            </ol>
           </div>
 
           <p className="text-sm text-center md:text-left opacity-80">
-            Após a instalação, o aplicativo aparecerá na tela inicial do celular
-            e funcionará como um app.
+            Após a instalação, o aplicativo aparecerá na tela inicial do celular e funcionará como um app.
           </p>
         </div>
 

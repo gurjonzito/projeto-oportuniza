@@ -13,10 +13,6 @@ export function detectCategory(title: string): string {
     return "curriculo";
   }
 
-  if (lower.includes("entrevista")) {
-    return "entrevista";
-  }
-
   if (lower.includes("finanças") || lower.includes("financeira")) {
     return "financas";
   }
