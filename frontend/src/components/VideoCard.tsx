@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 const NIVEL_STYLE: Record<string, { label: string; className: string }> = {
+  "todos os niveis": { label: "Todos os níveis", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
   iniciante:     { label: "Iniciante",     className: "bg-green-500/20 text-green-400 border-green-500/30" },
   intermediario: { label: "Intermediário", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
   avancado:      { label: "Avançado",      className: "bg-red-500/20 text-red-400 border-red-500/30" },
@@ -15,7 +16,7 @@ interface VideoCardProps {
   duration?: string;
   slug?: string;
   videoId?: string;
-  nivel?: string; // ← novo
+  nivel?: string;
 }
 
 export default function VideoCard({

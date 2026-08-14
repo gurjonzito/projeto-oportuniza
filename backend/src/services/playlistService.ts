@@ -8,10 +8,22 @@ const TITULOS_PRIVADOS = [
   "deleted video",
   "video privado",
   "vídeo privado",
-]
+];
 
 function isVideoPrivado(titulo: string): boolean {
-  return TITULOS_PRIVADOS.includes(titulo.trim().toLowerCase())
+  return TITULOS_PRIVADOS.includes(titulo.trim().toLowerCase());
+}
+
+async function gerarSlugUnico(titulo: string): Promise<string> {
+  const base = slugify(titulo);
+  let slug = base;
+  let tentativa = 1;
+
+  while (await prisma.trilha.findUnique({ where: { slug } })) {
+    slug = `${base}-${tentativa++}`;
+  }
+
+  return slug;
 }
 
 export async function importarPlaylistService(url: string, categoriaId: string) {
@@ -28,8 +40,10 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
 
   if (existingTrilha) throw new Error("Playlist já importada");
 
-  const playlistData = await buscarPlaylist(playlistId);
-  const videosData = await buscarVideosPlaylist(playlistId);
+  const [playlistData, videosData] = await Promise.all([
+    buscarPlaylist(playlistId),
+    buscarVideosPlaylist(playlistId),
+  ]);
 
   const firstVideo = videosData[0];
   const youtubeChannelId = firstVideo?.snippet?.videoOwnerChannelId || "unknown";
@@ -38,75 +52,79 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
     firstVideo?.snippet?.channelTitle ||
     "Canal";
 
-  let canal = await prisma.canal.findUnique({ where: { youtubeChannelId } });
+  const slug = await gerarSlugUnico(playlistData.snippet.title);
 
-  if (!canal) {
-    canal = await prisma.canal.create({
-      data: {
-        youtubeChannelId,
-        nome: channelName,
-        descricao: "",
-        thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
-      },
-    });
-  }
-
-  const trilha = await prisma.trilha.create({
-    data: {
-      titulo: playlistData.snippet.title,
-      descricao: playlistData.snippet.description,
-      thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
-      youtubePlaylistId: playlistId,
-      slug: slugify(playlistData.snippet.title),
-      categoriaId,
-      canalId: canal.id,
-      isCurated: true,
-    },
-  });
-
-  // Filtra vídeos privados/deletados antes de salvar
   const videosValidos = videosData.filter(
     (item: any) => !isVideoPrivado(item.snippet.title)
   );
 
-  for (let i = 0; i < videosValidos.length; i++) {
-    const item = videosValidos[i];
-    const videoId = item.snippet.resourceId.videoId;
+  // Tudo dentro de uma transaction — se qualquer passo falhar, reverte tudo
+  return await prisma.$transaction(async (tx) => {
+    let canal = await tx.canal.findUnique({ where: { youtubeChannelId } });
 
-    let video = await prisma.video.findUnique({
-      where: { youtubeVideoId: videoId },
-    });
-
-    if (!video) {
-      video = await prisma.video.create({
+    if (!canal) {
+      canal = await tx.canal.create({
         data: {
-          youtubeVideoId: videoId,
-          titulo: item.snippet.title,
-          descricao: item.snippet.description,
-          thumbnailUrl: item.snippet.thumbnails.high?.url,
-          canalId: canal.id,
-          tags: [],
-          isCurated: true,
+          youtubeChannelId,
+          nome: channelName,
+          descricao: "",
+          thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
         },
       });
     }
 
-    const relationExists = await prisma.trilhaVideo.findFirst({
-      where: { trilhaId: trilha.id, videoId: video.id },
+    const trilha = await tx.trilha.create({
+      data: {
+        titulo: playlistData.snippet.title,
+        descricao: playlistData.snippet.description,
+        thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
+        youtubePlaylistId: playlistId,
+        slug,
+        categoriaId,
+        canalId: canal.id,
+        isCurated: true,
+      },
     });
 
-    if (!relationExists) {
-      await prisma.trilhaVideo.create({
-        data: {
-          trilhaId: trilha.id,
-          videoId: video.id,
-          ordem: i + 1,
-        },
-      });
-    }
-  }
+    for (let i = 0; i < videosValidos.length; i++) {
+      const item = videosValidos[i];
+      const videoId = item.snippet.resourceId.videoId;
 
-  return trilha;
+      let video = await tx.video.findUnique({
+        where: { youtubeVideoId: videoId },
+      });
+
+      if (!video) {
+        video = await tx.video.create({
+          data: {
+            youtubeVideoId: videoId,
+            titulo: item.snippet.title,
+            descricao: item.snippet.description,
+            thumbnailUrl: item.snippet.thumbnails.high?.url,
+            canalId: canal.id,
+            tags: [],
+            isCurated: true,
+          },
+        });
+      }
+
+      const relationExists = await tx.trilhaVideo.findFirst({
+        where: { trilhaId: trilha.id, videoId: video.id },
+      });
+
+      if (!relationExists) {
+        await tx.trilhaVideo.create({
+          data: {
+            trilhaId: trilha.id,
+            videoId: video.id,
+            ordem: i + 1,
+          },
+        });
+      }
+    }
+
+    return trilha;
+  });
 }
 
 export async function listarTrilhasService() {
@@ -131,8 +149,8 @@ export async function buscarTrilhaService(slug: string) {
         include: {
           video: {
             include: {
-              canal: { select: { nome: true } }
-            }
+              canal: { select: { nome: true } },
+            },
           },
         },
         orderBy: { ordem: "asc" },
@@ -142,11 +160,8 @@ export async function buscarTrilhaService(slug: string) {
 
   if (!trilha) return null;
 
-  // Filtra vídeos privados/deletados já salvos no banco
   return {
     ...trilha,
-    videos: trilha.videos.filter(
-      (tv) => !isVideoPrivado(tv.video.titulo)
-    ),
+    videos: trilha.videos.filter((tv) => !isVideoPrivado(tv.video.titulo)),
   };
 }

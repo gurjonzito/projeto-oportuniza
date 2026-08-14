@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Search as SearchIcon } from "lucide-react";
 import Pagination from "./Pagination";
+import CategoryFilter from "./CategoryFilter";
 
 interface SearchProps<T> {
   items: T[];
@@ -11,7 +12,7 @@ interface SearchProps<T> {
   categories?: string[];
   loading?: boolean;
   onSearch?: (query: string, categories: string[]) => void | Promise<void>;
-  extraFilter?: React.ReactNode; // ← novo
+  extraFilter?: React.ReactNode;
 }
 
 export default function Search<T>({
@@ -23,7 +24,7 @@ export default function Search<T>({
   categories = [],
   loading = false,
   onSearch,
-  extraFilter, // ← novo
+  extraFilter,
 }: SearchProps<T>) {
   const [search, setSearch] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>(["todos"]);
@@ -102,59 +103,35 @@ export default function Search<T>({
 
       {/* CATEGORIAS + FILTRO EXTRA */}
       {categories.length > 0 && (
-        <div className="max-w-4xl mx-auto mb-8">
+        <div className="max-w-4xl mx-auto mb-8 flex flex-col gap-3">
 
-          <h3 className="font-semibold mb-4" style={{ color: "var(--text-color)" }}>
+          <h3 className="font-semibold" style={{ color: "var(--text-color)" }}>
             Categorias
           </h3>
 
-          {/* Categorias e dropdown na mesma linha */}
-          <div className="flex flex-wrap items-center gap-3">
-            {categories.map((cat) => {
-              const selected = selectedCategories.includes(cat);
-              return (
-                <button
-                  key={cat}
-                  onClick={() => toggleCategory(cat)}
-                  className={`cursor-pointer px-4 py-2 rounded-full text-sm font-medium border transition
-              ${selected ? "bg-blue-600 text-white border-blue-600" : ""}`}
-                  style={
-                    !selected
-                      ? {
-                        backgroundColor: "var(--card-color)",
-                        color: "var(--text-color)",
-                        borderColor: "rgba(128,128,128,.3)",
-                      }
-                      : {}
-                  }
-                >
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                </button>
-              );
-            })}
+          <CategoryFilter
+            categories={categories}
+            selectedCategories={selectedCategories}
+            onToggle={toggleCategory}
+          />
 
-            {/* Dropdown separado por divisor sutil */}
-            {extraFilter && (
-              <>
-                <div className="w-px h-6 bg-gray-600 mx-1" />
-                {extraFilter}
-              </>
-            )}
-          </div>
+          {extraFilter && (
+            <div>{extraFilter}</div>
+          )}
         </div>
       )}
 
       {/* LOADING */}
       {loading && (
         <div className="text-center py-10">
-          <p style={{ color: "var(--text-color)" }}>Carregando vídeos...</p>
+          <p style={{ color: "var(--text-color)" }}>Carregando...</p>
         </div>
       )}
 
       {/* SEM RESULTADOS */}
       {!loading && filteredItems.length === 0 && (
         <div className="text-center py-10">
-          <p style={{ color: "var(--text-color)" }}>Nenhum vídeo encontrado.</p>
+          <p style={{ color: "var(--text-color)" }}>Nenhum item encontrado.</p>
         </div>
       )}
 
