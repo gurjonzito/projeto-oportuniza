@@ -29,14 +29,4 @@ export const blockedTerms = [
   "consultoria",
   "coaching",
   "curso pago",
-
-  // Entrevista no formato conversa/podcast (não o tema)
-  "entrevistei",
-  "entrevista",
-  "conversei com",
-  "bate papo",
-  "bate-papo",
-  "papo com",
-  "minha historia",
-  "minha jornada",
 ];

@@ -23,13 +23,6 @@ export function containsBlockedTerm(text: string): boolean {
 export function hasBlockedPattern(title: string): boolean {
   if (/#shorts|#short/i.test(title)) return true;
 
-  // Título todo em maiúsculas (clickbait)
-  const words = title.split(" ").filter((w) => w.length > 3);
-  const allCaps =
-    words.length > 2 && words.every((w) => w === w.toUpperCase());
-  if (allCaps) return true;
-
-  // Muitos emojis (geralmente não é aula)
   const emojiCount = (title.match(/\p{Emoji}/gu) ?? []).length;
   if (emojiCount >= 4) return true;
 

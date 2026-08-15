@@ -16,27 +16,12 @@ const MIN_DURATION_SECONDS = 120;
 */
 
 export async function buscarVideos(termo: string) {
-  /*
-    BUSCA CANAIS ATIVOS
-  */
-
   const channels = await getActiveChannels();
-  console.log(channels);
-
-  /*
-    GERA QUERIES
-  */
-
   const queries = buildSearchQuery(termo, channels);
 
-  let allVideos: any[] = [];
-
-  /*
-    BUSCA POR CADA CANAL
-  */
-
-  for (const queryData of queries) {
-    try {
+  // Busca todos os canais em paralelo
+  const results = await Promise.allSettled(
+    queries.map(async (queryData) => {
       const { data } = await axios.get(`${BASE}/search`, {
         params: {
           part: "snippet",
@@ -44,7 +29,7 @@ export async function buscarVideos(termo: string) {
           channelId: queryData.channelId,
           type: "video",
           videoDuration: "medium",
-          maxResults: 10,
+          maxResults: 25, // era 10
           relevanceLanguage: "pt",
           regionCode: "BR",
           safeSearch: "strict",
@@ -52,16 +37,7 @@ export async function buscarVideos(termo: string) {
         },
       });
 
-      /*
-        GARANTE ARRAY
-      */
-
       const items: any[] = data.items ?? [];
-
-      /*
-        PRÉ-FILTRO: descarta por id ausente e termos bloqueados
-        antes de buscar detalhes (economiza cota da API)
-      */
 
       const preFiltered = items.filter((item: any) => {
         const hasVideoId = !!item?.id?.videoId;
@@ -70,15 +46,9 @@ export async function buscarVideos(termo: string) {
         return hasVideoId && !shouldBlock({ title, description });
       });
 
-      if (preFiltered.length === 0) continue;
+      if (preFiltered.length === 0) return [];
 
-      /*
-        BUSCA DURAÇÃO REAL EM LOTE
-      */
-
-      const videoIds = preFiltered
-        .map((item: any) => item.id.videoId)
-        .join(",");
+      const videoIds = preFiltered.map((item: any) => item.id.videoId).join(",");
 
       const { data: detailsData } = await axios.get(`${BASE}/videos`, {
         params: {
@@ -88,32 +58,19 @@ export async function buscarVideos(termo: string) {
         },
       });
 
-      /*
-        MONTA MAPA videoId → duração em segundos
-      */
-
       const durationsMap: Record<string, number> = {};
-
       for (const detail of detailsData.items ?? []) {
         durationsMap[detail.id] = parseDurationToSeconds(
           detail.contentDetails.duration
         );
       }
 
-      /*
-        FILTRO DE DURAÇÃO MÍNIMA
-      */
-
       const filtered = preFiltered.filter((item: any) => {
         const duration = durationsMap[item.id.videoId] ?? 0;
         return duration >= MIN_DURATION_SECONDS;
       });
 
-      /*
-        FORMATA
-      */
-
-      const mapped = filtered.map((item: any) => ({
+      return filtered.map((item: any) => ({
         youtubeVideoId: item.id.videoId,
         channelId: item.snippet.channelId,
         titulo: item.snippet.title,
@@ -127,17 +84,14 @@ export async function buscarVideos(termo: string) {
         categoria: detectCategory(item.snippet.title),
         duracaoSegundos: durationsMap[item.id.videoId] ?? 0,
       }));
+    })
+  );
 
-      allVideos.push(...mapped);
-    } catch (error) {
-      console.error("ERRO AO BUSCAR VÍDEOS:", error);
-    }
-  }
+  const allVideos = results.flatMap((result) =>
+    result.status === "fulfilled" ? result.value : []
+  );
 
-  /*
-    REMOVE DUPLICADOS
-  */
-
+  // Remove duplicados
   const uniqueVideos = allVideos.filter(
     (video, index, self) =>
       index === self.findIndex((v) => v.youtubeVideoId === video.youtubeVideoId)

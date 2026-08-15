@@ -29,6 +29,27 @@ const emptyEditForm = {
   descricao: "",
 };
 
+// ← FORA do AdminTrilhas — referência estável, sem remontar a cada render
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label
+        className="text-xs font-semibold"
+        style={{ color: "var(--text-muted, #6b7280)" }}
+      >
+        {label}
+      </label>
+      {children}
+    </div>
+  );
+}
+
 function SortableRow({
   trilha,
   openEdit,
@@ -39,9 +60,7 @@ function SortableRow({
   handleDelete: (id: string) => void;
 }) {
   const { attributes, listeners, setNodeRef, transition, transform } =
-    useSortable({
-      id: trilha.id,
-    });
+    useSortable({ id: trilha.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -56,32 +75,20 @@ function SortableRow({
         borderBottom: "1px solid var(--border-color, #f3f4f6)",
       }}
     >
-      <td
-        className="px-4 py-3"
-        style={{
-          color: "var(--text-color)",
-        }}
-      >
+      <td className="px-4 py-3" style={{ color: "var(--text-color)" }}>
         <button
           {...attributes}
           {...listeners}
           className="cursor-grab active:cursor-grabbing"
-          style={{
-            color: "var(--text-muted, #9ca3af)",
-          }}
+          style={{ color: "var(--text-muted, #9ca3af)" }}
         >
           <GripVertical size={16} />
         </button>
       </td>
-
       <td className="px-4 py-3">{trilha.titulo}</td>
-
       <td className="px-4 py-3">{trilha.categoriaNome}</td>
-
       <td className="px-4 py-3">{trilha.nivel || "—"}</td>
-
       <td className="px-4 py-3">{trilha.destaque ? "⭐" : "—"}</td>
-
       <td className="px-4 py-3">
         {trilha.ativa ? (
           <span className="px-2 py-1 rounded bg-green-100 text-green-700 text-xs">
@@ -93,25 +100,19 @@ function SortableRow({
           </span>
         )}
       </td>
-
       <td className="px-4 py-3">
         <div className="flex items-center gap-1">
           <button
             onClick={() => openEdit(trilha)}
             className="p-1.5 rounded-lg transition"
-            style={{
-              color: "#3b82f6",
-            }}
+            style={{ color: "#3b82f6" }}
           >
             <Pencil size={14} />
           </button>
-
           <button
             onClick={() => handleDelete(trilha.id)}
             className="p-1.5 rounded-lg transition"
-            style={{
-              color: "#ef4444",
-            }}
+            style={{ color: "#ef4444" }}
           >
             <Trash2 size={14} />
           </button>
@@ -125,76 +126,17 @@ export default function AdminTrilhas() {
   const [trilhas, setTrilhas] = useState<Trilha[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
 
-  console.log(
-    "render",
-    trilhas.map((t) => ({
-      id: t.id,
-      titulo: t.titulo,
-    })),
-  );
-
-  // Modal de importação
   const [importOpen, setImportOpen] = useState(false);
   const [importUrl, setImportUrl] = useState("");
   const [importCategoriaId, setImportCategoriaId] = useState("");
   const [importing, setImporting] = useState(false);
   const [importError, setImportError] = useState("");
 
-  // Modal de edição
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState<Trilha | null>(null);
   const [editForm, setEditForm] = useState(emptyEditForm);
   const [saving, setSaving] = useState(false);
   const [ordemAlterada, setOrdemAlterada] = useState(false);
-
-  async function handleDragEnd(event: DragEndEvent) {
-    console.log("drag end", event);
-
-    const { active, over } = event;
-
-    if (!over) return;
-
-    console.log(active.id, over.id);
-
-    if (active.id === over.id) return;
-
-    const oldIndex = trilhas.findIndex((t) => t.id === active.id);
-
-    const newIndex = trilhas.findIndex((t) => t.id === over.id);
-
-    console.log({
-      oldIndex,
-      newIndex,
-    });
-
-    const novaLista = arrayMove(trilhas, oldIndex, newIndex);
-
-    console.log(
-      "antes",
-      trilhas.map((t) => t.id),
-    );
-
-    setTrilhas(novaLista);
-    setOrdemAlterada(true);
-  }
-
-  async function handleSalvarOrdem() {
-    try {
-      await adminApi.reordenarTrilhas(
-        trilhas.map((trilha, index) => ({
-          id: trilha.id,
-          ordem: index,
-        })),
-      );
-
-      setOrdemAlterada(false);
-
-      alert("Ordem salva com sucesso!");
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao salvar ordem.");
-    }
-  }
 
   useEffect(() => {
     Promise.all([adminApi.listarTrilhas(), adminApi.listarCategorias()]).then(
@@ -205,7 +147,28 @@ export default function AdminTrilhas() {
     );
   }, []);
 
-  // ─── IMPORTAR ──────────────────────────────────────────────────────────────
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = trilhas.findIndex((t) => t.id === active.id);
+    const newIndex = trilhas.findIndex((t) => t.id === over.id);
+    setTrilhas(arrayMove(trilhas, oldIndex, newIndex));
+    setOrdemAlterada(true);
+  }
+
+  async function handleSalvarOrdem() {
+    try {
+      await adminApi.reordenarTrilhas(
+        trilhas.map((trilha, index) => ({ id: trilha.id, ordem: index })),
+      );
+      setOrdemAlterada(false);
+      alert("Ordem salva com sucesso!");
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao salvar ordem.");
+    }
+  }
 
   function openImport() {
     setImportUrl("");
@@ -219,28 +182,18 @@ export default function AdminTrilhas() {
       setImportError("Preencha a URL e a categoria.");
       return;
     }
-
     setImporting(true);
     setImportError("");
-
     try {
-      const trilha = await adminApi.importarPlaylist(
-        importUrl,
-        importCategoriaId,
-      );
-
+      const trilha = await adminApi.importarPlaylist(importUrl, importCategoriaId);
       setTrilhas((prev) => [trilha, ...prev]);
       setImportOpen(false);
     } catch (err: any) {
-      setImportError(
-        err?.response?.data?.error ?? "Erro ao importar playlist.",
-      );
+      setImportError(err?.response?.data?.error ?? "Erro ao importar playlist.");
     } finally {
       setImporting(false);
     }
   }
-
-  // ─── EDITAR ────────────────────────────────────────────────────────────────
 
   function openEdit(t: Trilha) {
     setEditing(t);
@@ -282,8 +235,6 @@ export default function AdminTrilhas() {
     }
   }
 
-  // ─── DELETAR ───────────────────────────────────────────────────────────────
-
   async function handleDelete(id: string) {
     if (!confirm("Remover esta trilha?")) return;
     await adminApi.deletarTrilha(id);
@@ -305,7 +256,6 @@ export default function AdminTrilhas() {
                 Salvar Ordem
               </button>
             )}
-
             <button
               onClick={openImport}
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition"
@@ -316,6 +266,7 @@ export default function AdminTrilhas() {
           </div>
         }
       />
+
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <div
           className="rounded-xl border overflow-hidden"
@@ -332,12 +283,7 @@ export default function AdminTrilhas() {
                   borderBottom: "1px solid var(--border-color, #e5e7eb)",
                 }}
               >
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
-                  style={{
-                    color: "var(--text-muted, #9ca3af)",
-                  }}
-                ></th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted, #9ca3af)" }}></th>
                 <th className="px-4 py-3 text-left">Título</th>
                 <th className="px-4 py-3 text-left">Categoria</th>
                 <th className="px-4 py-3 text-left">Nível</th>
@@ -346,7 +292,6 @@ export default function AdminTrilhas() {
                 <th className="px-4 py-3 text-left">Ações</th>
               </tr>
             </thead>
-
             <tbody>
               <SortableContext
                 items={trilhas.map((t) => t.id)}
@@ -377,10 +322,7 @@ export default function AdminTrilhas() {
             <button
               onClick={() => setImportOpen(false)}
               className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
-              style={{
-                borderColor: "var(--border-color, #e5e7eb)",
-                color: "var(--text-color)",
-              }}
+              style={{ borderColor: "var(--border-color, #e5e7eb)", color: "var(--text-color)" }}
             >
               Cancelar
             </button>
@@ -414,9 +356,7 @@ export default function AdminTrilhas() {
             >
               <option value="">Selecionar...</option>
               {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
+                <option key={c.id} value={c.id}>{c.nome}</option>
               ))}
             </select>
           </Field>
@@ -437,10 +377,7 @@ export default function AdminTrilhas() {
             <button
               onClick={() => setEditOpen(false)}
               className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
-              style={{
-                borderColor: "var(--border-color, #e5e7eb)",
-                color: "var(--text-color)",
-              }}
+              style={{ borderColor: "var(--border-color, #e5e7eb)", color: "var(--text-color)" }}
             >
               Cancelar
             </button>
@@ -462,9 +399,7 @@ export default function AdminTrilhas() {
             <Field label="Título *">
               <input
                 value={editForm.titulo}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, titulo: e.target.value })
-                }
+                onChange={(e) => setEditForm({ ...editForm, titulo: e.target.value })}
                 className="input-admin"
               />
             </Field>
@@ -472,34 +407,26 @@ export default function AdminTrilhas() {
           <Field label="Slug *">
             <input
               value={editForm.slug}
-              onChange={(e) =>
-                setEditForm({ ...editForm, slug: e.target.value })
-              }
+              onChange={(e) => setEditForm({ ...editForm, slug: e.target.value })}
               className="input-admin"
             />
           </Field>
           <Field label="Categoria">
             <select
               value={editForm.categoriaId}
-              onChange={(e) =>
-                setEditForm({ ...editForm, categoriaId: e.target.value })
-              }
+              onChange={(e) => setEditForm({ ...editForm, categoriaId: e.target.value })}
               className="input-admin"
             >
               <option value="">Selecionar...</option>
               {categorias.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
+                <option key={c.id} value={c.id}>{c.nome}</option>
               ))}
             </select>
           </Field>
           <Field label="Nível">
             <select
               value={editForm.nivel}
-              onChange={(e) =>
-                setEditForm({ ...editForm, nivel: e.target.value })
-              }
+              onChange={(e) => setEditForm({ ...editForm, nivel: e.target.value })}
               className="input-admin"
             >
               <option value="">Selecionar...</option>
@@ -511,9 +438,7 @@ export default function AdminTrilhas() {
           <Field label="YouTube Playlist ID">
             <input
               value={editForm.youtubePlaylistId}
-              onChange={(e) =>
-                setEditForm({ ...editForm, youtubePlaylistId: e.target.value })
-              }
+              onChange={(e) => setEditForm({ ...editForm, youtubePlaylistId: e.target.value })}
               className="input-admin"
             />
           </Field>
@@ -521,9 +446,7 @@ export default function AdminTrilhas() {
             <Field label="Descrição">
               <textarea
                 value={editForm.descricao}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, descricao: e.target.value })
-                }
+                onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })}
                 rows={2}
                 className="input-admin resize-none"
               />
@@ -534,64 +457,32 @@ export default function AdminTrilhas() {
               <input
                 type="checkbox"
                 checked={editForm.ativa}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, ativa: e.target.checked })
-                }
+                onChange={(e) => setEditForm({ ...editForm, ativa: e.target.checked })}
                 className="w-4 h-4 accent-blue-600"
               />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>
-                Trilha ativa
-              </span>
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>Trilha ativa</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={editForm.destaque}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, destaque: e.target.checked })
-                }
+                onChange={(e) => setEditForm({ ...editForm, destaque: e.target.checked })}
                 className="w-4 h-4 accent-yellow-500"
               />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>
-                Destaque
-              </span>
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>Destaque</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={editForm.isCurated}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, isCurated: e.target.checked })
-                }
+                onChange={(e) => setEditForm({ ...editForm, isCurated: e.target.checked })}
                 className="w-4 h-4 accent-blue-600"
               />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>
-                Curada
-              </span>
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>Curada</span>
             </label>
           </div>
         </div>
       </AdminModal>
     </>
   );
-
-  function Field({
-    label,
-    children,
-  }: {
-    label: string;
-    children: React.ReactNode;
-  }) {
-    return (
-      <div className="flex flex-col gap-1.5">
-        <label
-          className="text-xs font-semibold"
-          style={{ color: "var(--text-muted, #6b7280)" }}
-        >
-          {label}
-        </label>
-        {children}
-      </div>
-    );
-  }
 }

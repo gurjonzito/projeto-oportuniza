@@ -29,6 +29,22 @@ export async function searchVideosByTitle(query: string) {
   })
 }
 
+export async function listarTodosVideos() {
+  return prisma.video.findMany({
+    where: {
+      trilhas: {
+        none: {}, // exclui vídeos que têm pelo menos uma trilha associada
+      },
+    },
+    include: {
+      canal: true,
+    },
+    orderBy: {
+      cachedEm: "desc",
+    },
+  });
+}
+
 export async function createVideo(data: any) {
   return prisma.video.create({ data })
 }
@@ -42,6 +58,18 @@ export async function findVideosByIds(ids: string[]) {
       canal: true
     }
   })
+}
+
+export async function findCuratedVideosByIds(ids: string[]) {
+  return prisma.video.findMany({
+    where: {
+      id: { in: ids },
+      isCurated: true,
+    },
+    include: {
+      canal: true,
+    },
+  });
 }
 
 export async function updateVideoCurated(id: string, isCurated: boolean) {

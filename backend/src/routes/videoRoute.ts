@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth'
 import { searchVideos } from '../services/videoService'
-import { updateVideoCurated, updateVideoTags } from '../repositories/videoRepository'
+import { updateVideoCurated, updateVideoTags, listarTodosVideos } from '../repositories/videoRepository'
 
 const router = Router()
 
@@ -20,6 +20,7 @@ function mapVideo(v: any) {
   }
 }
 
+// Rota pública — só curados
 router.get('/', async (req, res, next) => {
   try {
     const query = (req.query.q as string) || 'mercado de trabalho jovem'
@@ -32,6 +33,14 @@ router.get('/search', async (req, res, next) => {
   try {
     const query = (req.query.q as string) || 'mercado de trabalho jovem'
     const videos = await searchVideos(query)
+    res.json({ videos: videos.map(mapVideo) })
+  } catch (err) { next(err) }
+})
+
+// Rota admin — todos os vídeos sem filtro de curadoria
+router.get('/admin/all', authMiddleware, async (req, res, next) => {
+  try {
+    const videos = await listarTodosVideos()
     res.json({ videos: videos.map(mapVideo) })
   } catch (err) { next(err) }
 })

@@ -179,18 +179,18 @@ export const adminApi = {
 
   // ─── VÍDEOS ──────────────────────────────────────────────────────────────
 
-  async listarVideos(): Promise<Video[]> {
-    const { data } = await api.get("/videos");
+async listarVideos(): Promise<Video[]> {
+  const { data } = await api.get("/videos/admin/all"); // ← era "/videos"
 
-    return (data.videos ?? []).map((v: any) => ({
-      ...v,
-      youtubeVideoId: v.videoId ?? v.youtubeVideoId ?? "",
-      titulo: v.title ?? v.titulo ?? "",
-      canal: v.channel ? { nome: v.channel } : v.canal,
-      tags: v.tags ?? [],
-      isCurated: v.isCurated ?? false,
-    }));
-  },
+  return (data.videos ?? []).map((v: any) => ({
+    ...v,
+    youtubeVideoId: v.videoId ?? v.youtubeVideoId ?? "",
+    titulo: v.title ?? v.titulo ?? "",
+    canal: v.channel ? { nome: v.channel } : v.canal,
+    tags: v.tags ?? [],
+    isCurated: v.isCurated ?? false,
+  }));
+},
 
   async toggleCurated(
     id: string,
