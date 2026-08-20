@@ -1,17 +1,21 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 export default function MainLayout() {
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      <Navbar />
+  const location = useLocation();
 
-      <main className="pt-24">
+  const isAuthPage = location.pathname === "/login";
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-[#1e293b]">
+      {!isAuthPage && <Navbar />}
+
+      <main className={isAuthPage ? "min-h-screen" : "pt-20"}>
         <Outlet />
       </main>
 
-      <Footer />
+      {!isAuthPage && <Footer />}
     </div>
   );
 }

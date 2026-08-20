@@ -14,6 +14,8 @@ import Contato from "../pages/Contato";
 import Player from "../pages/Player";
 import Mobile from "../pages/Mobile";
 import Playlist from "../pages/TrilhaDetalhe";
+import Login from "../pages/Login";
+import Account from "../pages/Account";
 
 import Seguranca from "../pages/legal/Seguranca";
 import Termos from "../pages/legal/Termos";
@@ -45,6 +47,8 @@ export default function AppRoutes() {
         <Route path="/termos" element={<Termos />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/privacidade" element={<Privacidade />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/user" element={<Account />} />
       </Route>
 
       {/* Login admin — fora do AdminLayout */}
