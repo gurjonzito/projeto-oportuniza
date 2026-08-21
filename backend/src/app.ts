@@ -11,6 +11,7 @@ import { authRoutes } from "./routes/authRoute";
 import { resumoRoutes } from "./routes/resumoRoute";
 import { recursoRoutes } from "./routes/recursoRoute";
 import { userRoutes } from "./routes/userRoute";
+import { fotoRoutes } from "./routes/fotoRoute";
 
 import { auth } from "./middleware/betterAuth";
 import { toNodeHandler } from "better-auth/node";
@@ -55,6 +56,7 @@ app.use("/canais", canalRoutes);
 app.use("/api/resumo", resumoRoutes);
 app.use("/recursos", recursoRoutes);
 app.use("/user", userRoutes);
+app.use("/user", fotoRoutes);
 
 app.get("/", (_, res) => {
   return res.json({

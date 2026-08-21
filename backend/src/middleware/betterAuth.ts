@@ -13,6 +13,7 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
+    requireEmailVerification: false,
   },
 
   socialProviders: {
@@ -23,18 +24,17 @@ export const auth = betterAuth({
   },
 
   account: {
-    accountLinking: {
-      enabled: true,
-      trustedProviders: [
-        "google",
-        "email-password",
-      ],
-      allowDifferentEmails: false,
-    },
+  accountLinking: {
+    enabled: true,
+    disableImplicitLinking: true,
+    trustedProviders: ["google"],
+    allowDifferentEmails: false,
+    updateUserInfoOnLink: true,
   },
+},
 
   advanced: {
-    crossSubdomainCookies: {
+    crossSubDomainCookies: {
       enabled: false,
     },
 

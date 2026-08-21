@@ -181,15 +181,6 @@ export default function Navbar() {
             </button>
           )}
 
-          {/* Botão COMEÇAR Desktop */}
-
-          <button
-            onClick={() => navigate("/trilhas")}
-            className="hidden md:flex bg-[#23A6F0] text-white px-5 py-2 rounded-lg font-semibold hover:brightness-110 transition text-sm"
-          >
-            Começar
-          </button>
-
           {/* Hamburger Mobile */}
 
           <div className="lg:hidden relative w-8 h-8">
@@ -286,16 +277,6 @@ export default function Navbar() {
                 Entrar / Cadastrar
               </button>
             )}
-
-            <button
-              onClick={() => {
-                navigate("/trilhas");
-                setMenuOpen(false);
-              }}
-              className="bg-[#23A6F0] text-white px-6 py-2.5 rounded-lg font-semibold text-sm hover:brightness-110 transition"
-            >
-              Começar
-            </button>
           </div>
         </nav>
       </div>
