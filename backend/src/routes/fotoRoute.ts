@@ -1,8 +1,14 @@
 import { Router } from "express";
 import multer from "multer";
 import sharp from "sharp";
-import path from "path";
-import fs from "fs";
+
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 import { userAuth } from "../middleware/userAuth";
 import { prisma } from "../config/prisma";
@@ -10,41 +16,62 @@ import { prisma } from "../config/prisma";
 const router = Router();
 
 // =========================================================
-// CONFIGURAÇÃO DO MULTER
-// Armazena em memória para processar com o sharp antes de salvar
+// CLIENTE R2
+// =========================================================
+
+const r2 = new S3Client({
+  region: "auto",
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
+
+const BUCKET = process.env.R2_BUCKET_NAME!;
+const URL_EXPIRY_SECONDS = 60 * 60 * 24 * 7;
+
+// =========================================================
+// MULTER
 // =========================================================
 
 const upload = multer({
   storage: multer.memoryStorage(),
-
-  limits: {
-    fileSize: 2 * 1024 * 1024, // 2MB
-  },
-
+  limits: { fileSize: 2 * 1024 * 1024 },
   fileFilter(_req, file, callback) {
     const permitidos = ["image/jpeg", "image/png"];
-
     if (!permitidos.includes(file.mimetype)) {
-      return callback(
-        new Error("Apenas arquivos JPG e PNG são permitidos.")
-      );
+      return callback(new Error("Apenas arquivos JPG e PNG são permitidos."));
     }
-
     callback(null, true);
   },
 });
 
 // =========================================================
-// DIRETÓRIO DE UPLOADS
-// Ajuste o caminho conforme a estrutura do seu projeto.
-// Se usar um serviço de storage (S3, Cloudflare R2 etc.),
-// substitua a lógica de salvar arquivo pela do SDK do serviço.
+// HELPERS
 // =========================================================
 
-const UPLOADS_DIR = path.resolve(__dirname, "../../public/uploads/avatars");
+export async function gerarPresignedUrl(key: string): Promise<string> {
+  return getSignedUrl(
+    r2,
+    new GetObjectCommand({ Bucket: BUCKET, Key: key }),
+    { expiresIn: URL_EXPIRY_SECONDS }
+  );
+}
 
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+function extrairKey(imageKey: string | null): string | null {
+  if (!imageKey || imageKey.startsWith("/uploads/")) return null;
+  return imageKey;
+}
+
+async function deletarDoR2(imageKey: string) {
+  const key = extrairKey(imageKey);
+  if (!key) return;
+  try {
+    await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+  } catch (err: any) {
+    console.warn("Aviso: não foi possível remover foto antiga do R2:", err.message);
+  }
 }
 
 // =========================================================
@@ -67,58 +94,43 @@ router.post(
         return res.status(400).json({ error: "Nenhum arquivo enviado." });
       }
 
-      // Nome único para o arquivo: id do usuário + timestamp
-      const nomeArquivo = `${usuario.id}-${Date.now()}.webp`;
-      const caminhoArquivo = path.join(UPLOADS_DIR, nomeArquivo);
-
-      // Redimensiona e converte para WebP com sharp
-      // (menor peso, boa qualidade, compatível com todos os browsers modernos)
-      await sharp(req.file.buffer)
-        .resize(256, 256, {
-          fit: "cover",        // recorta centralizado
-          position: "center",
-        })
+      const buffer = await sharp(req.file.buffer)
+        .resize(256, 256, { fit: "cover", position: "center" })
         .webp({ quality: 85 })
-        .toFile(caminhoArquivo);
+        .toBuffer();
 
-      // URL pública da imagem
-      // Ajuste o prefixo conforme o seu setup (domínio, CDN etc.)
-      const urlFoto = `/uploads/avatars/${nomeArquivo}`;
+      const key = `avatars/${usuario.id}-${Date.now()}.webp`;
 
-      // Remove a foto antiga, se existir e não for uma URL externa (ex: Google)
+      await r2.send(
+        new PutObjectCommand({
+          Bucket: BUCKET,
+          Key: key,
+          Body: buffer,
+          ContentType: "image/webp",
+        })
+      );
+
+      // Remove foto anterior do R2
       const usuarioAtual = await prisma.user.findUnique({
         where: { id: usuario.id },
-        select: { image: true },
+        select: { imageKey: true },
       });
 
-      if (
-        usuarioAtual?.image &&
-        usuarioAtual.image.startsWith("/uploads/avatars/")
-      ) {
-        const caminhoAntigo = path.resolve(
-          __dirname,
-          "../../public",
-          usuarioAtual.image.slice(1) // remove a barra inicial
-        );
-
-        fs.unlink(caminhoAntigo, (err) => {
-          if (err) {
-            // Não bloqueia a resposta se a remoção falhar
-            console.warn("Aviso: não foi possível remover a foto antiga:", err.message);
-          }
-        });
+      if (usuarioAtual?.imageKey) {
+        await deletarDoR2(usuarioAtual.imageKey);
       }
 
-      // Atualiza a URL no banco
+      const presignedUrl = await gerarPresignedUrl(key);
+      const imageUrlExpiresAt = new Date(Date.now() + URL_EXPIRY_SECONDS * 1000);
+
       const usuarioAtualizado = await prisma.user.update({
         where: { id: usuario.id },
-        data: { image: urlFoto },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          image: true,
+        data: {
+          imageKey: key,        // corrigido: inicializador explícito
+          image: presignedUrl,
+          imageUrlExpiresAt,
         },
+        select: { id: true, name: true, email: true, image: true },
       });
 
       return res.json({
@@ -126,11 +138,9 @@ router.post(
         image: usuarioAtualizado.image,
       });
     } catch (err: any) {
-      // Erros do multer (tamanho, tipo de arquivo)
       if (err instanceof multer.MulterError || err.message) {
         return res.status(400).json({ error: err.message });
       }
-
       next(err);
     }
   }

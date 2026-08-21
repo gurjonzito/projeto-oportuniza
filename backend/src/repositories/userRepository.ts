@@ -2,15 +2,15 @@ import { prisma } from "../config/prisma";
 
 export async function findUserById(id: string) {
   return prisma.user.findUnique({
-    where: {
-      id,
-    },
+    where: { id },
     select: {
       id: true,
       name: true,
       email: true,
       emailVerified: true,
       image: true,
+      imageKey: true,           // key permanente no R2
+      imageUrlExpiresAt: true,  // quando a presigned URL expira
       createdAt: true,
       updatedAt: true,
 
@@ -36,12 +36,13 @@ export async function updateUser(
   id: string,
   data: {
     name?: string;
+    image?: string;
+    imageKey?: string;
+    imageUrlExpiresAt?: Date;
   }
 ) {
   return prisma.user.update({
-    where: {
-      id,
-    },
+    where: { id },
     data,
     select: {
       id: true,
@@ -49,6 +50,8 @@ export async function updateUser(
       email: true,
       emailVerified: true,
       image: true,
+      imageKey: true,
+      imageUrlExpiresAt: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -68,19 +71,9 @@ export async function upsertUserProfile(
   }
 ) {
   return prisma.userProfile.upsert({
-    where: {
-      userId,
-    },
-
-    create: {
-      userId,
-      ...data,
-    },
-
-    update: {
-      ...data,
-    },
-
+    where: { userId },
+    create: { userId, ...data },
+    update: { ...data },
     select: {
       id: true,
       telefone: true,

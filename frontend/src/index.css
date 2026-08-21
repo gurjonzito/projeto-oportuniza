@@ -92,3 +92,23 @@ body,
 select.input-admin {
   cursor: pointer;
 }
+
+.auth-input {
+  background-color: var(--card-bg, #ffffff);
+  color: var(--text-color, #1f2937);
+  border: 1px solid var(--border-color, #e5e7eb);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.auth-input:focus {
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.08);
+  outline: none;
+}
+
+.auth-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

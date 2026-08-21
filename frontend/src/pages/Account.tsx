@@ -104,6 +104,9 @@ export default function Account() {
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
 
+  // ← NOVO: foto controlada localmente, independente do cache da sessão
+  const [fotoAtual, setFotoAtual] = useState<string | null>(null);
+
   // Localização
   const [estados, setEstados] = useState<UF[]>([]);
   const [cidades, setCidades] = useState<Municipio[]>([]);
@@ -248,6 +251,9 @@ export default function Account() {
         setEducation(usuario.profile?.escolaridade ?? "");
         setOccupation(usuario.profile?.situacaoProfissional ?? "");
         setGoal(usuario.profile?.objetivoPrincipal ?? "");
+
+        // ← NOVO: inicializa a foto a partir do backend (já com presigned URL renovada)
+        setFotoAtual(usuario.image ?? null);
       } catch (error: any) {
         console.error("Erro ao carregar usuário:", error);
         setError(error.message || "Erro ao carregar dados do usuário.");
@@ -296,54 +302,53 @@ export default function Account() {
       });
     } catch (error: any) {
       console.error("Erro ao vincular Google:", error);
-
       setError(error?.message || "Não foi possível vincular sua conta Google.");
-
       setLoadingGoogle(false);
     }
   }
 
   async function handleUnlinkGoogle() {
-  try {
-    setError("");
-    setMessage("");
+    try {
+      setError("");
+      setMessage("");
 
-    const { data: accounts, error: accountsError } = await authClient.listAccounts();
+      const { data: accounts, error: accountsError } =
+        await authClient.listAccounts();
 
-    if (accountsError) {
-      throw new Error(
-        accountsError.message || "Não foi possível obter as contas vinculadas.",
+      if (accountsError) {
+        throw new Error(
+          accountsError.message ||
+            "Não foi possível obter as contas vinculadas.",
+        );
+      }
+
+      const googleAccount = accounts?.find(
+        (account) => account.providerId === "google",
+      );
+
+      if (!googleAccount) {
+        throw new Error("Nenhuma conta Google vinculada.");
+      }
+
+      const { error } = await authClient.unlinkAccount({
+        accountId: googleAccount.accountId,
+      });
+
+      if (error) {
+        throw new Error(
+          error.message || "Não foi possível desvincular a conta Google.",
+        );
+      }
+
+      setGoogleLinked(false);
+      setMessage("Conta Google desvinculada com sucesso.");
+    } catch (error: any) {
+      console.error("Erro ao desvincular Google:", error);
+      setError(
+        error?.message || "Não foi possível desvincular a conta Google.",
       );
     }
-
-    const googleAccount = accounts?.find(
-      (account) => account.providerId === "google",
-    );
-
-    if (!googleAccount) {
-      throw new Error("Nenhuma conta Google vinculada.");
-    }
-
-    const { error } = await authClient.unlinkAccount({
-      accountId: googleAccount.accountId,
-    });
-
-    if (error) {
-      throw new Error(
-        error.message || "Não foi possível desvincular a conta Google.",
-      );
-    }
-
-    setGoogleLinked(false);
-    setMessage("Conta Google desvinculada com sucesso.");
-  } catch (error: any) {
-    console.error("Erro ao desvincular Google:", error);
-
-    setError(
-      error?.message || "Não foi possível desvincular a conta Google.",
-    );
   }
-}
 
   // ==========================================
   // ALTERAR FOTO
@@ -385,13 +390,14 @@ export default function Account() {
         throw new Error(dados?.error || "Erro ao enviar foto.");
       }
 
+      // ← NOVO: atualiza a foto imediatamente sem precisar de F5
+      setFotoAtual(dados.image);
       setMessage("Foto atualizada com sucesso.");
     } catch (error: any) {
       console.error("Erro ao enviar foto:", error);
       setError(error.message || "Erro ao enviar foto.");
     } finally {
       setUploadingFoto(false);
-      // Limpa o input para permitir selecionar o mesmo arquivo novamente
       if (inputFotoRef.current) inputFotoRef.current.value = "";
     }
   }
@@ -582,9 +588,10 @@ export default function Account() {
             <div className="px-4 py-5 mb-2">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full bg-[#23A6F0] flex items-center justify-center overflow-hidden">
-                  {session.user.image ? (
+                  {/* ← ALTERADO: usa fotoAtual em vez de session.user.image */}
+                  {fotoAtual ? (
                     <img
-                      src={session.user.image}
+                      src={fotoAtual}
                       alt={session.user.name}
                       className="w-full h-full object-cover"
                     />
@@ -681,9 +688,10 @@ export default function Account() {
                   {/* Avatar */}
                   <div className="flex items-center gap-4 mb-7">
                     <div className="w-16 h-16 rounded-full bg-[#23A6F0] flex items-center justify-center overflow-hidden">
-                      {session.user.image ? (
+                      {/* ← ALTERADO: usa fotoAtual em vez de session.user.image */}
+                      {fotoAtual ? (
                         <img
-                          src={session.user.image}
+                          src={fotoAtual}
                           alt={name}
                           className="w-full h-full object-cover"
                         />
@@ -885,7 +893,6 @@ export default function Account() {
                 </div>
 
                 <div className="p-6">
-                  {/* Card informativo */}
                   <div
                     className="flex gap-3 p-4 rounded-xl mb-6"
                     style={{ backgroundColor: "var(--bg-subtle)" }}
@@ -910,7 +917,6 @@ export default function Account() {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* Escolaridade */}
                     <div>
                       <label className="block text-xs font-semibold mb-1.5">
                         Escolaridade
@@ -924,7 +930,6 @@ export default function Account() {
                       />
                     </div>
 
-                    {/* Situação profissional */}
                     <div>
                       <label className="block text-xs font-semibold mb-1.5">
                         Situação profissional
@@ -938,7 +943,6 @@ export default function Account() {
                       />
                     </div>
 
-                    {/* Objetivo principal */}
                     <div className="md:col-span-2">
                       <label className="block text-xs font-semibold mb-1.5">
                         Principal objetivo
@@ -1187,7 +1191,6 @@ export default function Account() {
                     )}
                   </div>
 
-                  {/* Card informativo */}
                   <div
                     className="mt-5 p-4 rounded-xl"
                     style={{ backgroundColor: "var(--bg-subtle)" }}

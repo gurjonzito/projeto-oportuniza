@@ -4,9 +4,13 @@ import {
   upsertUserProfile,
 } from "../repositories/userRepository";
 
+import { gerarPresignedUrl } from "../routes/fotoRoute";
+
+const URL_EXPIRY_SECONDS = 60 * 60 * 24 * 7; // 7 dias
+const RENOVAR_ANTES_DE_MS = 1000 * 60 * 60 * 24; // renova se faltar < 1 dia
+
 interface AtualizarUsuarioData {
   name?: string;
-
   telefone?: string | null;
   dataNascimento?: string | null;
   cidade?: string | null;
@@ -16,6 +20,38 @@ interface AtualizarUsuarioData {
   objetivoPrincipal?: string | null;
 }
 
+// =========================================================
+// HELPER — renova presigned URL se estiver perto de expirar
+// Atualiza o banco e devolve o usuário com a URL já renovada
+// =========================================================
+
+async function renovarUrlSeNecessario(
+  usuario: NonNullable<Awaited<ReturnType<typeof findUserById>>>
+) {
+  const { id, imageKey, imageUrlExpiresAt } = usuario;
+
+  const deveRenovar =
+    imageKey &&
+    imageUrlExpiresAt &&
+    imageUrlExpiresAt.getTime() - Date.now() < RENOVAR_ANTES_DE_MS;
+
+  if (!deveRenovar) return usuario;
+
+  const novaUrl = await gerarPresignedUrl(imageKey);
+  const novaExpiracao = new Date(Date.now() + URL_EXPIRY_SECONDS * 1000);
+
+  await updateUser(id, {
+    image: novaUrl,
+    imageUrlExpiresAt: novaExpiracao,
+  });
+
+  return { ...usuario, image: novaUrl, imageUrlExpiresAt: novaExpiracao };
+}
+
+// =========================================================
+// SERVICES
+// =========================================================
+
 export async function obterUsuarioService(userId: string) {
   const usuario = await findUserById(userId);
 
@@ -23,7 +59,7 @@ export async function obterUsuarioService(userId: string) {
     throw new Error("Usuário não encontrado");
   }
 
-  return usuario;
+  return renovarUrlSeNecessario(usuario);
 }
 
 export async function atualizarUsuarioService(
@@ -48,14 +84,10 @@ export async function atualizarUsuarioService(
     }
 
     if (nome.length < 2) {
-      throw new Error(
-        "Nome deve possuir pelo menos 2 caracteres"
-      );
+      throw new Error("Nome deve possuir pelo menos 2 caracteres");
     }
 
-    await updateUser(userId, {
-      name: nome,
-    });
+    await updateUser(userId, { name: nome });
   }
 
   // =========================
@@ -68,14 +100,10 @@ export async function atualizarUsuarioService(
     if (!data.dataNascimento) {
       dataNascimento = null;
     } else {
-      const dataConvertida = new Date(
-        data.dataNascimento
-      );
+      const dataConvertida = new Date(data.dataNascimento);
 
       if (isNaN(dataConvertida.getTime())) {
-        throw new Error(
-          "Data de nascimento inválida"
-        );
+        throw new Error("Data de nascimento inválida");
       }
 
       dataNascimento = dataConvertida;
@@ -131,5 +159,6 @@ export async function atualizarUsuarioService(
     });
   }
 
-  return findUserById(userId);
+  const usuarioAtualizado = await findUserById(userId);
+  return renovarUrlSeNecessario(usuarioAtualizado!);
 }
