@@ -307,48 +307,55 @@ export default function Account() {
     }
   }
 
-  async function handleUnlinkGoogle() {
-    try {
-      setError("");
-      setMessage("");
+async function handleUnlinkGoogle() {
+  try {
+    setError("");
+    setMessage("");
 
-      const { data: accounts, error: accountsError } =
-        await authClient.listAccounts();
+    const { data: accounts, error: accountsError } =
+      await authClient.listAccounts();
 
-      if (accountsError) {
-        throw new Error(
-          accountsError.message ||
-            "Não foi possível obter as contas vinculadas.",
-        );
-      }
+    console.log("📋 Todas as contas:", accounts); // Debug
 
-      const googleAccount = accounts?.find(
-        (account) => account.providerId === "google",
-      );
-
-      if (!googleAccount) {
-        throw new Error("Nenhuma conta Google vinculada.");
-      }
-
-      const { error } = await authClient.unlinkAccount({
-        accountId: googleAccount.accountId,
-      });
-
-      if (error) {
-        throw new Error(
-          error.message || "Não foi possível desvincular a conta Google.",
-        );
-      }
-
-      setGoogleLinked(false);
-      setMessage("Conta Google desvinculada com sucesso.");
-    } catch (error: any) {
-      console.error("Erro ao desvincular Google:", error);
-      setError(
-        error?.message || "Não foi possível desvincular a conta Google.",
+    if (accountsError) {
+      throw new Error(
+        accountsError.message ||
+          "Não foi possível obter as contas vinculadas.",
       );
     }
+
+    const googleAccount = accounts?.find(
+      (account: any) => account.providerId === "google",
+    );
+
+    console.log("🔍 Conta Google encontrada:", googleAccount); // Debug
+
+    if (!googleAccount) {
+      throw new Error("Nenhuma conta Google vinculada.");
+    }
+
+    console.log("🔓 Tentando desvincar com accountId:", googleAccount.accountId); // Debug
+
+    const { error } = await authClient.unlinkAccount({
+      accountId: googleAccount.accountId,
+    });
+
+    if (error) {
+      console.error("❌ Erro do unlinkAccount:", error); // Debug
+      throw new Error(
+        error.message || "Não foi possível desvincular a conta Google.",
+      );
+    }
+
+    setGoogleLinked(false);
+    setMessage("Conta Google desvinculada com sucesso.");
+  } catch (error: any) {
+    console.error("Erro ao desvincular Google:", error);
+    setError(
+      error?.message || "Não foi possível desvincular a conta Google.",
+    );
   }
+}
 
   // ==========================================
   // ALTERAR FOTO
