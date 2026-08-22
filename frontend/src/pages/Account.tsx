@@ -315,8 +315,6 @@ async function handleUnlinkGoogle() {
     const { data: accounts, error: accountsError } =
       await authClient.listAccounts();
 
-    console.log("📋 Todas as contas:", accounts); // Debug
-
     if (accountsError) {
       throw new Error(
         accountsError.message ||
@@ -328,20 +326,16 @@ async function handleUnlinkGoogle() {
       (account: any) => account.providerId === "google",
     );
 
-    console.log("🔍 Conta Google encontrada:", googleAccount); // Debug
-
     if (!googleAccount) {
       throw new Error("Nenhuma conta Google vinculada.");
     }
 
-    console.log("🔓 Tentando desvincar com accountId:", googleAccount.accountId); // Debug
-
+    // ✅ Use 'id' ao invés de 'accountId'
     const { error } = await authClient.unlinkAccount({
-      accountId: googleAccount.accountId,
+      accountId: googleAccount.id, // ← Aqui!
     });
 
     if (error) {
-      console.error("❌ Erro do unlinkAccount:", error); // Debug
       throw new Error(
         error.message || "Não foi possível desvincular a conta Google.",
       );
