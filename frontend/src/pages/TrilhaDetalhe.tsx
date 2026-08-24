@@ -3,43 +3,78 @@ import { Play, ArrowLeft, User, CheckCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import type { Trilha } from "../types/trilha";
+
 import { getTrilhaBySlug } from "../services/trilhaService";
 import {
   getTrilhaProgress,
-  saveTrilhaProgress,
+  marcarVideoConcluido,
 } from "../services/trilhaProgress";
 
 export default function TrailVideos() {
-  const { slug } = useParams();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
 
   const [trail, setTrail] = useState<Trilha | null>(null);
   const [loading, setLoading] = useState(true);
-  const [watched, setWatched] = useState<Set<string>>(new Set());
+  const [watched, setWatched] = useState<Set<string>>(
+    new Set()
+  );
+  const [marcandoVideo, setMarcandoVideo] = useState<
+    string | null
+  >(null);
 
   useEffect(() => {
     if (!slug) return;
 
-    getTrilhaBySlug(slug)
-      .then((data) => {
+    const slugAtual = slug;
+
+    async function carregarTrilha() {
+      try {
+        setLoading(true);
+
+        const data = await getTrilhaBySlug(slugAtual);
+
         setTrail(data);
 
-        const progresso = getTrilhaProgress(slug);
+        const progresso = await getTrilhaProgress(
+          slugAtual
+        );
 
         if (progresso?.videosConcluidosIds) {
-          setWatched(new Set(progresso.videosConcluidosIds));
+          setWatched(
+            new Set(progresso.videosConcluidosIds)
+          );
+        } else {
+          setWatched(new Set());
         }
-      })
-      .catch((err) => console.error("ERRO AO BUSCAR TRILHA:", err))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        console.error(
+          "ERRO AO BUSCAR TRILHA:",
+          err
+        );
+
+        setTrail(null);
+        setWatched(new Set());
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarTrilha();
   }, [slug]);
 
   const videos = trail?.videos || [];
 
   const progress =
-    videos.length > 0 ? Math.round((watched.size / videos.length) * 100) : 0;
+    videos.length > 0
+      ? Math.round(
+          (watched.size / videos.length) * 100
+        )
+      : 0;
 
-  const trilhaConcluida = videos.length > 0 && watched.size === videos.length;
+  const trilhaConcluida =
+    videos.length > 0 &&
+    watched.size === videos.length;
 
   const trilhaIniciada = watched.size === 0;
 
@@ -49,29 +84,43 @@ export default function TrailVideos() {
       ? "Trilha iniciada"
       : "Trilha em andamento";
 
-  function toggleWatched(videoId: string) {
-    if (!slug || !trail) return;
+  async function toggleWatched(videoId: string) {
+    if (!slug || !trail || marcandoVideo) return;
 
-    setWatched((prev) => {
-      const next = new Set(prev);
+    const slugAtual = slug;
 
-      if (next.has(videoId)) {
-        next.delete(videoId);
-      } else {
-        next.add(videoId);
-      }
+    const estavaConcluido = watched.has(videoId);
 
-      saveTrilhaProgress({
-        slug: trail.slug,
-        titulo: trail.titulo,
-        totalVideos: videos.length,
-        videosConcluidos: next.size,
-        videosConcluidosIds: Array.from(next),
-        ultimoAcesso: Date.now(),
-      });
+    /*
+     * O backend atualmente possui apenas a operação
+     * para marcar o vídeo como concluído.
+     *
+     * Portanto, se já estiver concluído, não fazemos
+     * nenhuma alteração.
+     */
+    if (estavaConcluido) {
+      return;
+    }
 
-      return next;
-    });
+    try {
+      setMarcandoVideo(videoId);
+
+      const progresso = await marcarVideoConcluido(
+        slugAtual,
+        videoId
+      );
+
+      setWatched(
+        new Set(progresso.videosConcluidosIds)
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao marcar vídeo como concluído:",
+        error
+      );
+    } finally {
+      setMarcandoVideo(null);
+    }
   }
 
   const trilhaVideos = videos.map((item) => ({
@@ -79,7 +128,10 @@ export default function TrailVideos() {
     titulo: item.video.titulo,
   }));
 
-  function abrirVideo(youtubeVideoId: string, index: number) {
+  function abrirVideo(
+    youtubeVideoId: string,
+    index: number
+  ) {
     navigate(`/player/${youtubeVideoId}`, {
       state: {
         trilhaTitulo: trail?.titulo ?? "",
@@ -128,16 +180,22 @@ export default function TrailVideos() {
             {statusTrilha}
           </span>
 
-          <h1 className="text-2xl font-semibold mt-3">{trail.titulo}</h1>
+          <h1 className="text-2xl font-semibold mt-3">
+            {trail.titulo}
+          </h1>
 
-          <p className="text-white/50 text-sm mt-2">{trail.descricao}</p>
+          <p className="text-white/50 text-sm mt-2">
+            {trail.descricao}
+          </p>
 
           {/* PROGRESSO */}
           <div className="flex items-center gap-3 mt-6">
             <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div
                 className={`h-full transition-all ${
-                  trilhaConcluida ? "bg-green-400" : "bg-cyan-400"
+                  trilhaConcluida
+                    ? "bg-green-400"
+                    : "bg-cyan-400"
                 }`}
                 style={{
                   width: `${progress}%`,
@@ -147,7 +205,9 @@ export default function TrailVideos() {
 
             <span
               className={`text-xs ${
-                trilhaConcluida ? "text-green-400" : "text-cyan-400"
+                trilhaConcluida
+                  ? "text-green-400"
+                  : "text-cyan-400"
               }`}
             >
               {progress}%
@@ -157,39 +217,62 @@ export default function TrailVideos() {
           <p className="text-white/40 text-xs mt-2">
             {watched.size} de {videos.length} aulas concluídas
           </p>
+
           {trilhaConcluida && (
             <p className="text-green-400 text-sm mt-4 font-medium">
-              🎉 Parabéns! Você concluiu essa trilha. Continue evoluindo!
+              🎉 Parabéns! Você concluiu essa trilha. Continue
+              evoluindo!
             </p>
           )}
         </div>
       </div>
 
-      {/* LISTA */}
+      {/* LISTA DE VÍDEOS */}
       <div className="max-w-3xl mx-auto px-5 pt-6 pb-10">
         <ul className="flex flex-col gap-3">
           {videos.map((item, idx) => {
-            const videoId = item.video.youtubeVideoId;
-            const isWatched = watched.has(videoId);
+            const videoId =
+              item.video.youtubeVideoId;
+
+            const isWatched =
+              watched.has(videoId);
+
+            const isSaving =
+              marcandoVideo === videoId;
 
             return (
               <li
                 key={item.video.id}
-                onClick={() => abrirVideo(videoId, idx)}
+                onClick={() =>
+                  abrirVideo(videoId, idx)
+                }
                 className="group flex items-center gap-4 rounded-2xl border px-5 py-4 cursor-pointer bg-[#182f6a]/60 border-white/10"
               >
-                <span className="text-sm text-white/30">{idx + 1}</span>
+                {/* NÚMERO */}
+                <span className="text-sm text-white/30">
+                  {idx + 1}
+                </span>
 
+                {/* PLAY */}
                 <button
                   type="button"
-                  onClick={() => abrirVideo(videoId, idx)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    abrirVideo(videoId, idx);
+                  }}
                   className="w-10 h-10 rounded-full bg-cyan-400/20 text-cyan-300 flex items-center justify-center cursor-pointer"
                 >
-                  <Play size={15} fill="currentColor" />
+                  <Play
+                    size={15}
+                    fill="currentColor"
+                  />
                 </button>
 
+                {/* INFORMAÇÕES */}
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{item.video.titulo}</p>
+                  <p className="text-sm font-medium">
+                    {item.video.titulo}
+                  </p>
 
                   {item.video.canal && (
                     <div className="flex items-center gap-1 mt-1 text-xs text-white/40">
@@ -202,14 +285,21 @@ export default function TrailVideos() {
                 {/* CHECK */}
                 <button
                   type="button"
+                  disabled={
+                    isSaving || isWatched
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleWatched(videoId);
                   }}
-                  className="cursor-pointer"
+                  className={`cursor-pointer ${
+                    isSaving
+                      ? "opacity-50 cursor-wait"
+                      : ""
+                  }`}
                   title={
                     isWatched
-                      ? "Desmarcar como concluída"
+                      ? "Aula concluída"
                       : "Marcar como concluída"
                   }
                 >

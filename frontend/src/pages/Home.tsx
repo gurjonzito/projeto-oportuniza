@@ -3,11 +3,8 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Card from "../components/Card";
-import {
-  getTrilhasEmAndamento,
-  removerTrilhaDaHome,
-  type TrilhaProgress,
-} from "../services/trilhaProgress";
+import { getTrilhasProgress } from "../services/trilhaProgress";
+import type { TrilhaProgress } from "../types/trilhaProgress";
 
 export default function Home() {
   return (
@@ -88,19 +85,31 @@ function ContinueTrilhas() {
   const navigate = useNavigate();
 
   const [trilhas, setTrilhas] = useState<TrilhaProgress[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const trilhasEmAndamento = getTrilhasEmAndamento();
+    async function carregarTrilhas() {
+      try {
+        const data = await getTrilhasProgress();
 
-    setTrilhas(trilhasEmAndamento);
+        setTrilhas(data);
+      } catch (error) {
+        console.error(
+          "Erro ao carregar trilhas em andamento:",
+          error
+        );
+
+        setTrilhas([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarTrilhas();
   }, []);
 
-  function removerTrilha(slug: string) {
-    removerTrilhaDaHome(slug);
-
-    setTrilhas((trilhasAtuais) =>
-      trilhasAtuais.filter((trilha) => trilha.slug !== slug)
-    );
+  if (loading) {
+    return null;
   }
 
   if (trilhas.length === 0) {
@@ -150,15 +159,22 @@ function ContinueTrilhas() {
           }
         >
           {trilhas.map((trilha) => {
-            const progresso = Math.round(
-              (trilha.videosConcluidos / trilha.totalVideos) * 100
-            );
+            const progresso =
+              trilha.totalVideos > 0
+                ? Math.round(
+                    (trilha.videosConcluidos /
+                      trilha.totalVideos) *
+                      100
+                  )
+                : 0;
 
             return (
               <Card
                 key={trilha.slug}
                 className={
-                  trilhas.length === 1 ? "w-full max-w-xl" : ""
+                  trilhas.length === 1
+                    ? "w-full max-w-xl"
+                    : ""
                 }
               >
                 <span className="text-blue-500 text-sm font-semibold">
@@ -180,8 +196,8 @@ function ContinueTrilhas() {
                     color: "var(--text-color)",
                   }}
                 >
-                  {trilha.videosConcluidos} de {trilha.totalVideos} aulas
-                  concluídas
+                  {trilha.videosConcluidos} de{" "}
+                  {trilha.totalVideos} aulas concluídas
                 </p>
 
                 <div className="mt-5 h-2 bg-black/10 rounded-full overflow-hidden">
@@ -204,28 +220,12 @@ function ContinueTrilhas() {
                   </span>
 
                   <button
-                    onClick={() => navigate(`/trilhas/${trilha.slug}`)}
+                    onClick={() =>
+                      navigate(`/trilhas/${trilha.slug}`)
+                    }
                     className="cursor-pointer border border-blue-500 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-500 hover:text-white transition"
                   >
                     Continuar →
-                  </button>
-                </div>
-
-                <div className="mt-4 pt-4 border-t border-black/10 flex items-center justify-between gap-4">
-                  <span
-                    className="text-xs"
-                    style={{
-                      color: "var(--text-color)",
-                    }}
-                  >
-                    Não quer continuar agora?
-                  </span>
-
-                  <button
-                    onClick={() => removerTrilha(trilha.slug)}
-                    className="cursor-pointer text-xs text-gray-500 hover:text-red-500 transition"
-                  >
-                    Remover
                   </button>
                 </div>
               </Card>

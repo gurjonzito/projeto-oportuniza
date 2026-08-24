@@ -1,88 +1,37 @@
-export interface TrilhaProgress {
-  slug: string;
-  titulo: string;
-  totalVideos: number;
-  videosConcluidos: number;
-  videosConcluidosIds: string[];
-  ultimoAcesso: number;
+import api from "./api";
+import type { TrilhaProgress } from "../types/trilhaProgress";
+
+export async function getTrilhasProgress(): Promise<TrilhaProgress[]> {
+  const { data } = await api.get("/api/trilhas/progresso");
+
+  return data;
 }
 
-const STORAGE_KEY = "trilhas-progress";
-const HIDDEN_KEY = "trilhas-hidden-home";
-
-export function saveTrilhaProgress(progress: TrilhaProgress) {
-  const existing: TrilhaProgress[] = JSON.parse(
-    localStorage.getItem(STORAGE_KEY) || "[]"
-  );
-
-  const updated = [
-    progress,
-    ...existing.filter(
-      (trilha) => trilha.slug !== progress.slug
-    ),
-  ];
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(updated)
-  );
-
-  const hiddenTrilhas: string[] = JSON.parse(
-    localStorage.getItem(HIDDEN_KEY) || "[]"
-  );
-
-  const updatedHiddenTrilhas = hiddenTrilhas.filter(
-    (slug) => slug !== progress.slug
-  );
-
-  localStorage.setItem(
-    HIDDEN_KEY,
-    JSON.stringify(updatedHiddenTrilhas)
-  );
-}
-
-export function getTrilhasProgress(): TrilhaProgress[] {
-  return JSON.parse(
-    localStorage.getItem(STORAGE_KEY) || "[]"
-  );
-}
-
-export function getTrilhaProgress(
+export async function getTrilhaProgress(
   slug: string
-): TrilhaProgress | undefined {
-  return getTrilhasProgress().find(
-    (trilha) => trilha.slug === slug
-  );
-}
-
-export function getTrilhasEmAndamento(): TrilhaProgress[] {
-  const hiddenTrilhas: string[] = JSON.parse(
-    localStorage.getItem(HIDDEN_KEY) || "[]"
-  );
-
-  return getTrilhasProgress()
-    .filter(
-      (trilha) =>
-        trilha.videosConcluidos > 0 &&
-        trilha.videosConcluidos < trilha.totalVideos &&
-        !hiddenTrilhas.includes(trilha.slug)
-    )
-    .sort(
-      (a, b) => b.ultimoAcesso - a.ultimoAcesso
+): Promise<TrilhaProgress | undefined> {
+  try {
+    const { data } = await api.get(
+      `/api/trilhas/${slug}/progresso`
     );
+
+    return data;
+  } catch (error: any) {
+    if (error?.response?.status === 404) {
+      return undefined;
+    }
+
+    throw error;
+  }
 }
 
-export function removerTrilhaDaHome(slug: string) {
-  const hiddenTrilhas: string[] = JSON.parse(
-    localStorage.getItem(HIDDEN_KEY) || "[]"
+export async function marcarVideoConcluido(
+  slug: string,
+  videoId: string
+): Promise<TrilhaProgress> {
+  const { data } = await api.post(
+    `/api/trilhas/${slug}/progresso/videos/${videoId}`
   );
 
-  if (!hiddenTrilhas.includes(slug)) {
-    hiddenTrilhas.push(slug);
-  }
-
-  localStorage.setItem(
-    HIDDEN_KEY,
-    JSON.stringify(hiddenTrilhas)
-  );
+  return data;
 }

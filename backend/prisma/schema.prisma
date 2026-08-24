@@ -14,15 +14,16 @@ model Canal {
   descricao        String?
   thumbnailUrl     String?
   criadoEm         DateTime @default(now())
-  trilhas          Trilha[]
-  videos           Video[]
+
+  trilhas Trilha[]
+  videos  Video[]
 
   @@map("canais")
 }
 
 model Video {
-  id              String        @id @default(uuid())
-  youtubeVideoId  String        @unique
+  id              String    @id @default(uuid())
+  youtubeVideoId  String    @unique
   canalId         String
   titulo          String
   descricao       String?
@@ -30,12 +31,15 @@ model Video {
   duracaoSegundos Int?
   tags            String[]
   publicadoEm     DateTime?
-  isCurated       Boolean       @default(false)
-  cachedEm        DateTime      @default(now())
+  isCurated       Boolean   @default(false)
+  cachedEm        DateTime  @default(now())
   cacheExpiraEm   DateTime?
   resumoIA        String?
-  trilhas         TrilhaVideo[]
-  canal           Canal         @relation(fields: [canalId], references: [id])
+
+  trilhas    TrilhaVideo[]
+  canal      Canal           @relation(fields: [canalId], references: [id])
+  progressos VideoProgress[]
+  quiz       Quiz?
 
   @@map("videos")
 }
@@ -45,30 +49,33 @@ model Categoria {
   nome      String   @unique
   descricao String?
   criadaEm  DateTime @default(now())
-  trilhas   Trilha[]
+
+  trilhas Trilha[]
 
   @@map("categorias")
 }
 
 model Trilha {
-  id                   String        @id @default(uuid())
+  id                   String   @id @default(uuid())
   categoriaId          String
   canalId              String?
-  youtubePlaylistId    String?       @unique
+  youtubePlaylistId    String?  @unique
   titulo               String
-  slug                 String        @unique
+  slug                 String   @unique
   descricao            String?
   nivel                String?
   thumbnailUrl         String?
   duracaoTotalSegundos Int?
-  destaque             Boolean       @default(false)
-  isCurated            Boolean       @default(true)
-  ativa                Boolean       @default(true)
-  criadaEm             DateTime      @default(now())
-  ordem                Int           @default(0)
-  videos               TrilhaVideo[]
-  canal                Canal?        @relation(fields: [canalId], references: [id])
-  categoria            Categoria     @relation(fields: [categoriaId], references: [id])
+  destaque             Boolean  @default(false)
+  isCurated            Boolean  @default(true)
+  ativa                Boolean  @default(true)
+  criadaEm             DateTime @default(now())
+  ordem                Int      @default(0)
+
+  videos     TrilhaVideo[]
+  canal      Canal?           @relation(fields: [canalId], references: [id])
+  categoria  Categoria        @relation(fields: [categoriaId], references: [id])
+  progressos TrilhaProgress[]
 
   @@map("trilhas")
 }
@@ -77,8 +84,9 @@ model TrilhaVideo {
   trilhaId String
   videoId  String
   ordem    Int
-  trilha   Trilha @relation(fields: [trilhaId], references: [id])
-  video    Video  @relation(fields: [videoId], references: [id])
+
+  trilha Trilha @relation(fields: [trilhaId], references: [id], onDelete: Cascade)
+  video  Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@id([trilhaId, videoId])
   @@map("trilha_videos")
@@ -97,41 +105,44 @@ model BuscaCache {
 }
 
 model Recurso {
-  id          String   @id @default(uuid())
-  nome        String
-  descricao   String
-  url         String
-  categoria   String
-  criadoEm    DateTime @default(now())
-  ativo       Boolean  @default(true)
+  id        String   @id @default(uuid())
+  nome      String
+  descricao String
+  url       String
+  categoria String
+  criadoEm  DateTime @default(now())
+  ativo     Boolean  @default(true)
 
   @@map("recursos")
 }
 
 model User {
-  id            String    @id @default(uuid())
+  id            String  @id @default(uuid())
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String  @unique
+  emailVerified Boolean @default(false)
   image         String?
 
-  imageKey           String?
-  imageUrlExpiresAt  DateTime?
+  imageKey          String?
+  imageUrlExpiresAt DateTime?
 
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  profile       UserProfile?
+  profile UserProfile?
 
-  sessions      Session[]
-  accounts      Account[]
+  sessions Session[]
+  accounts Account[]
+
+  trilhasProgress TrilhaProgress[]
+  quizAttempts    QuizAttempt[]
 
   @@map("users")
 }
 
 model UserProfile {
-  id                   String    @id @default(uuid())
-  userId               String    @unique
+  id     String @id @default(uuid())
+  userId String @unique
 
   telefone             String?
   dataNascimento       DateTime?
@@ -141,10 +152,10 @@ model UserProfile {
   situacaoProfissional String?
   objetivoPrincipal    String?
 
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
 }
@@ -158,29 +169,31 @@ model Session {
   ipAddress String?
   userAgent String?
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
 model Account {
-  id                   String    @id @default(uuid())
-  accountId            String
-  providerId           String
-  issuer               String?
-  userId               String
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String  @id @default(uuid())
+  accountId  String
+  providerId String
+  issuer     String?
+  userId     String
 
-  accessToken          String?
-  refreshToken         String?
-  idToken              String?
-  accessTokenExpiresAt DateTime?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
   refreshTokenExpiresAt DateTime?
-  scope                String?
-  password             String?
+  scope                 String?
+  password              String?
 
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("accounts")
 }
@@ -194,4 +207,116 @@ model Verification {
   updatedAt  DateTime? @updatedAt
 
   @@map("verifications")
+}
+
+model TrilhaProgress {
+  id           String   @id @default(uuid())
+  userId       String
+  trilhaId     String
+  ultimoAcesso DateTime @default(now())
+  criadaEm     DateTime @default(now())
+  atualizadaEm DateTime @updatedAt
+
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trilha           Trilha          @relation(fields: [trilhaId], references: [id], onDelete: Cascade)
+  videosConcluidos VideoProgress[]
+
+  @@unique([userId, trilhaId])
+  @@index([userId])
+  @@index([trilhaId])
+  @@map("trilhas_progress")
+}
+
+model VideoProgress {
+  id          String   @id @default(uuid())
+  progressId  String
+  videoId     String
+  concluidoEm DateTime @default(now())
+
+  progress TrilhaProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  video    Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([progressId, videoId])
+  @@index([videoId])
+  @@map("videos_progress")
+}
+
+model Quiz {
+  id           String   @id @default(uuid())
+  videoId      String   @unique
+  titulo       String
+  modeloIA     String?
+  criadoEm     DateTime @default(now())
+  atualizadoEm DateTime @updatedAt
+
+  video    Video          @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  questoes QuizQuestion[]
+  attempts QuizAttempt[]
+
+  @@map("quizzes")
+}
+
+model QuizQuestion {
+  id         String  @id @default(uuid())
+  quizId     String
+  pergunta   String
+  explicacao String?
+  ordem      Int     @default(0)
+
+  quiz         Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  alternativas QuizOption[]
+  respostas    QuizAnswer[]
+
+  @@index([quizId])
+  @@map("quiz_questions")
+}
+
+model QuizOption {
+  id         String  @id @default(uuid())
+  questionId String
+  texto      String
+  correta    Boolean @default(false)
+  ordem      Int     @default(0)
+
+  question  QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  respostas QuizAnswer[]
+
+  @@index([questionId])
+  @@map("quiz_options")
+}
+
+model QuizAttempt {
+  id          String   @id @default(uuid())
+  userId      String
+  quizId      String
+  pontuacao   Int
+  total       Int
+  percentual  Float
+  realizadoEm DateTime @default(now())
+
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  respostas QuizAnswer[]
+
+  @@index([userId])
+  @@index([quizId])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id           String   @id @default(uuid())
+  attemptId    String
+  questionId   String
+  optionId     String
+  correta      Boolean
+  respondidaEm DateTime @default(now())
+
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  option   QuizOption   @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, questionId])
+  @@index([questionId])
+  @@index([optionId])
+  @@map("quiz_answers")
 }
