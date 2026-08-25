@@ -7,12 +7,11 @@ export const auth = betterAuth({
     provider: "postgresql",
   }),
 
-  // 🔑 IMPORTANTE: Configure a URL base do seu backend
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
 
   trustedOrigins: [
     "http://localhost:5173",
-    "https://oportunizajovem.vercel.app"
+    "https://oportunizajovem.vercel.app",
   ],
 
   emailAndPassword: {
@@ -39,12 +38,11 @@ export const auth = betterAuth({
 
   advanced: {
     crossSubDomainCookies: {
-      enabled: true,
+      enabled: false,
     },
-
     defaultCookieAttributes: {
-      sameSite: "none",
-      secure: process.env.NODE_ENV === "production", // ✅ true em produção
+      sameSite: "lax",  // funciona tanto em dev quanto em prod com proxy
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
     },
   },
