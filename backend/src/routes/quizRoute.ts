@@ -3,6 +3,7 @@ import { Router } from "express";
 import {
   gerarQuiz,
   corrigirQuiz,
+  corrigirQuizAnonimo
 } from "../services/quizService";
 
 import { userAuth } from "../middleware/userAuth";
@@ -167,5 +168,32 @@ router.post(
     }
   }
 );
+
+router.post("/:quizId/corrigir-anonimo", async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const { respostas } = req.body;
+
+    if (!Array.isArray(respostas)) {
+      return res.status(400).json({ error: "Respostas inválidas." });
+    }
+
+    const resultado = await corrigirQuizAnonimo(quizId, respostas);
+    return res.json(resultado);
+  } catch (error: any) {
+    console.error("Erro ao corrigir quiz anônimo:", error);
+
+    const mensagensValidacao = [
+      "Quiz não encontrado.",
+      "Respostas inválidas.",
+    ];
+
+    if (mensagensValidacao.includes(error?.message)) {
+      return res.status(400).json({ error: error.message });
+    }
+
+    return res.status(500).json({ error: "Erro ao corrigir quiz." });
+  }
+});
 
 export { router as quizRoutes };

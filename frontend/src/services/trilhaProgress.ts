@@ -11,16 +11,13 @@ export async function getTrilhaProgress(
   slug: string
 ): Promise<TrilhaProgress | undefined> {
   try {
-    const { data } = await api.get(
-      `/api/trilhas/${slug}/progresso`
-    );
-
+    const { data } = await api.get(`/api/trilhas/${slug}/progresso`);
     return data;
   } catch (error: any) {
-    if (error?.response?.status === 404) {
-      return undefined;
+    const status = error?.response?.status;
+    if (status === 404 || status === 401) {
+      return undefined; // usuário não logado ou trilha sem progresso
     }
-
     throw error;
   }
 }

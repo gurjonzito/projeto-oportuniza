@@ -261,32 +261,48 @@ export default function Player() {
   // ============================================================
 
   async function corrigirQuizVideo() {
-    if (!quiz) return;
+  if (!quiz) return;
 
-    if (respostas.length !== quiz.questoes.length) {
-      setQuizError("Responda todas as questões antes de finalizar.");
-      return;
-    }
+  if (respostas.length !== quiz.questoes.length) {
+    setQuizError("Responda todas as questões antes de finalizar.");
+    return;
+  }
 
-    setQuizError("");
-    setCorrigindoQuiz(true);
+  setQuizError("");
+  setCorrigindoQuiz(true);
 
-    try {
-      const { data } = await api.post(`/api/quiz/${quiz.id}/corrigir`, {
-        respostas,
-      });
-
-      setResultadoQuiz(data);
-    } catch (error: any) {
+  try {
+    // tenta salvar (usuário logado)
+    const { data } = await api.post(`/api/quiz/${quiz.id}/corrigir`, {
+      respostas,
+    });
+    setResultadoQuiz(data);
+  } catch (error: any) {
+    if (error?.response?.status === 401) {
+      // não logado — corrige sem salvar
+      try {
+        const { data } = await api.post(
+          `/api/quiz/${quiz.id}/corrigir-anonimo`,
+          { respostas },
+        );
+        setResultadoQuiz(data);
+      } catch (anonError: any) {
+        console.error("Erro ao corrigir quiz anônimo:", anonError);
+        setQuizError(
+          anonError?.response?.data?.error ??
+            "Não foi possível corrigir o quiz.",
+        );
+      }
+    } else {
       console.error("Erro ao corrigir quiz:", error);
-
       setQuizError(
         error?.response?.data?.error ?? "Não foi possível corrigir o quiz.",
       );
-    } finally {
-      setCorrigindoQuiz(false);
     }
+  } finally {
+    setCorrigindoQuiz(false);
   }
+}
 
   // ============================================================
   // ÁUDIO

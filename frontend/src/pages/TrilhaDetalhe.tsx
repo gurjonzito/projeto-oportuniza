@@ -31,29 +31,23 @@ export default function TrailVideos() {
     async function carregarTrilha() {
       try {
         setLoading(true);
-
         const data = await getTrilhaBySlug(slugAtual);
-
         setTrail(data);
-
-        const progresso = await getTrilhaProgress(
-          slugAtual
-        );
-
-        if (progresso?.videosConcluidosIds) {
-          setWatched(
-            new Set(progresso.videosConcluidosIds)
-          );
-        } else {
-          setWatched(new Set());
-        }
       } catch (err) {
-        console.error(
-          "ERRO AO BUSCAR TRILHA:",
-          err
-        );
-
+        console.error("ERRO AO BUSCAR TRILHA:", err);
         setTrail(null);
+        setLoading(false);
+        return; // para aqui se a trilha não existir
+      }
+
+      // progresso é opcional — falha silenciosa
+      try {
+        const progresso = await getTrilhaProgress(slugAtual);
+        if (progresso?.videosConcluidosIds) {
+          setWatched(new Set(progresso.videosConcluidosIds));
+        }
+      } catch {
+        // usuário não logado ou erro de progresso — ignora
         setWatched(new Set());
       } finally {
         setLoading(false);
@@ -68,8 +62,8 @@ export default function TrailVideos() {
   const progress =
     videos.length > 0
       ? Math.round(
-          (watched.size / videos.length) * 100
-        )
+        (watched.size / videos.length) * 100
+      )
       : 0;
 
   const trilhaConcluida =
@@ -171,11 +165,10 @@ export default function TrailVideos() {
           </button>
 
           <span
-            className={`text-[11px] rounded-full px-3 py-1 ${
-              trilhaConcluida
+            className={`text-[11px] rounded-full px-3 py-1 ${trilhaConcluida
                 ? "bg-green-400/15 text-green-300"
                 : "bg-cyan-400/15 text-cyan-300"
-            }`}
+              }`}
           >
             {statusTrilha}
           </span>
@@ -192,11 +185,10 @@ export default function TrailVideos() {
           <div className="flex items-center gap-3 mt-6">
             <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
               <div
-                className={`h-full transition-all ${
-                  trilhaConcluida
+                className={`h-full transition-all ${trilhaConcluida
                     ? "bg-green-400"
                     : "bg-cyan-400"
-                }`}
+                  }`}
                 style={{
                   width: `${progress}%`,
                 }}
@@ -204,11 +196,10 @@ export default function TrailVideos() {
             </div>
 
             <span
-              className={`text-xs ${
-                trilhaConcluida
+              className={`text-xs ${trilhaConcluida
                   ? "text-green-400"
                   : "text-cyan-400"
-              }`}
+                }`}
             >
               {progress}%
             </span>
@@ -292,11 +283,10 @@ export default function TrailVideos() {
                     e.stopPropagation();
                     toggleWatched(videoId);
                   }}
-                  className={`cursor-pointer ${
-                    isSaving
+                  className={`cursor-pointer ${isSaving
                       ? "opacity-50 cursor-wait"
                       : ""
-                  }`}
+                    }`}
                   title={
                     isWatched
                       ? "Aula concluída"

@@ -1,30 +1,50 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { loginAdmin } from "../../services/adminApi";
+import { useState, useEffect } from "react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { loginAdmin, checkAuth } from "../../services/adminApi";
 import { LayoutDashboard } from "lucide-react";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
+  const [authStatus, setAuthStatus] = useState<"loading" | "authenticated" | "unauthenticated">("loading");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-async function handleLogin() {
-  if (!email || !password) return;
-  setLoading(true);
-  setError("");
-  console.log("Tentando login com:", email, password);
-  try {
-    await loginAdmin(email, password);
-    navigate("/admin");
-  } catch (err: any) {
-    console.error("Erro:", err?.response?.data);
-    setError("Email ou senha incorretos.");
-  } finally {
-    setLoading(false);
+  useEffect(() => {
+    checkAuth().then((ok) =>
+      setAuthStatus(ok ? "authenticated" : "unauthenticated")
+    );
+  }, []);
+
+  // Já está logado — manda pro painel
+  if (authStatus === "authenticated") {
+    return <Navigate to="/admin" replace />;
   }
-}
+
+  // Verificando sessão — mostra spinner pra não piscar o formulário
+  if (authStatus === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "var(--bg-color)" }}>
+        <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  async function handleLogin() {
+    if (!email || !password) return;
+    setLoading(true);
+    setError("");
+    try {
+      await loginAdmin(email, password);
+      navigate("/admin");
+    } catch (err: any) {
+      console.error("Erro:", err?.response?.data);
+      setError("Email ou senha incorretos.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div

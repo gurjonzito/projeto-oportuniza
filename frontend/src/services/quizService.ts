@@ -7,7 +7,9 @@ export async function gerarQuiz(
   if (!videoId) return null;
 
   try {
-    const { data } = await api.get(`/api/quiz/${videoId}`);
+    const { data } = await api.get(`/api/quiz/${videoId}`, {
+      timeout: 60000,
+    });
     return data;
   } catch (error) {
     console.error("Erro ao buscar quiz:", error);

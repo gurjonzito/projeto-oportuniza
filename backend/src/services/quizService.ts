@@ -382,8 +382,7 @@ LEMBRE-SE:
   }
 
   throw new Error(
-    `Não foi possível gerar um quiz válido após ${MAX_TENTATIVAS} tentativas. ${
-      ultimoErro?.message ?? ""
+    `Não foi possível gerar um quiz válido após ${MAX_TENTATIVAS} tentativas. ${ultimoErro?.message ?? ""
     }`,
   );
 }
@@ -680,6 +679,79 @@ export async function corrigirQuiz(
     quizId,
     pontuacao,
     total: totalQuestoes,
+    percentual,
+    respostas: resultadoQuestoes,
+  };
+}
+
+export async function corrigirQuizAnonimo(
+  quizId: string,
+  respostas: RespostaQuiz[],
+) {
+  const quiz = await prisma.quiz.findUnique({
+    where: { id: quizId },
+    include: {
+      questoes: {
+        orderBy: { ordem: "asc" },
+        include: {
+          alternativas: { orderBy: { ordem: "asc" } },
+        },
+      },
+    },
+  });
+
+  if (!quiz) throw new Error("Quiz não encontrado.");
+  if (!Array.isArray(respostas)) throw new Error("Respostas inválidas.");
+  if (respostas.length !== quiz.questoes.length) {
+    throw new Error(
+      `O quiz possui ${quiz.questoes.length} questões e todas devem ser respondidas.`,
+    );
+  }
+
+  const questionIds = respostas.map((r) => r.questionId);
+  if (new Set(questionIds).size !== questionIds.length) {
+    throw new Error("Não é permitido responder a mesma questão mais de uma vez.");
+  }
+
+  let acertos = 0;
+
+  const resultadoQuestoes = quiz.questoes.map((questao) => {
+    const resposta = respostas.find((r) => r.questionId === questao.id);
+    if (!resposta) throw new Error(`A questão ${questao.ordem} não foi respondida.`);
+
+    const alternativaSelecionada = questao.alternativas.find(
+      (a) => a.id === resposta.optionId,
+    );
+    if (!alternativaSelecionada) {
+      throw new Error(`Alternativa inválida para a questão ${questao.ordem}.`);
+    }
+
+    const alternativaCorreta = questao.alternativas.find((a) => a.correta);
+    if (!alternativaCorreta) {
+      throw new Error(`Questão ${questao.ordem} sem alternativa correta.`);
+    }
+
+    const acertou = alternativaSelecionada.id === alternativaCorreta.id;
+    if (acertou) acertos++;
+
+    return {
+      questionId: questao.id,
+      pergunta: questao.pergunta,
+      alternativaSelecionada: { id: alternativaSelecionada.id, texto: alternativaSelecionada.texto },
+      alternativaCorreta: { id: alternativaCorreta.id, texto: alternativaCorreta.texto },
+      acertou,
+      explicacao: questao.explicacao,
+    };
+  });
+
+  const total = quiz.questoes.length;
+  const percentual = total > 0 ? (acertos / total) * 100 : 0;
+
+  // sem prisma.$transaction — nada é salvo
+  return {
+    id: crypto.randomUUID(), // id temporário só pro frontend
+    pontuacao: acertos,
+    total,
     percentual,
     respostas: resultadoQuestoes,
   };

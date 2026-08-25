@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import Card from "../components/Card";
 import { getTrilhasProgress } from "../services/trilhaProgress";
 import type { TrilhaProgress } from "../types/trilhaProgress";
+import { useSession } from "../hooks/useSession";
 
 export default function Home() {
   return (
@@ -83,22 +84,25 @@ function Hero() {
 
 function ContinueTrilhas() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading: loadingSession } = useSession();
 
   const [trilhas, setTrilhas] = useState<TrilhaProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (loadingSession) return;
+
+    if (!isAuthenticated) {
+      setLoading(false);
+      return; // não faz a requisição — sem log de 401
+    }
+
     async function carregarTrilhas() {
       try {
         const data = await getTrilhasProgress();
-
         setTrilhas(data);
       } catch (error) {
-        console.error(
-          "Erro ao carregar trilhas em andamento:",
-          error
-        );
-
+        console.error("Erro ao carregar trilhas em andamento:", error);
         setTrilhas([]);
       } finally {
         setLoading(false);
@@ -106,7 +110,7 @@ function ContinueTrilhas() {
     }
 
     carregarTrilhas();
-  }, []);
+  }, [isAuthenticated, loadingSession]);
 
   if (loading) {
     return null;
@@ -162,10 +166,10 @@ function ContinueTrilhas() {
             const progresso =
               trilha.totalVideos > 0
                 ? Math.round(
-                    (trilha.videosConcluidos /
-                      trilha.totalVideos) *
-                      100
-                  )
+                  (trilha.videosConcluidos /
+                    trilha.totalVideos) *
+                  100
+                )
                 : 0;
 
             return (
@@ -253,54 +257,54 @@ function Categorias() {
     },
   ];
 
-return (
-  <section
-    className="pb-20 pt-15 transition-colors"
-    style={{
-      backgroundColor: "var(--bg-color)",
-    }}
-  >
-    <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
-      {itens.map((item) => {
-        const Icon = item.icon;
+  return (
+    <section
+      className="pb-20 pt-15 transition-colors"
+      style={{
+        backgroundColor: "var(--bg-color)",
+      }}
+    >
+      <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
+        {itens.map((item) => {
+          const Icon = item.icon;
 
-        return (
-          <Card
-            key={item.titulo}
-            className="hover:shadow-lg transition"
-          >
-            <div className="bg-green-100 text-green-600 w-12 h-12 flex items-center justify-center rounded-lg">
-              <Icon size={26} />
-            </div>
-
-            <h3
-              className="mt-4 font-semibold text-lg"
-              style={{
-                color: "var(--text-color)",
-              }}
+          return (
+            <Card
+              key={item.titulo}
+              className="hover:shadow-lg transition"
             >
-              {item.titulo}
-            </h3>
+              <div className="bg-green-100 text-green-600 w-12 h-12 flex items-center justify-center rounded-lg">
+                <Icon size={26} />
+              </div>
 
-            <p
-              className="text-sm mt-2"
-              style={{
-                color: "var(--text-color)",
-              }}
-            >
-              {item.titulo === "Trilhas" &&
-                "Percursos de aprendizagem organizados por temas, reunindo conteúdos em uma sequência para desenvolver conhecimentos e habilidades profissionais."}
+              <h3
+                className="mt-4 font-semibold text-lg"
+                style={{
+                  color: "var(--text-color)",
+                }}
+              >
+                {item.titulo}
+              </h3>
 
-              {item.titulo === "Vídeos" &&
-                "Videoaulas selecionadas para facilitar o aprendizado de forma prática, acessível e objetiva."}
+              <p
+                className="text-sm mt-2"
+                style={{
+                  color: "var(--text-color)",
+                }}
+              >
+                {item.titulo === "Trilhas" &&
+                  "Percursos de aprendizagem organizados por temas, reunindo conteúdos em uma sequência para desenvolver conhecimentos e habilidades profissionais."}
 
-              {item.titulo === "Recursos" &&
-                "Recursos úteis para aprofundar os conhecimentos e apoiar a preparação para o mercado de trabalho."}
-            </p>
-          </Card>
-        );
-      })}
-    </div>
-  </section>
-);
+                {item.titulo === "Vídeos" &&
+                  "Videoaulas selecionadas para facilitar o aprendizado de forma prática, acessível e objetiva."}
+
+                {item.titulo === "Recursos" &&
+                  "Recursos úteis para aprofundar os conhecimentos e apoiar a preparação para o mercado de trabalho."}
+              </p>
+            </Card>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
