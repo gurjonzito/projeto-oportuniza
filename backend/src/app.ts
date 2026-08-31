@@ -14,6 +14,7 @@ import { userRoutes } from "./routes/userRoute";
 import { fotoRoutes } from "./routes/fotoRoute";
 import { quizRoutes } from "./routes/quizRoute";
 import { trilhaProgressRoutes } from "./routes/trilhaProgressRoute";
+import { recomendacaoRoutes } from "./routes/recomendacaoRoute";
 
 import { auth } from "./middleware/betterAuth";
 import { toNodeHandler } from "better-auth/node";
@@ -35,20 +36,14 @@ app.use(
       }
     },
     credentials: true,
-  })
+  }),
 );
 
-/*
- * Middlewares normais da aplicação
- */
 app.use(express.json());
 app.use(cookieParser());
 
 app.all("/api/auth/*splat", toNodeHandler(auth));
 
-/*
- * Rotas
- */
 app.use("/auth", authRoutes);
 app.use("/playlist", playlistRoutes);
 app.use("/videos", videoRoutes);
@@ -57,6 +52,7 @@ app.use("/categorias", categoriaRoutes);
 app.use("/canais", canalRoutes);
 app.use("/api/resumo", resumoRoutes);
 app.use("/api/quiz", quizRoutes);
+app.use("/api/recomendacoes", recomendacaoRoutes);
 app.use("/recursos", recursoRoutes);
 app.use("/user", userRoutes);
 app.use("/user", fotoRoutes);
