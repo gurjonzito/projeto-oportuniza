@@ -28,14 +28,12 @@ export const auth = betterAuth({
   },
 
   account: {
-    accountLinking: {
-      enabled: true,
-      disableImplicitLinking: false,
-      trustedProviders: ["google"],
-      allowDifferentEmails: false,
-      updateUserInfoOnLink: true,
-    },
+  accountLinking: {
+    enabled: true,
+    disableImplicitLinking: false,
+    trustedProviders: ["google"],
   },
+},
 
   advanced: {
     crossSubDomainCookies: {
