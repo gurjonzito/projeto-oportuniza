@@ -41,27 +41,34 @@ export default function Login() {
   }, []);
 
   async function handleGoogleLogin() {
-    try {
-      setGoogleLoading(true);
-      setError("");
+  try {
+    setGoogleLoading(true);
+    setError("");
 
-      const frontendURL = import.meta.env.VITE_FRONTEND_URL ?? window.location.origin;
+    console.log("Iniciando login Google...");
+    console.log("Origin:", window.location.origin);
 
-      const { error } = await signIn.social({
-        provider: "google",
-        callbackURL: `${frontendURL}/`,
-        errorCallbackURL: `${frontendURL}/login?error=google`,
-      });
+    const frontendURL = import.meta.env.VITE_FRONTEND_URL ?? window.location.origin;
+    console.log("frontendURL:", frontendURL);
 
-      if (error) {
-        setError(error.message || "Não foi possível entrar com o Google.");
-        setGoogleLoading(false);
-      }
-    } catch (error: any) {
-      setError(error?.message || "Não foi possível entrar com o Google.");
+    const result = await signIn.social({
+      provider: "google",
+      callbackURL: `${frontendURL}/`,
+      errorCallbackURL: `${frontendURL}/login?error=google`,
+    });
+
+    console.log("Resultado:", result);
+
+    if (result?.error) {
+      setError(result.error.message || "Não foi possível entrar com o Google.");
       setGoogleLoading(false);
     }
+  } catch (error: any) {
+    console.error("Erro capturado:", error);
+    setError(error?.message || "Não foi possível entrar com o Google.");
+    setGoogleLoading(false);
   }
+}
 
   function trocarTab(novaTab: "login" | "cadastro") {
     setTab(novaTab);
