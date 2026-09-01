@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/auth/:path*", "destination": "https://oportuniza-jovem.onrender.com/api/auth/:path*" },
     { "source": "/api/:path*", "destination": "https://oportuniza-jovem.onrender.com/api/:path*" },
     { "source": "/auth/:path*", "destination": "https://oportuniza-jovem.onrender.com/auth/:path*" },
     { "source": "/playlist/:path*", "destination": "https://oportuniza-jovem.onrender.com/playlist/:path*" },
