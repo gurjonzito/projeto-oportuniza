@@ -28,19 +28,19 @@ export const auth = betterAuth({
   },
 
   account: {
-  accountLinking: {
-    enabled: true,
-    disableImplicitLinking: false,
-    trustedProviders: ["google"],
+    accountLinking: {
+      enabled: true,
+      disableImplicitLinking: false,
+      trustedProviders: ["google"],
+    },
   },
-},
 
   advanced: {
     crossSubDomainCookies: {
       enabled: false,
     },
     defaultCookieAttributes: {
-      sameSite: "lax",  // funciona tanto em dev quanto em prod com proxy
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       secure: process.env.NODE_ENV === "production",
       httpOnly: true,
     },

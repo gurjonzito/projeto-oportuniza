@@ -45,11 +45,8 @@ export default function Login() {
     setGoogleLoading(true);
     setError("");
 
-    console.log("Iniciando login Google...");
-    console.log("Origin:", window.location.origin);
-
-    const frontendURL = import.meta.env.VITE_FRONTEND_URL ?? window.location.origin;
-    console.log("frontendURL:", frontendURL);
+    const frontendURL =
+      import.meta.env.VITE_FRONTEND_URL ?? window.location.origin;
 
     const result = await signIn.social({
       provider: "google",
@@ -60,12 +57,16 @@ export default function Login() {
     console.log("Resultado:", result);
 
     if (result?.error) {
-      setError(result.error.message || "Não foi possível entrar com o Google.");
+      setError(
+        result.error.message || "Não foi possível entrar com o Google."
+      );
       setGoogleLoading(false);
     }
   } catch (error: any) {
     console.error("Erro capturado:", error);
-    setError(error?.message || "Não foi possível entrar com o Google.");
+    setError(
+      error?.message || "Não foi possível entrar com o Google."
+    );
     setGoogleLoading(false);
   }
 }
