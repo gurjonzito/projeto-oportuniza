@@ -30,8 +30,44 @@ export const auth = betterAuth({
   account: {
     accountLinking: {
       enabled: true,
-      disableImplicitLinking: false,
+      disableImplicitLinking: true,
       trustedProviders: ["google"],
+    },
+  },
+
+  logger: {
+    disabled: false,
+    level: "warn",
+
+    log: (level, message, ...args) => {
+      const mensagem = String(message ?? "").toLowerCase();
+
+      if (
+        mensagem.includes("account_not_linked") ||
+        mensagem.includes("account isn't linked") ||
+        mensagem.includes("account isn't linked to")
+      ) {
+        return;
+      }
+
+      const prefix = "[Better Auth]";
+
+      if (level === "error") {
+        console.error(prefix, message, ...args);
+        return;
+      }
+
+      if (level === "warn") {
+        console.warn(prefix, message, ...args);
+        return;
+      }
+
+      if (level === "info") {
+        console.info(prefix, message, ...args);
+        return;
+      }
+
+      console.debug(prefix, message, ...args);
     },
   },
 

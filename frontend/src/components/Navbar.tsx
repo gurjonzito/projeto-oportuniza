@@ -4,7 +4,12 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { useSession, signOut } from "../lib/auth-client";
 
-import { User, Settings, LogOut, ChevronDown } from "lucide-react";
+import {
+  User,
+  Settings,
+  LogOut,
+  ChevronDown,
+} from "lucide-react";
 
 import ThemeToggle from "../components/ThemeToggle";
 
@@ -25,8 +30,17 @@ export default function Navbar() {
     navigate("/login");
   }
 
-  // fecha dropdown ao clicar fora
+  async function handleLogout() {
+    try {
+      await signOut();
+    } finally {
+      setDropdownOpen(false);
+      setMenuOpen(false);
+      navigate("/");
+    }
+  }
 
+  // Fecha dropdown ao clicar fora
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (
@@ -37,34 +51,39 @@ export default function Navbar() {
       }
     }
 
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener(
+      "mousedown",
+      handleClickOutside
+    );
 
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener(
+        "mousedown",
+        handleClickOutside
+      );
   }, []);
 
   const navLinks = [
     { to: "/", label: "Home" },
-
     { to: "/sobre", label: "Sobre" },
-
     { to: "/trilhas", label: "Trilhas" },
-
     { to: "/videos", label: "Vídeos" },
-
     { to: "/recursos", label: "Recursos" },
-
     { to: "/contato", label: "Contato" },
-
     { to: "/mobile", label: "Download" },
   ];
 
   return (
     <header className="fixed top-0 left-0 w-full bg-[#1E40AF] z-50 shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-8 h-20">
+
         {/* Logo */}
 
         <h1 className="text-white text-xl font-bold tracking-wide shrink-0">
-          <Link to="/" className="hover:opacity-80 transition">
+          <Link
+            to="/"
+            className="hover:opacity-80 transition"
+          >
             Oportuniza
           </Link>
         </h1>
@@ -96,7 +115,9 @@ export default function Navbar() {
               ref={dropdownRef}
             >
               <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                onClick={() =>
+                  setDropdownOpen(!dropdownOpen)
+                }
                 className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition rounded-full pl-1 pr-3 py-1"
               >
                 {user.image ? (
@@ -107,7 +128,10 @@ export default function Navbar() {
                   />
                 ) : (
                   <div className="w-7 h-7 rounded-full bg-[#23A6F0] flex items-center justify-center">
-                    <User size={14} color="white" />
+                    <User
+                      size={14}
+                      color="white"
+                    />
                   </div>
                 )}
 
@@ -117,7 +141,11 @@ export default function Navbar() {
 
                 <ChevronDown
                   size={14}
-                  className={`text-white/70 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+                  className={`text-white/70 transition-transform ${
+                    dropdownOpen
+                      ? "rotate-180"
+                      : ""
+                  }`}
                 />
               </button>
 
@@ -125,6 +153,7 @@ export default function Navbar() {
 
               {dropdownOpen && (
                 <div className="absolute top-11 right-0 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50">
+
                   <div className="px-4 py-2.5 border-b border-gray-100">
                     <p className="text-xs font-semibold text-gray-800 truncate">
                       {user.name}
@@ -142,30 +171,39 @@ export default function Navbar() {
                     }}
                     className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
-                    <User size={14} className="text-gray-400" />
+                    <User
+                      size={14}
+                      className="text-gray-400"
+                    />
+
                     Minha conta
                   </button>
 
                   <button
                     onClick={() => {
-                      navigate("/user?tab=preferencias");
+                      navigate(
+                        "/user?tab=preferencias"
+                      );
+
                       setDropdownOpen(false);
                     }}
                     className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
                   >
-                    <Settings size={14} className="text-gray-400" />
+                    <Settings
+                      size={14}
+                      className="text-gray-400"
+                    />
+
                     Preferências
                   </button>
 
                   <div className="border-t border-gray-100 mt-1 pt-1">
                     <button
-                      onClick={() => {
-                        signOut();
-                        setDropdownOpen(false);
-                      }}
+                      onClick={handleLogout}
                       className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition"
                     >
                       <LogOut size={14} />
+
                       Sair
                     </button>
                   </div>
@@ -185,19 +223,31 @@ export default function Navbar() {
 
           <div className="lg:hidden relative w-8 h-8">
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={() =>
+                setMenuOpen(!menuOpen)
+              }
               className="absolute top-0 left-0 w-8 h-8 flex flex-col justify-center items-center gap-1.5"
             >
               <span
-                className={`block h-0.5 w-6 bg-white transition-transform origin-center ${menuOpen ? "rotate-45 translate-y-2" : ""}`}
+                className={`block h-0.5 w-6 bg-white transition-transform origin-center ${
+                  menuOpen
+                    ? "rotate-45 translate-y-2"
+                    : ""
+                }`}
               />
 
               <span
-                className={`block h-0.5 w-6 bg-white transition-opacity ${menuOpen ? "opacity-0" : ""}`}
+                className={`block h-0.5 w-6 bg-white transition-opacity ${
+                  menuOpen ? "opacity-0" : ""
+                }`}
               />
 
               <span
-                className={`block h-0.5 w-6 bg-white transition-transform origin-center ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`}
+                className={`block h-0.5 w-6 bg-white transition-transform origin-center ${
+                  menuOpen
+                    ? "-rotate-45 -translate-y-2"
+                    : ""
+                }`}
               />
             </button>
           </div>
@@ -208,22 +258,28 @@ export default function Navbar() {
 
       <div
         className={`lg:hidden fixed top-20 left-0 w-full bg-[#1E40AF] shadow-lg overflow-hidden transition-all duration-300 ${
-          menuOpen ? "opacity-100 max-h-screen py-6" : "opacity-0 max-h-0"
+          menuOpen
+            ? "opacity-100 max-h-screen py-6"
+            : "opacity-0 max-h-0"
         }`}
       >
         <nav className="flex flex-col items-center gap-4 px-6 text-white">
+
           {navLinks.map(({ to, label }) => (
             <Link
               key={to}
               to={to}
               className="hover:opacity-75 transition text-sm"
-              onClick={() => setMenuOpen(false)}
+              onClick={() =>
+                setMenuOpen(false)
+              }
             >
               {label}
             </Link>
           ))}
 
           <div className="w-full border-t border-white/20 pt-4 mt-1 flex flex-col items-center gap-3">
+
             {user ? (
               <>
                 <div className="flex items-center gap-2">
@@ -235,14 +291,21 @@ export default function Navbar() {
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-full bg-[#23A6F0] flex items-center justify-center">
-                      <User size={16} color="white" />
+                      <User
+                        size={16}
+                        color="white"
+                      />
                     </div>
                   )}
 
                   <div className="text-left">
-                    <p className="text-sm font-semibold">{user.name}</p>
+                    <p className="text-sm font-semibold">
+                      {user.name}
+                    </p>
 
-                    <p className="text-xs text-white/60">{user.email}</p>
+                    <p className="text-xs text-white/60">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
 
@@ -253,17 +316,18 @@ export default function Navbar() {
                   }}
                   className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition"
                 >
-                  <User size={14} /> Minha conta
+                  <User size={14} />
+
+                  Minha conta
                 </button>
 
                 <button
-                  onClick={() => {
-                    signOut();
-                    setMenuOpen(false);
-                  }}
+                  onClick={handleLogout}
                   className="flex items-center gap-2 text-sm text-red-300 hover:text-red-200 transition"
                 >
-                  <LogOut size={14} /> Sair
+                  <LogOut size={14} />
+
+                  Sair
                 </button>
               </>
             ) : (
