@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { adminApi, type Trilha, type Categoria } from "../../services/adminApi";
-import { GripVertical, Pencil, Trash2, Download } from "lucide-react";
+import { GripVertical, Pencil, Trash2, Download, RefreshCw } from "lucide-react";
 import AdminModal from "../../components/admin/AdminModal";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 
@@ -54,11 +54,15 @@ function SortableTrilhaRow({
   index,
   openEdit,
   handleDelete,
+  handleSync,
+  syncing,
 }: {
   trilha: Trilha;
   index: number;
   openEdit: (t: Trilha) => void;
   handleDelete: (id: string) => void;
+  handleSync: (t: Trilha) => void;
+  syncing: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: trilha.id });
@@ -106,6 +110,17 @@ function SortableTrilhaRow({
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-1">
+          {trilha.youtubePlaylistId && (
+            <button
+              onClick={() => handleSync(trilha)}
+              disabled={syncing}
+              title="Sincronizar com o YouTube"
+              className="p-1.5 rounded-lg transition disabled:opacity-40"
+              style={{ color: "#8b5cf6" }}
+            >
+              <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+            </button>
+          )}
           <button
             onClick={() => openEdit(trilha)}
             className="p-1.5 rounded-lg transition"
@@ -142,6 +157,8 @@ export default function AdminTrilhas() {
   const [saving, setSaving] = useState(false);
   const [ordemAlterada, setOrdemAlterada] = useState(false);
 
+  const [syncingId, setSyncingId] = useState<string | null>(null);
+
   useEffect(() => {
     Promise.all([adminApi.listarTrilhas(), adminApi.listarCategorias()]).then(
       ([t, c]) => {
@@ -151,7 +168,6 @@ export default function AdminTrilhas() {
     );
   }, []);
 
-  // Agrupa as trilhas por categoria, respeitando a ordem das categorias
   const grupos = useMemo(() => {
     const mapa = new Map<
       string,
@@ -209,7 +225,6 @@ export default function AdminTrilhas() {
 
   async function handleSalvarOrdem() {
     try {
-      // Achata na ordem visual (categoria a categoria) para enviar ao backend
       const flat: Trilha[] = [];
       for (const g of grupos) {
         flat.push(...g.trilhas);
@@ -251,6 +266,38 @@ export default function AdminTrilhas() {
       setImportError(err?.response?.data?.error ?? "Erro ao importar playlist.");
     } finally {
       setImporting(false);
+    }
+  }
+
+  async function handleSync(trilha: Trilha) {
+    if (!trilha.youtubePlaylistId) return;
+
+    setSyncingId(trilha.id);
+    try {
+      const resultado = await adminApi.sincronizarTrilha(trilha.id);
+
+      const [t, c] = await Promise.all([
+        adminApi.listarTrilhas(),
+        adminApi.listarCategorias(),
+      ]);
+      setTrilhas(t);
+      setCategorias(c);
+
+      const partes: string[] = [];
+      if (resultado.adicionados) partes.push(`${resultado.adicionados} adicionado(s)`);
+      if (resultado.removidos) partes.push(`${resultado.removidos} removido(s)`);
+      if (resultado.atualizados) partes.push(`${resultado.atualizados} atualizado(s)`);
+
+      alert(
+        partes.length > 0
+          ? `Sincronizado! ${partes.join(", ")}.`
+          : "Nada mudou — já está em sincronia.",
+      );
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.erro ?? "Erro ao sincronizar.");
+    } finally {
+      setSyncingId(null);
     }
   }
 
@@ -356,7 +403,10 @@ export default function AdminTrilhas() {
                   </span>
                   <span
                     className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8" }}
+                    style={{
+                      background: "rgba(99,102,241,0.12)",
+                      color: "#818cf8",
+                    }}
                   >
                     {grupo.trilhas.length} trilha
                     {grupo.trilhas.length !== 1 ? "s" : ""}
@@ -432,6 +482,8 @@ export default function AdminTrilhas() {
                           index={idx}
                           openEdit={openEdit}
                           handleDelete={handleDelete}
+                          handleSync={handleSync}
+                          syncing={syncingId === trilha.id}
                         />
                       ))}
                     </SortableContext>

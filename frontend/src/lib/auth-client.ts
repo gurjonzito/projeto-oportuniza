@@ -9,7 +9,4 @@ export const {
   signIn,
   signUp,
   signOut,
-  linkSocial,
-  unlinkAccount,
-  listAccounts,
 } = authClient;

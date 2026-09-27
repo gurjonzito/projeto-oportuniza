@@ -8,18 +8,15 @@ import {
   EyeOff,
   Save,
   ShieldCheck,
-  Link as LinkIcon,
-  CheckCircle2,
   CircleUserRound,
   Briefcase,
   MapPin,
   Calendar,
   Phone,
   GraduationCap,
-  Unlink,
 } from "lucide-react";
 
-import { useSession, authClient } from "../lib/auth-client";
+import { useSession } from "../lib/auth-client";
 import api from "../services/api";
 
 import SelectCustom from "../components/SelectCustom";
@@ -53,106 +50,40 @@ function obterMensagemErroSenha(error: any) {
     return "A senha atual está incorreta.";
   }
 
-  if (
-    mensagem.includes("password") &&
-    mensagem.includes("same")
-  ) {
+  if (mensagem.includes("password") && mensagem.includes("same")) {
     return "A nova senha deve ser diferente da senha atual.";
   }
 
-  return (
-    error?.message ||
-    "Não foi possível atualizar sua senha."
-  );
+  return error?.message || "Não foi possível atualizar sua senha.";
 }
 
 const opcoesEscolaridade = [
-  {
-    value: "Ensino fundamental",
-    label: "Ensino fundamental",
-  },
-  {
-    value: "Ensino médio",
-    label: "Ensino médio",
-  },
-  {
-    value: "Ensino técnico",
-    label: "Ensino técnico",
-  },
-  {
-    value: "Ensino superior incompleto",
-    label: "Ensino superior incompleto",
-  },
-  {
-    value: "Ensino superior completo",
-    label: "Ensino superior completo",
-  },
-  {
-    value: "Pós-graduação",
-    label: "Pós-graduação",
-  },
+  { value: "Ensino fundamental", label: "Ensino fundamental" },
+  { value: "Ensino médio", label: "Ensino médio" },
+  { value: "Ensino técnico", label: "Ensino técnico" },
+  { value: "Ensino superior incompleto", label: "Ensino superior incompleto" },
+  { value: "Ensino superior completo", label: "Ensino superior completo" },
+  { value: "Pós-graduação", label: "Pós-graduação" },
 ];
 
 const opcoesSituacao = [
-  {
-    value: "Estudante",
-    label: "Estudante",
-  },
-  {
-    value: "Procurando emprego",
-    label: "Procurando emprego",
-  },
-  {
-    value: "Empregado",
-    label: "Empregado",
-  },
-  {
-    value: "Estagiário",
-    label: "Estagiário",
-  },
-  {
-    value: "Autônomo",
-    label: "Autônomo",
-  },
-  {
-    value: "Empreendedor",
-    label: "Empreendedor",
-  },
-  {
-    value: "Outro",
-    label: "Outro",
-  },
+  { value: "Estudante", label: "Estudante" },
+  { value: "Procurando emprego", label: "Procurando emprego" },
+  { value: "Empregado", label: "Empregado" },
+  { value: "Estagiário", label: "Estagiário" },
+  { value: "Autônomo", label: "Autônomo" },
+  { value: "Empreendedor", label: "Empreendedor" },
+  { value: "Outro", label: "Outro" },
 ];
 
 const opcoesObjetivo = [
-  {
-    value: "Conseguir meu primeiro emprego",
-    label: "Conseguir meu primeiro emprego",
-  },
-  {
-    value: "Conseguir um estágio",
-    label: "Conseguir um estágio",
-  },
-  {
-    value: "Melhorar meu currículo",
-    label: "Melhorar meu currículo",
-  },
-  {
-    value: "Desenvolver novas habilidades",
-    label: "Desenvolver novas habilidades",
-  },
-  {
-    value: "Mudar de área profissional",
-    label: "Mudar de área profissional",
-  },
-  {
-    value: "Crescer profissionalmente",
-    label: "Crescer profissionalmente",
-  },
-  {
-    value: "Empreender",
-    label: "Empreender",
-  },
+  { value: "Conseguir meu primeiro emprego", label: "Conseguir meu primeiro emprego" },
+  { value: "Conseguir um estágio", label: "Conseguir um estágio" },
+  { value: "Melhorar meu currículo", label: "Melhorar meu currículo" },
+  { value: "Desenvolver novas habilidades", label: "Desenvolver novas habilidades" },
+  { value: "Mudar de área profissional", label: "Mudar de área profissional" },
+  { value: "Crescer profissionalmente", label: "Crescer profissionalmente" },
+  { value: "Empreender", label: "Empreender" },
 ];
 
 // =========================================================
@@ -195,80 +126,47 @@ export default function Account() {
 
   const [activeSection, setActiveSection] = useState("perfil");
 
-  // =========================================================
   // PERFIL
-  // =========================================================
-
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [fotoAtual, setFotoAtual] = useState<string | null>(null);
 
-  // =========================================================
   // LOCALIZAÇÃO
-  // =========================================================
-
   const [estados, setEstados] = useState<UF[]>([]);
   const [cidades, setCidades] = useState<Municipio[]>([]);
   const [estado, setEstado] = useState("");
   const [city, setCity] = useState("");
   const [loadingCidades, setLoadingCidades] = useState(false);
 
-  // =========================================================
   // CADASTRO COMPLEMENTAR
-  // =========================================================
-
   const [education, setEducation] = useState("");
   const [occupation, setOccupation] = useState("");
   const [goal, setGoal] = useState("");
 
-  // =========================================================
-  // SEGURANÇA / CONTAS
-  // =========================================================
-
-  const [hasPassword, setHasPassword] = useState(true);
-  const [googleLinked, setGoogleLinked] = useState(false);
-  const [loadingGoogle, setLoadingGoogle] = useState(false);
-
+  // SEGURANÇA
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [showCurrentPassword, setShowCurrentPassword] =
-    useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const [showNewPassword, setShowNewPassword] =
-    useState(false);
-
-  const [showConfirmPassword, setShowConfirmPassword] =
-    useState(false);
-
-  // =========================================================
   // LOADING
-  // =========================================================
-
   const [loadingProfile, setLoadingProfile] = useState(false);
-  const [loadingComplementary, setLoadingComplementary] =
-    useState(false);
-  const [loadingPassword, setLoadingPassword] =
-    useState(false);
-  const [uploadingFoto, setUploadingFoto] =
-    useState(false);
+  const [loadingComplementary, setLoadingComplementary] = useState(false);
+  const [loadingPassword, setLoadingPassword] = useState(false);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
 
-  // =========================================================
   // MENSAGENS
-  // =========================================================
-
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
   const inputFotoRef = useRef<HTMLInputElement>(null);
 
-  // =========================================================
   // MENU
-  // =========================================================
-
   const menuItems = [
     {
       id: "perfil",
@@ -285,20 +183,10 @@ export default function Account() {
     {
       id: "seguranca",
       label: "Segurança",
-      description: "Senha e acesso",
+      description: "Alterar senha",
       icon: ShieldCheck,
     },
-    {
-      id: "contas",
-      label: "Contas vinculadas",
-      description: "Google e outros acessos",
-      icon: LinkIcon,
-    },
   ];
-
-  // =========================================================
-  // LIMPAR MENSAGENS
-  // =========================================================
 
   function limparMensagens() {
     setMessage("");
@@ -314,16 +202,11 @@ export default function Account() {
       "https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome"
     )
       .then((response) => {
-        if (!response.ok) {
-          throw new Error("Erro ao carregar estados.");
-        }
-
+        if (!response.ok) throw new Error("Erro ao carregar estados.");
         return response.json();
       })
       .then(setEstados)
-      .catch((err) => {
-        console.error("Erro ao carregar estados:", err);
-      });
+      .catch((err) => console.error("Erro ao carregar estados:", err));
   }, []);
 
   // =========================================================
@@ -343,22 +226,15 @@ export default function Account() {
       `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estado}/municipios?orderBy=nome`
     )
       .then((response) => {
-        if (!response.ok) {
-          throw new Error("Erro ao carregar cidades.");
-        }
-
+        if (!response.ok) throw new Error("Erro ao carregar cidades.");
         return response.json();
       })
-      .then((data) => {
-        setCidades(data);
-      })
+      .then((data) => setCidades(data))
       .catch((err) => {
         console.error("Erro ao carregar cidades:", err);
         setCidades([]);
       })
-      .finally(() => {
-        setLoadingCidades(false);
-      });
+      .finally(() => setLoadingCidades(false));
   }, [estado]);
 
   // =========================================================
@@ -370,8 +246,7 @@ export default function Account() {
       try {
         limparMensagens();
 
-        const { data: usuario } =
-          await api.get<Usuario>("/user/me");
+        const { data: usuario } = await api.get<Usuario>("/user/me");
 
         setName(usuario.name ?? "");
         setEmail(usuario.email ?? "");
@@ -384,33 +259,20 @@ export default function Account() {
 
         setBirthDate(
           usuario.profile?.dataNascimento
-            ? new Date(usuario.profile.dataNascimento)
-                .toISOString()
-                .split("T")[0]
+            ? new Date(usuario.profile.dataNascimento).toISOString().split("T")[0]
             : ""
         );
 
         setEstado(usuario.profile?.estado ?? "");
         setCity(usuario.profile?.cidade ?? "");
 
-        setEducation(
-          usuario.profile?.escolaridade ?? ""
-        );
-
-        setOccupation(
-          usuario.profile?.situacaoProfissional ?? ""
-        );
-
-        setGoal(
-          usuario.profile?.objetivoPrincipal ?? ""
-        );
+        setEducation(usuario.profile?.escolaridade ?? "");
+        setOccupation(usuario.profile?.situacaoProfissional ?? "");
+        setGoal(usuario.profile?.objetivoPrincipal ?? "");
 
         setFotoAtual(usuario.image ?? null);
       } catch (error: any) {
-        console.error(
-          "Erro ao carregar usuário:",
-          error
-        );
+        console.error("Erro ao carregar usuário:", error);
 
         const msg =
           error.response?.data?.error ||
@@ -427,156 +289,6 @@ export default function Account() {
   }, [session]);
 
   // =========================================================
-  // VERIFICAR CONTAS VINCULADAS
-  // =========================================================
-
-  useEffect(() => {
-    async function verificarContas() {
-      try {
-        const { data, error } =
-          await authClient.listAccounts();
-
-        if (error) {
-          console.error(
-            "Erro ao verificar contas vinculadas:",
-            error
-          );
-
-          return;
-        }
-
-        const contas = data ?? [];
-
-        console.log(
-          "Contas vinculadas:",
-          contas
-        );
-
-        const google = contas.some(
-          (account: { providerId: string }) =>
-            account.providerId === "google"
-        );
-
-        const possuiSenha = contas.some(
-          (account: { providerId: string }) =>
-            account.providerId === "credential"
-        );
-
-        setGoogleLinked(google);
-        setHasPassword(possuiSenha);
-      } catch (error) {
-        console.error(
-          "Erro ao verificar contas vinculadas:",
-          error
-        );
-      }
-    }
-
-    if (session?.user) {
-      verificarContas();
-    }
-  }, [session]);
-
-  // =========================================================
-  // VINCULAR GOOGLE
-  // =========================================================
-
-  async function handleLinkGoogle() {
-    try {
-      setLoadingGoogle(true);
-      limparMensagens();
-
-      await authClient.linkSocial({
-        provider: "google",
-        callbackURL: `${window.location.origin}/conta`,
-      });
-    } catch (error: any) {
-      console.error(
-        "Erro ao vincular Google:",
-        error
-      );
-
-      setError(
-        error?.message ||
-          "Não foi possível vincular sua conta Google."
-      );
-
-      setLoadingGoogle(false);
-    }
-  }
-
-  // =========================================================
-  // DESVINCULAR GOOGLE
-  // =========================================================
-
-  async function handleUnlinkGoogle() {
-    try {
-      limparMensagens();
-
-      // Não permite deixar a conta sem nenhum método
-      // de autenticação.
-      if (!hasPassword) {
-        setError(
-          "Crie uma senha antes de desvincular sua conta Google."
-        );
-
-        return;
-      }
-
-      const {
-        data: accounts,
-        error: accountsError,
-      } = await authClient.listAccounts();
-
-      if (accountsError) {
-        throw new Error(
-          accountsError.message ||
-            "Não foi possível obter as contas vinculadas."
-        );
-      }
-
-      const googleAccount = accounts?.find(
-        (account: any) =>
-          account.providerId === "google"
-      );
-
-      if (!googleAccount) {
-        throw new Error(
-          "Nenhuma conta Google vinculada."
-        );
-      }
-
-      const { error } =
-        await authClient.unlinkAccount({
-          accountId: googleAccount.id,
-        });
-
-      if (error) {
-        throw new Error(
-          error.message ||
-            "Não foi possível desvincular a conta Google."
-        );
-      }
-
-      setGoogleLinked(false);
-
-      setMessage(
-        "Conta Google desvinculada com sucesso."
-      );
-    } catch (error: any) {
-      console.error(
-        "Erro ao desvincular Google:",
-        error
-      );
-
-      setError(
-        error?.message ||
-          "Não foi possível desvincular a conta Google."
-      );
-    }
-  }
-
-  // =========================================================
   // ALTERAR FOTO
   // =========================================================
 
@@ -584,28 +296,17 @@ export default function Account() {
     e: React.ChangeEvent<HTMLInputElement>
   ) {
     const arquivo = e.target.files?.[0];
-
     if (!arquivo) return;
 
     limparMensagens();
 
-    if (
-      !["image/jpeg", "image/png"].includes(
-        arquivo.type
-      )
-    ) {
-      setError(
-        "Apenas arquivos JPG e PNG são permitidos."
-      );
-
+    if (!["image/jpeg", "image/png"].includes(arquivo.type)) {
+      setError("Apenas arquivos JPG e PNG são permitidos.");
       return;
     }
 
     if (arquivo.size > 2 * 1024 * 1024) {
-      setError(
-        "A imagem deve ter no máximo 2MB."
-      );
-
+      setError("A imagem deve ter no máximo 2MB.");
       return;
     }
 
@@ -613,24 +314,14 @@ export default function Account() {
       setUploadingFoto(true);
 
       const formData = new FormData();
-
       formData.append("foto", arquivo);
 
-      const { data } = await api.post(
-        "/user/me/foto",
-        formData
-      );
+      const { data } = await api.post("/user/me/foto", formData);
 
       setFotoAtual(data.image);
-
-      setMessage(
-        "Foto atualizada com sucesso."
-      );
+      setMessage("Foto atualizada com sucesso.");
     } catch (error: any) {
-      console.error(
-        "Erro ao enviar foto:",
-        error
-      );
+      console.error("Erro ao enviar foto:", error);
 
       const msg =
         error.response?.data?.error ||
@@ -656,52 +347,35 @@ export default function Account() {
       setLoadingProfile(true);
       limparMensagens();
 
-      const { data: dados } =
-        await api.put("/user/me", {
-          name,
-          telefone: phone.replace(/\D/g, ""),
-          dataNascimento: birthDate || null,
-          estado,
-          cidade: city,
-        });
+      const { data: dados } = await api.put("/user/me", {
+        name,
+        telefone: phone.replace(/\D/g, ""),
+        dataNascimento: birthDate || null,
+        estado,
+        cidade: city,
+      });
 
       setName(dados.name ?? name);
       setEmail(dados.email ?? email);
 
       setPhone(
         dados.profile?.telefone
-          ? mascararTelefone(
-              dados.profile.telefone
-            )
+          ? mascararTelefone(dados.profile.telefone)
           : phone
       );
 
       setBirthDate(
         dados.profile?.dataNascimento
-          ? new Date(
-              dados.profile.dataNascimento
-            )
-              .toISOString()
-              .split("T")[0]
+          ? new Date(dados.profile.dataNascimento).toISOString().split("T")[0]
           : birthDate
       );
 
-      setEstado(
-        dados.profile?.estado ?? estado
-      );
+      setEstado(dados.profile?.estado ?? estado);
+      setCity(dados.profile?.cidade ?? city);
 
-      setCity(
-        dados.profile?.cidade ?? city
-      );
-
-      setMessage(
-        "Perfil atualizado com sucesso."
-      );
+      setMessage("Perfil atualizado com sucesso.");
     } catch (error: any) {
-      console.error(
-        "Erro ao salvar perfil:",
-        error
-      );
+      console.error("Erro ao salvar perfil:", error);
 
       const msg =
         error.response?.data?.error ||
@@ -723,36 +397,19 @@ export default function Account() {
       setLoadingComplementary(true);
       limparMensagens();
 
-      const { data: dados } =
-        await api.put("/user/me", {
-          escolaridade: education,
-          situacaoProfissional: occupation,
-          objetivoPrincipal: goal,
-        });
+      const { data: dados } = await api.put("/user/me", {
+        escolaridade: education,
+        situacaoProfissional: occupation,
+        objetivoPrincipal: goal,
+      });
 
-      setEducation(
-        dados.profile?.escolaridade ??
-          education
-      );
+      setEducation(dados.profile?.escolaridade ?? education);
+      setOccupation(dados.profile?.situacaoProfissional ?? occupation);
+      setGoal(dados.profile?.objetivoPrincipal ?? goal);
 
-      setOccupation(
-        dados.profile?.situacaoProfissional ??
-          occupation
-      );
-
-      setGoal(
-        dados.profile?.objetivoPrincipal ??
-          goal
-      );
-
-      setMessage(
-        "Informações salvas com sucesso."
-      );
+      setMessage("Informações salvas com sucesso.");
     } catch (error: any) {
-      console.error(
-        "Erro ao salvar cadastro:",
-        error
-      );
+      console.error("Erro ao salvar cadastro:", error);
 
       const msg =
         error.response?.data?.error ||
@@ -766,108 +423,51 @@ export default function Account() {
   }
 
   // =========================================================
-  // ALTERAR / CRIAR SENHA
+  // ALTERAR SENHA
   // =========================================================
 
   async function alterarSenha() {
     limparMensagens();
 
-    if (!newPassword || !confirmPassword) {
-      setError(
-        "Preencha a nova senha e a confirmação."
-      );
-
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setError("Preencha todos os campos de senha.");
       return;
     }
 
     if (newPassword.length < 8) {
-      setError(
-        "A nova senha deve ter pelo menos 8 caracteres."
-      );
-
+      setError("A nova senha deve ter pelo menos 8 caracteres.");
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError(
-        "A confirmação da senha não corresponde à nova senha."
-      );
-
-      return;
-    }
-
-    // Guarda o estado atual antes da operação assíncrona.
-    const possuiaSenha = hasPassword;
-
-    if (possuiaSenha && !currentPassword) {
-      setError("Informe sua senha atual.");
-
+      setError("A confirmação da senha não corresponde à nova senha.");
       return;
     }
 
     try {
       setLoadingPassword(true);
 
-      // =====================================================
-      // CONTA QUE JÁ POSSUI SENHA
-      // =====================================================
+      const { error: changeError } = await (
+        await import("../lib/auth-client")
+      ).authClient.changePassword({
+        currentPassword,
+        newPassword,
+        revokeOtherSessions: false,
+      });
 
-      if (possuiaSenha) {
-        const { error } =
-          await authClient.changePassword({
-            currentPassword,
-            newPassword,
-            revokeOtherSessions: false,
-          });
-
-        if (error) {
-          throw new Error(
-            error.message ||
-              "Não foi possível alterar sua senha."
-          );
-        }
-      }
-
-      // =====================================================
-      // CONTA SEM SENHA
-      // =====================================================
-
-      else {
-        const { data } = await api.post(
-          "/user/me/password",
-          {
-            newPassword,
-          }
+      if (changeError) {
+        throw new Error(
+          changeError.message || "Não foi possível alterar sua senha."
         );
-
-        if (!data?.success) {
-          throw new Error(
-            data?.message ||
-              "Não foi possível criar sua senha."
-          );
-        }
-
-        setHasPassword(true);
       }
-
-      // =====================================================
-      // LIMPAR CAMPOS
-      // =====================================================
 
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
 
-      setMessage(
-        possuiaSenha
-          ? "Senha alterada com sucesso."
-          : "Senha criada com sucesso."
-      );
+      setMessage("Senha alterada com sucesso.");
     } catch (error: any) {
-      console.error(
-        "Erro ao alterar senha:",
-        error
-      );
+      console.error("Erro ao alterar senha:", error);
 
       const mensagem =
         error?.response?.data?.error ||
@@ -875,11 +475,7 @@ export default function Account() {
         error?.message ||
         "Não foi possível atualizar sua senha.";
 
-      setError(
-        obterMensagemErroSenha({
-          message: mensagem,
-        })
-      );
+      setError(obterMensagemErroSenha({ message: mensagem }));
     } finally {
       setLoadingPassword(false);
     }
@@ -893,17 +489,11 @@ export default function Account() {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{
-          backgroundColor:
-            "var(--bg-color, #f0f7ff)",
-        }}
+        style={{ backgroundColor: "var(--bg-color, #f0f7ff)" }}
       >
         <div className="flex items-center gap-3">
           <div className="w-5 h-5 border-2 border-[#1E40AF] border-t-transparent rounded-full animate-spin" />
-
-          <span className="text-sm font-medium">
-            Carregando sua conta...
-          </span>
+          <span className="text-sm font-medium">Carregando sua conta...</span>
         </div>
       </div>
     );
@@ -917,28 +507,16 @@ export default function Account() {
     return (
       <div
         className="min-h-screen flex items-center justify-center px-4"
-        style={{
-          backgroundColor:
-            "var(--bg-color, #f0f7ff)",
-        }}
+        style={{ backgroundColor: "var(--bg-color, #f0f7ff)" }}
       >
         <div
           className="rounded-2xl p-6 text-center shadow-lg"
-          style={{
-            backgroundColor:
-              "var(--card-bg, white)",
-          }}
+          style={{ backgroundColor: "var(--card-bg, white)" }}
         >
-          <h1 className="text-lg font-bold">
-            Sessão não encontrada
-          </h1>
-
+          <h1 className="text-lg font-bold">Sessão não encontrada</h1>
           <p
             className="text-sm mt-2"
-            style={{
-              color:
-                "var(--text-muted, #6b7280)",
-            }}
+            style={{ color: "var(--text-muted, #6b7280)" }}
           >
             Faça login para acessar sua conta.
           </p>
@@ -955,35 +533,23 @@ export default function Account() {
     <div
       className="min-h-screen py-8 px-4 md:px-8"
       style={{
-        backgroundColor:
-          "var(--bg-color, #f0f7ff)",
-        color:
-          "var(--text-color, #111827)",
+        backgroundColor: "var(--bg-color, #f0f7ff)",
+        color: "var(--text-color, #111827)",
       }}
     >
       <div className="max-w-6xl mx-auto">
-
         {/* CABEÇALHO */}
-
         <div className="mb-8">
-          <h1 className="text-2xl md:text-3xl font-bold">
-            Minha conta
-          </h1>
-
+          <h1 className="text-2xl md:text-3xl font-bold">Minha conta</h1>
           <p
             className="text-sm mt-1"
-            style={{
-              color:
-                "var(--text-muted, #6b7280)",
-            }}
+            style={{ color: "var(--text-muted, #6b7280)" }}
           >
-            Gerencie suas informações, segurança e
-            preferências.
+            Gerencie suas informações e segurança.
           </p>
         </div>
 
         {/* MENSAGENS */}
-
         {message && (
           <div className="mb-5 px-4 py-3 rounded-xl bg-green-500/10 text-green-600 text-sm font-medium">
             {message}
@@ -997,76 +563,52 @@ export default function Account() {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-6">
-
           {/* MENU */}
-
           <aside
             className="rounded-2xl border p-2 h-fit"
             style={{
-              backgroundColor:
-                "var(--card-bg, white)",
-              borderColor:
-                "var(--border-color, #e5e7eb)",
+              backgroundColor: "var(--card-bg, white)",
+              borderColor: "var(--border-color, #e5e7eb)",
             }}
           >
             <div className="px-4 py-5 mb-2">
               <div className="flex items-center gap-3">
-
                 <div className="w-11 h-11 rounded-full bg-[#23A6F0] flex items-center justify-center overflow-hidden">
                   {fotoAtual ? (
                     <img
                       src={fotoAtual}
-                      alt={
-                        name ||
-                        session.user.name ||
-                        "Foto do usuário"
-                      }
+                      alt={name || session.user.name || "Foto do usuário"}
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User
-                      size={21}
-                      color="white"
-                    />
+                    <User size={21} color="white" />
                   )}
                 </div>
 
                 <div className="min-w-0">
                   <p className="font-semibold text-sm truncate">
-                    {name ||
-                      session.user.name ||
-                      "Seu nome"}
+                    {name || session.user.name || "Seu nome"}
                   </p>
-
                   <p
                     className="text-xs truncate"
-                    style={{
-                      color:
-                        "var(--text-muted, #9ca3af)",
-                    }}
+                    style={{ color: "var(--text-muted, #9ca3af)" }}
                   >
-                    {email ||
-                      session.user.email}
+                    {email || session.user.email}
                   </p>
                 </div>
-
               </div>
             </div>
 
             <nav className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon;
-
-                const active =
-                  activeSection === item.id;
+                const active = activeSection === item.id;
 
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() =>
-                      setActiveSection(item.id)
-                    }
+                    onClick={() => setActiveSection(item.id)}
                     className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition ${
                       active
                         ? "bg-[#1E40AF]/10 text-[#1E40AF]"
@@ -1075,24 +617,14 @@ export default function Account() {
                   >
                     <Icon
                       size={18}
-                      className={
-                        active
-                          ? "text-[#1E40AF]"
-                          : "text-gray-400"
-                      }
+                      className={active ? "text-[#1E40AF]" : "text-gray-400"}
                     />
 
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold">
-                        {item.label}
-                      </p>
-
+                      <p className="text-sm font-semibold">{item.label}</p>
                       <p
                         className="text-[11px] mt-0.5"
-                        style={{
-                          color:
-                            "var(--text-muted, #9ca3af)",
-                        }}
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
                       >
                         {item.description}
                       </p>
@@ -1104,60 +636,39 @@ export default function Account() {
           </aside>
 
           {/* CONTEÚDO */}
-
           <main className="min-w-0">
-
-            {/* ================================================= */}
             {/* PERFIL */}
-            {/* ================================================= */}
-
             {activeSection === "perfil" && (
               <section
                 className="rounded-2xl border"
                 style={{
-                  backgroundColor:
-                    "var(--card-bg, white)",
-                  borderColor:
-                    "var(--border-color, #e5e7eb)",
+                  backgroundColor: "var(--card-bg, white)",
+                  borderColor: "var(--border-color, #e5e7eb)",
                 }}
               >
                 <div
                   className="px-6 py-5 border-b"
-                  style={{
-                    borderColor:
-                      "var(--border-color, #e5e7eb)",
-                  }}
+                  style={{ borderColor: "var(--border-color, #e5e7eb)" }}
                 >
-                  <h2 className="text-lg font-bold">
-                    Meu perfil
-                  </h2>
-
+                  <h2 className="text-lg font-bold">Meu perfil</h2>
                   <p
                     className="text-sm mt-1"
-                    style={{
-                      color:
-                        "var(--text-muted, #6b7280)",
-                    }}
+                    style={{ color: "var(--text-muted, #6b7280)" }}
                   >
-                    Atualize suas informações básicas
-                    de cadastro.
+                    Atualize suas informações básicas de cadastro.
                   </p>
                 </div>
 
                 <div className="p-6">
-
                   <input
                     ref={inputFotoRef}
                     type="file"
                     accept="image/jpeg,image/png"
                     className="hidden"
-                    onChange={
-                      handleFotoSelecionada
-                    }
+                    onChange={handleFotoSelecionada}
                   />
 
                   <div className="flex items-center gap-4 mb-7">
-
                     <div className="w-16 h-16 rounded-full bg-[#23A6F0] flex items-center justify-center overflow-hidden">
                       {fotoAtual ? (
                         <img
@@ -1166,69 +677,45 @@ export default function Account() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <User
-                          size={28}
-                          color="white"
-                        />
+                        <User size={28} color="white" />
                       )}
                     </div>
 
                     <div>
-                      <p className="font-semibold">
-                        Foto de perfil
-                      </p>
-
+                      <p className="font-semibold">Foto de perfil</p>
                       <p
                         className="text-xs mt-1"
-                        style={{
-                          color:
-                            "var(--text-muted, #9ca3af)",
-                        }}
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
                       >
-                        Opcional. JPG ou PNG, máximo
-                        2MB.
+                        Opcional. JPG ou PNG, máximo 2MB.
                       </p>
 
                       <button
                         type="button"
-                        onClick={() =>
-                          inputFotoRef.current?.click()
-                        }
+                        onClick={() => inputFotoRef.current?.click()}
                         disabled={uploadingFoto}
                         className="mt-2 text-xs font-semibold text-[#23A6F0] hover:underline disabled:opacity-60"
                       >
-                        {uploadingFoto
-                          ? "Enviando..."
-                          : "Alterar foto"}
+                        {uploadingFoto ? "Enviando..." : "Alterar foto"}
                       </button>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
                     <div>
                       <label className="block text-xs font-semibold mb-1.5">
                         Nome completo
                       </label>
-
                       <div className="relative">
                         <User
                           size={16}
                           className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                          style={{
-                            color:
-                              "var(--text-muted, #9ca3af)",
-                          }}
+                          style={{ color: "var(--text-muted, #9ca3af)" }}
                         />
-
                         <input
                           type="text"
                           value={name}
-                          onChange={(e) =>
-                            setName(
-                              e.target.value
-                            )
-                          }
+                          onChange={(e) => setName(e.target.value)}
                           className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none"
                         />
                       </div>
@@ -1238,17 +725,12 @@ export default function Account() {
                       <label className="block text-xs font-semibold mb-1.5">
                         Email
                       </label>
-
                       <div className="relative">
                         <Mail
                           size={16}
                           className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                          style={{
-                            color:
-                              "var(--text-muted, #9ca3af)",
-                          }}
+                          style={{ color: "var(--text-muted, #9ca3af)" }}
                         />
-
                         <input
                           type="email"
                           value={email}
@@ -1262,26 +744,17 @@ export default function Account() {
                       <label className="block text-xs font-semibold mb-1.5">
                         Telefone
                       </label>
-
                       <div className="relative">
                         <Phone
                           size={16}
                           className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                          style={{
-                            color:
-                              "var(--text-muted, #9ca3af)",
-                          }}
+                          style={{ color: "var(--text-muted, #9ca3af)" }}
                         />
-
                         <input
                           type="tel"
                           value={phone}
                           onChange={(e) =>
-                            setPhone(
-                              mascararTelefone(
-                                e.target.value
-                              )
-                            )
+                            setPhone(mascararTelefone(e.target.value))
                           }
                           placeholder="(00) 00000-0000"
                           className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none"
@@ -1293,25 +766,16 @@ export default function Account() {
                       <label className="block text-xs font-semibold mb-1.5">
                         Data de nascimento
                       </label>
-
                       <div className="relative">
                         <Calendar
                           size={16}
                           className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                          style={{
-                            color:
-                              "var(--text-muted, #9ca3af)",
-                          }}
+                          style={{ color: "var(--text-muted, #9ca3af)" }}
                         />
-
                         <input
                           type="date"
                           value={birthDate}
-                          onChange={(e) =>
-                            setBirthDate(
-                              e.target.value
-                            )
-                          }
+                          onChange={(e) => setBirthDate(e.target.value)}
                           className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none"
                         />
                       </div>
@@ -1321,20 +785,15 @@ export default function Account() {
                       <label className="block text-xs font-semibold mb-1.5">
                         Estado
                       </label>
-
                       <SelectCustom
                         value={estado}
                         onChange={setEstado}
-                        options={estados.map(
-                          (uf) => ({
-                            value: uf.sigla,
-                            label: uf.nome,
-                          })
-                        )}
+                        options={estados.map((uf) => ({
+                          value: uf.sigla,
+                          label: uf.nome,
+                        }))}
                         placeholder="Selecione o estado"
-                        icon={
-                          <MapPin size={16} />
-                        }
+                        icon={<MapPin size={16} />}
                       />
                     </div>
 
@@ -1342,16 +801,13 @@ export default function Account() {
                       <label className="block text-xs font-semibold mb-1.5">
                         Cidade
                       </label>
-
                       <SelectCustom
                         value={city}
                         onChange={setCity}
-                        options={cidades.map(
-                          (c) => ({
-                            value: c.nome,
-                            label: c.nome,
-                          })
-                        )}
+                        options={cidades.map((c) => ({
+                          value: c.nome,
+                          label: c.nome,
+                        }))}
                         placeholder={
                           loadingCidades
                             ? "Carregando..."
@@ -1359,23 +815,15 @@ export default function Account() {
                               ? "Selecione o estado primeiro"
                               : "Selecione a cidade"
                         }
-                        disabled={
-                          !estado ||
-                          loadingCidades
-                        }
-                        icon={
-                          <MapPin size={16} />
-                        }
+                        disabled={!estado || loadingCidades}
+                        icon={<MapPin size={16} />}
                       />
                     </div>
                   </div>
 
                   <div
                     className="flex justify-end mt-6 pt-5 border-t"
-                    style={{
-                      borderColor:
-                        "var(--border-color, #e5e7eb)",
-                    }}
+                    style={{ borderColor: "var(--border-color, #e5e7eb)" }}
                   >
                     <button
                       type="button"
@@ -1388,107 +836,71 @@ export default function Account() {
                       ) : (
                         <Save size={16} />
                       )}
-
-                      {loadingProfile
-                        ? "Salvando..."
-                        : "Salvar alterações"}
+                      {loadingProfile ? "Salvando..." : "Salvar alterações"}
                     </button>
                   </div>
                 </div>
               </section>
             )}
 
-            {/* ================================================= */}
             {/* COMPLETAR CADASTRO */}
-            {/* ================================================= */}
-
             {activeSection === "complementar" && (
               <section
                 className="rounded-2xl border"
                 style={{
-                  backgroundColor:
-                    "var(--card-bg, white)",
-                  borderColor:
-                    "var(--border-color, #e5e7eb)",
+                  backgroundColor: "var(--card-bg, white)",
+                  borderColor: "var(--border-color, #e5e7eb)",
                 }}
               >
                 <div
                   className="px-6 py-5 border-b"
-                  style={{
-                    borderColor:
-                      "var(--border-color, #e5e7eb)",
-                  }}
+                  style={{ borderColor: "var(--border-color, #e5e7eb)" }}
                 >
-                  <h2 className="text-lg font-bold">
-                    Completar cadastro
-                  </h2>
-
+                  <h2 className="text-lg font-bold">Completar cadastro</h2>
                   <p
                     className="text-sm mt-1"
-                    style={{
-                      color:
-                        "var(--text-muted, #6b7280)",
-                    }}
+                    style={{ color: "var(--text-muted, #6b7280)" }}
                   >
-                    Essas informações ajudam o Oportuniza
-                    a entender melhor seu perfil e seus
-                    objetivos profissionais.
+                    Essas informações ajudam o Oportuniza a entender melhor seu
+                    perfil e seus objetivos profissionais.
                   </p>
                 </div>
 
                 <div className="p-6">
-
                   <div
                     className="flex gap-3 p-4 rounded-xl mb-6"
-                    style={{
-                      backgroundColor:
-                        "var(--bg-subtle)",
-                    }}
+                    style={{ backgroundColor: "var(--bg-subtle)" }}
                   >
                     <CircleUserRound
                       size={20}
                       className="text-[#23A6F0] shrink-0 mt-0.5"
                     />
-
                     <div>
                       <p className="text-sm font-semibold">
                         Complete seu perfil
                       </p>
-
                       <p
                         className="text-xs mt-1 leading-relaxed"
-                        style={{
-                          color:
-                            "var(--text-muted, #6b7280)",
-                        }}
+                        style={{ color: "var(--text-muted, #6b7280)" }}
                       >
-                        Responder algumas informações é
-                        opcional, mas elas podem ajudar a
-                        oferecer uma experiência mais
-                        adequada aos seus objetivos.
+                        Responder algumas informações é opcional, mas elas
+                        podem ajudar a oferecer uma experiência mais adequada
+                        aos seus objetivos.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-
                     <div>
                       <label className="block text-xs font-semibold mb-1.5">
                         Escolaridade
                       </label>
-
                       <SelectCustom
                         value={education}
                         onChange={setEducation}
-                        options={
-                          opcoesEscolaridade
-                        }
+                        options={opcoesEscolaridade}
                         placeholder="Selecione"
-                        icon={
-                          <GraduationCap
-                            size={16}
-                          />
-                        }
+                        icon={<GraduationCap size={16} />}
                       />
                     </div>
 
@@ -1496,15 +908,12 @@ export default function Account() {
                       <label className="block text-xs font-semibold mb-1.5">
                         Situação profissional
                       </label>
-
                       <SelectCustom
                         value={occupation}
                         onChange={setOccupation}
                         options={opcoesSituacao}
                         placeholder="Selecione"
-                        icon={
-                          <Briefcase size={16} />
-                        }
+                        icon={<Briefcase size={16} />}
                       />
                     </div>
 
@@ -1512,7 +921,6 @@ export default function Account() {
                       <label className="block text-xs font-semibold mb-1.5">
                         Principal objetivo
                       </label>
-
                       <SelectCustom
                         value={goal}
                         onChange={setGoal}
@@ -1524,19 +932,12 @@ export default function Account() {
 
                   <div
                     className="flex justify-end mt-6 pt-5 border-t"
-                    style={{
-                      borderColor:
-                        "var(--border-color, #e5e7eb)",
-                    }}
+                    style={{ borderColor: "var(--border-color, #e5e7eb)" }}
                   >
                     <button
                       type="button"
-                      onClick={
-                        salvarCadastro
-                      }
-                      disabled={
-                        loadingComplementary
-                      }
+                      onClick={salvarCadastro}
+                      disabled={loadingComplementary}
                       className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
                     >
                       {loadingComplementary ? (
@@ -1544,7 +945,6 @@ export default function Account() {
                       ) : (
                         <Save size={16} />
                       )}
-
                       {loadingComplementary
                         ? "Salvando..."
                         : "Salvar informações"}
@@ -1554,106 +954,56 @@ export default function Account() {
               </section>
             )}
 
-            {/* ================================================= */}
             {/* SEGURANÇA */}
-            {/* ================================================= */}
-
             {activeSection === "seguranca" && (
               <section
                 className="rounded-2xl border"
                 style={{
-                  backgroundColor:
-                    "var(--card-bg, white)",
-                  borderColor:
-                    "var(--border-color, #e5e7eb)",
+                  backgroundColor: "var(--card-bg, white)",
+                  borderColor: "var(--border-color, #e5e7eb)",
                 }}
               >
                 <div
                   className="px-6 py-5 border-b"
-                  style={{
-                    borderColor:
-                      "var(--border-color, #e5e7eb)",
-                  }}
+                  style={{ borderColor: "var(--border-color, #e5e7eb)" }}
                 >
-                  <h2 className="text-lg font-bold">
-                    Segurança
-                  </h2>
-
+                  <h2 className="text-lg font-bold">Segurança</h2>
                   <p
                     className="text-sm mt-1"
-                    style={{
-                      color:
-                        "var(--text-muted, #6b7280)",
-                    }}
+                    style={{ color: "var(--text-muted, #6b7280)" }}
                   >
-                    Gerencie sua senha e as formas de
-                    acesso à sua conta.
+                    Altere a senha da sua conta.
                   </p>
                 </div>
 
                 <div className="p-6">
-
-                  <div className="flex items-center justify-between gap-4 mb-6">
-
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#1E40AF]/10 flex items-center justify-center">
-                        <Lock
-                          size={19}
-                          className="text-[#1E40AF]"
-                        />
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-semibold">
-                          Senha da conta
-                        </p>
-
-                        <p
-                          className="text-xs mt-0.5"
-                          style={{
-                            color:
-                              "var(--text-muted, #9ca3af)",
-                          }}
-                        >
-                          {hasPassword
-                            ? "Sua conta possui uma senha."
-                            : "Você ainda não possui uma senha."}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-[#1E40AF]/10 flex items-center justify-center">
+                      <Lock size={19} className="text-[#1E40AF]" />
                     </div>
 
-                    {hasPassword && (
-                      <span className="flex items-center gap-1 text-xs font-semibold text-green-500">
-                        <CheckCircle2 size={14} />
-                        Ativa
-                      </span>
-                    )}
+                    <div>
+                      <p className="text-sm font-semibold">Senha da conta</p>
+                      <p
+                        className="text-xs mt-0.5"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      >
+                        Sua senha deve ter pelo menos 8 caracteres.
+                      </p>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
-
-                    {hasPassword && (
-                      <PasswordInput
-                        label="Senha atual"
-                        value={currentPassword}
-                        onChange={
-                          setCurrentPassword
-                        }
-                        show={
-                          showCurrentPassword
-                        }
-                        setShow={
-                          setShowCurrentPassword
-                        }
-                      />
-                    )}
+                    <PasswordInput
+                      label="Senha atual"
+                      value={currentPassword}
+                      onChange={setCurrentPassword}
+                      show={showCurrentPassword}
+                      setShow={setShowCurrentPassword}
+                    />
 
                     <PasswordInput
-                      label={
-                        hasPassword
-                          ? "Nova senha"
-                          : "Criar senha"
-                      }
+                      label="Nova senha"
                       value={newPassword}
                       onChange={setNewPassword}
                       show={showNewPassword}
@@ -1663,31 +1013,20 @@ export default function Account() {
                     <PasswordInput
                       label="Confirmar nova senha"
                       value={confirmPassword}
-                      onChange={
-                        setConfirmPassword
-                      }
-                      show={
-                        showConfirmPassword
-                      }
-                      setShow={
-                        setShowConfirmPassword
-                      }
+                      onChange={setConfirmPassword}
+                      show={showConfirmPassword}
+                      setShow={setShowConfirmPassword}
                     />
                   </div>
 
                   <div
                     className="flex justify-end mt-6 pt-5 border-t"
-                    style={{
-                      borderColor:
-                        "var(--border-color, #e5e7eb)",
-                    }}
+                    style={{ borderColor: "var(--border-color, #e5e7eb)" }}
                   >
                     <button
                       type="button"
                       onClick={alterarSenha}
-                      disabled={
-                        loadingPassword
-                      }
+                      disabled={loadingPassword}
                       className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
                     >
                       {loadingPassword ? (
@@ -1695,194 +1034,8 @@ export default function Account() {
                       ) : (
                         <Lock size={16} />
                       )}
-
-                      {loadingPassword
-                        ? "Salvando..."
-                        : hasPassword
-                          ? "Alterar senha"
-                          : "Criar senha"}
+                      {loadingPassword ? "Salvando..." : "Alterar senha"}
                     </button>
-                  </div>
-                </div>
-              </section>
-            )}
-
-            {/* ================================================= */}
-            {/* CONTAS VINCULADAS */}
-            {/* ================================================= */}
-
-            {activeSection === "contas" && (
-              <section
-                className="rounded-2xl border overflow-hidden"
-                style={{
-                  backgroundColor:
-                    "var(--card-bg, white)",
-                  borderColor:
-                    "var(--border-color, #e5e7eb)",
-                }}
-              >
-                <div
-                  className="px-6 py-5 border-b"
-                  style={{
-                    borderColor:
-                      "var(--border-color, #e5e7eb)",
-                  }}
-                >
-                  <h2 className="text-lg font-bold">
-                    Contas vinculadas
-                  </h2>
-
-                  <p
-                    className="text-sm mt-1"
-                    style={{
-                      color:
-                        "var(--text-muted, #6b7280)",
-                    }}
-                  >
-                    Gerencie os serviços que você utiliza
-                    para acessar sua conta.
-                  </p>
-                </div>
-
-                <div className="p-6">
-
-                  <div
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border"
-                    style={{
-                      borderColor:
-                        "var(--border-color, #e5e7eb)",
-                    }}
-                  >
-                    <div className="flex items-center gap-3">
-
-                      <div
-                        className="w-10 h-10 rounded-xl border flex items-center justify-center"
-                        style={{
-                          borderColor:
-                            "var(--border-color, #e5e7eb)",
-                        }}
-                      >
-                        <svg
-                          className="w-5 h-5"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            fill="#4285F4"
-                            d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                          />
-
-                          <path
-                            fill="#34A853"
-                            d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                          />
-
-                          <path
-                            fill="#FBBC05"
-                            d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"
-                          />
-
-                          <path
-                            fill="#EA4335"
-                            d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                          />
-                        </svg>
-                      </div>
-
-                      <div>
-                        <p className="text-sm font-semibold">
-                          Google
-                        </p>
-
-                        <p
-                          className="text-xs mt-0.5"
-                          style={{
-                            color:
-                              "var(--text-muted, #9ca3af)",
-                          }}
-                        >
-                          {googleLinked
-                            ? "Conta Google vinculada"
-                            : "Nenhuma conta Google vinculada"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {googleLinked ? (
-                      <button
-                        type="button"
-                        onClick={
-                          handleUnlinkGoogle
-                        }
-                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-xs font-semibold text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition"
-                        style={{
-                          borderColor:
-                            "var(--border-color, #e5e7eb)",
-                        }}
-                      >
-                        <Unlink size={14} />
-                        Desvincular
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={
-                          handleLinkGoogle
-                        }
-                        disabled={
-                          loadingGoogle
-                        }
-                        className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white text-xs font-semibold hover:bg-blue-700 transition disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {loadingGoogle ? (
-                          <>
-                            <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-
-                            Vinculando...
-                          </>
-                        ) : (
-                          <>
-                            <LinkIcon size={14} />
-
-                            Vincular Google
-                          </>
-                        )}
-                      </button>
-                    )}
-                  </div>
-
-                  <div
-                    className="mt-5 p-4 rounded-xl"
-                    style={{
-                      backgroundColor:
-                        "var(--bg-subtle)",
-                    }}
-                  >
-                    <div className="flex gap-3">
-
-                      <ShieldCheck
-                        size={18}
-                        className="text-[#23A6F0] shrink-0"
-                      />
-
-                      <div>
-                        <p className="text-sm font-semibold">
-                          Mais opções de acesso
-                        </p>
-
-                        <p
-                          className="text-xs mt-1 leading-relaxed"
-                          style={{
-                            color:
-                              "var(--text-muted, #6b7280)",
-                          }}
-                        >
-                          Vincular sua conta Google permite
-                          que você utilize diferentes formas
-                          de acesso sem precisar criar uma
-                          segunda conta no Oportuniza.
-                        </p>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </section>
@@ -1915,27 +1068,19 @@ function PasswordInput({
 }: PasswordInputProps) {
   return (
     <div>
-      <label className="block text-xs font-semibold mb-1.5">
-        {label}
-      </label>
+      <label className="block text-xs font-semibold mb-1.5">{label}</label>
 
       <div className="relative">
-
         <Lock
           size={16}
           className="absolute left-3.5 top-1/2 -translate-y-1/2"
-          style={{
-            color:
-              "var(--text-muted, #9ca3af)",
-          }}
+          style={{ color: "var(--text-muted, #9ca3af)" }}
         />
 
         <input
           type={show ? "text" : "password"}
           value={value}
-          onChange={(e) =>
-            onChange(e.target.value)
-          }
+          onChange={(e) => onChange(e.target.value)}
           placeholder="••••••••"
           className="auth-input w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm outline-none"
         />
@@ -1944,21 +1089,10 @@ function PasswordInput({
           type="button"
           onClick={() => setShow(!show)}
           className="absolute right-3.5 top-1/2 -translate-y-1/2"
-          style={{
-            color:
-              "var(--text-muted, #9ca3af)",
-          }}
-          aria-label={
-            show
-              ? "Ocultar senha"
-              : "Mostrar senha"
-          }
+          style={{ color: "var(--text-muted, #9ca3af)" }}
+          aria-label={show ? "Ocultar senha" : "Mostrar senha"}
         >
-          {show ? (
-            <EyeOff size={16} />
-          ) : (
-            <Eye size={16} />
-          )}
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
       </div>
     </div>

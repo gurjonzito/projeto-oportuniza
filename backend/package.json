@@ -34,6 +34,7 @@
     "multer": "^2.2.0",
     "nodemailer": "^9.0.5",
     "prisma": "^5.22.0",
+    "resend": "^6.30.0",
     "sharp": "^0.35.3",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.3",

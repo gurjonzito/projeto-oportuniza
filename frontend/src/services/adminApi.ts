@@ -94,6 +94,14 @@ export interface Recurso {
   ativo: boolean;
 }
 
+export interface SyncResult {
+  ok: boolean;
+  adicionados: number;
+  atualizados: number;
+  removidos: number;
+  total: number;
+}
+
 export const adminApi = {
   // ─── CATEGORIAS ──────────────────────────────────────────────────────────
 
@@ -180,6 +188,11 @@ export const adminApi = {
     const { data } = await api.patch("/playlist/reorder", { trilhas });
     return data;
   },
+
+  async sincronizarTrilha(id: string): Promise<SyncResult> {
+  const { data } = await api.post(`/playlist/${id}/sync`);
+  return data;
+},
 
   // ─── VÍDEOS ──────────────────────────────────────────────────────────────
 

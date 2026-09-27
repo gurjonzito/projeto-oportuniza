@@ -16,6 +16,7 @@ import Mobile from "../pages/Mobile";
 import Playlist from "../pages/TrilhaDetalhe";
 import Login from "../pages/Login";
 import Account from "../pages/Account";
+import ResetPassword from "../pages/ResetPassword";
 
 import Seguranca from "../pages/legal/Seguranca";
 import Termos from "../pages/legal/Termos";
@@ -49,6 +50,7 @@ export default function AppRoutes() {
         <Route path="/privacidade" element={<Privacidade />} />
         <Route path="/login" element={<Login />} />
         <Route path="/user" element={<Account />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
 
       {/* Login admin — fora do AdminLayout */}
