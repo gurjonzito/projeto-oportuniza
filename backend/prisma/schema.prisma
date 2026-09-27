@@ -44,6 +44,7 @@ model Video {
 
 model Categoria {
   id        String   @id @default(uuid())
+  ordem     Int      @default(0)
   nome      String   @unique
   descricao String?
   criadaEm  DateTime @default(now())

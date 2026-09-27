@@ -9,7 +9,7 @@ api.interceptors.response.use(
   (err) => {
     if (
       err.response?.status === 401 &&
-      window.location.pathname.startsWith("/admin") && // ← essa linha
+      window.location.pathname.startsWith("/admin") &&
       !window.location.pathname.includes("/admin/login")
     ) {
       window.location.href = "/admin/login";
@@ -23,7 +23,6 @@ export async function loginAdmin(
   password: string,
 ): Promise<void> {
   await api.post("/auth/login", { email, password });
-  // sem localStorage — o cookie é setado automaticamente pelo browser
 }
 
 export async function logoutAdmin(): Promise<void> {
@@ -49,6 +48,7 @@ export interface Canal {
 
 export interface Categoria {
   id: string;
+  ordem?: number;
   nome: string;
   descricao?: string;
   criadaEm: string;
@@ -67,6 +67,8 @@ export interface Trilha {
   isCurated: boolean;
   youtubePlaylistId?: string;
   descricao?: string;
+  thumbnailUrl?: string;
+  videos?: { id: string }[];
 }
 
 export interface Video {
@@ -97,7 +99,8 @@ export const adminApi = {
 
   async listarCategorias(): Promise<Categoria[]> {
     const { data } = await api.get("/categorias");
-    return data.categorias;
+    const lista: Categoria[] = data.categorias ?? [];
+    return lista.sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
   },
 
   async criarCategoria(form: {
@@ -117,6 +120,12 @@ export const adminApi = {
 
   async deletarCategoria(id: string): Promise<void> {
     await api.delete(`/categorias/${id}`);
+  },
+
+  async reordenarCategorias(
+    categorias: { id: string; ordem: number }[],
+  ): Promise<void> {
+    await api.patch("/categorias/reorder", { categorias });
   },
 
   // ─── TRILHAS ─────────────────────────────────────────────────────────────
@@ -166,46 +175,32 @@ export const adminApi = {
   },
 
   async reordenarTrilhas(
-    trilhas: {
-      id: string;
-      ordem: number;
-    }[],
-  ) {
-    const { data } = await api.patch("/playlist/reorder", {
-      trilhas,
-    });
-
+    trilhas: { id: string; ordem: number }[],
+  ): Promise<unknown> {
+    const { data } = await api.patch("/playlist/reorder", { trilhas });
     return data;
   },
 
   // ─── VÍDEOS ──────────────────────────────────────────────────────────────
 
-async listarVideos(): Promise<Video[]> {
-  const { data } = await api.get("/videos/admin/all"); // ← era "/videos"
+  async listarVideos(): Promise<Video[]> {
+    const { data } = await api.get("/videos/admin/all");
 
-  return (data.videos ?? []).map((v: any) => ({
-    ...v,
-    youtubeVideoId: v.videoId ?? v.youtubeVideoId ?? "",
-    titulo: v.title ?? v.titulo ?? "",
-    canal: v.channel ? { nome: v.channel } : v.canal,
-    tags: v.tags ?? [],
-    isCurated: v.isCurated ?? false,
-  }));
-},
-
-  async toggleCurated(
-    id: string,
-    value: boolean,
-  ): Promise<void> {
-    await api.patch(`/videos/${id}/curated`, {
-      isCurated: value,
-    });
+    return (data.videos ?? []).map((v: any) => ({
+      ...v,
+      youtubeVideoId: v.videoId ?? v.youtubeVideoId ?? "",
+      titulo: v.title ?? v.titulo ?? "",
+      canal: v.channel ? { nome: v.channel } : v.canal,
+      tags: v.tags ?? [],
+      isCurated: v.isCurated ?? false,
+    }));
   },
 
-  async atualizarTags(
-    id: string,
-    tags: string[],
-  ): Promise<void> {
+  async toggleCurated(id: string, value: boolean): Promise<void> {
+    await api.patch(`/videos/${id}/curated`, { isCurated: value });
+  },
+
+  async atualizarTags(id: string, tags: string[]): Promise<void> {
     await api.patch(`/videos/${id}/tags`, { tags });
   },
 
@@ -216,9 +211,7 @@ async listarVideos(): Promise<Video[]> {
     return data.canais;
   },
 
-  async criarCanal(
-    form: Omit<Canal, "id">,
-  ): Promise<Canal> {
+  async criarCanal(form: Omit<Canal, "id">): Promise<Canal> {
     const { data } = await api.post("/canais", form);
     return data.canal;
   },
@@ -238,22 +231,18 @@ async listarVideos(): Promise<Video[]> {
 
   async listarRecursos(): Promise<Recurso[]> {
     const { data } = await api.get("/recursos");
-
     return data.recursos ?? [];
   },
 
-  async criarRecurso(
-    form: {
-      nome: string;
-      descricao: string;
-      url: string;
-      categoria: string;
-      imagemUrl?: string;
-      ativo: boolean;
-    },
-  ): Promise<Recurso> {
+  async criarRecurso(form: {
+    nome: string;
+    descricao: string;
+    url: string;
+    categoria: string;
+    imagemUrl?: string;
+    ativo: boolean;
+  }): Promise<Recurso> {
     const { data } = await api.post("/recursos", form);
-
     return data.recurso;
   },
 
@@ -269,7 +258,6 @@ async listarVideos(): Promise<Video[]> {
     },
   ): Promise<Recurso> {
     const { data } = await api.put(`/recursos/${id}`, form);
-
     return data.recurso;
   },
 

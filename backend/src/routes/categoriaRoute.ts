@@ -1,6 +1,12 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth'
-import { listarCategoriasService, criarCategoriaService, editarCategoriaService, deletarCategoriaService } from '../services/categoriaService'
+import {
+  listarCategoriasService,
+  criarCategoriaService,
+  editarCategoriaService,
+  deletarCategoriaService,
+  reordenarCategoriasService,
+} from '../services/categoriaService'
 
 const router = Router()
 
@@ -15,6 +21,22 @@ router.post('/', authMiddleware, async (req, res, next) => {
   try {
     const categoria = await criarCategoriaService(req.body)
     res.status(201).json({ categoria })
+  } catch (err: any) { res.status(400).json({ erro: err.message }) }
+})
+
+// ⚠️ Antes de '/:id'
+router.patch('/reorder', authMiddleware, async (req, res) => {
+  try {
+    const { categorias } = req.body as {
+      categorias: { id: string; ordem: number }[]
+    }
+
+    if (!Array.isArray(categorias)) {
+      return res.status(400).json({ erro: 'Payload inválido.' })
+    }
+
+    await reordenarCategoriasService(categorias)
+    res.json({ ok: true })
   } catch (err: any) { res.status(400).json({ erro: err.message }) }
 })
 

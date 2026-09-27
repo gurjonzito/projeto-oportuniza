@@ -1,18 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { adminApi, type Trilha, type Categoria } from "../../services/adminApi";
 import { GripVertical, Pencil, Trash2, Download } from "lucide-react";
 import AdminModal from "../../components/admin/AdminModal";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 
 import { DndContext, closestCenter, type DragEndEvent } from "@dnd-kit/core";
-
 import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
   arrayMove,
 } from "@dnd-kit/sortable";
-
 import { CSS } from "@dnd-kit/utilities";
 
 const niveis = ["Iniciante", "Intermediário", "Avançado", "Todos os níveis"];
@@ -29,7 +27,8 @@ const emptyEditForm = {
   descricao: "",
 };
 
-// ← FORA do AdminTrilhas — referência estável, sem remontar a cada render
+const SEM_CATEGORIA = "__sem_categoria__";
+
 function Field({
   label,
   children,
@@ -50,32 +49,30 @@ function Field({
   );
 }
 
-function SortableRow({
+function SortableTrilhaRow({
   trilha,
+  index,
   openEdit,
   handleDelete,
 }: {
   trilha: Trilha;
+  index: number;
   openEdit: (t: Trilha) => void;
   handleDelete: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transition, transform } =
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: trilha.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    borderBottom: "1px solid var(--border-color, #f3f4f6)",
+    backgroundColor: isDragging ? "var(--bg-subtle, #f9fafb)" : "transparent",
   };
 
   return (
-    <tr
-      ref={setNodeRef}
-      style={{
-        ...style,
-        borderBottom: "1px solid var(--border-color, #f3f4f6)",
-      }}
-    >
-      <td className="px-4 py-3" style={{ color: "var(--text-color)" }}>
+    <tr ref={setNodeRef} style={style}>
+      <td className="px-4 py-3" style={{ width: 40 }}>
         <button
           {...attributes}
           {...listeners}
@@ -85,8 +82,15 @@ function SortableRow({
           <GripVertical size={16} />
         </button>
       </td>
+      <td className="px-4 py-3" style={{ width: 40 }}>
+        <span
+          className="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold"
+          style={{ background: "rgba(99,102,241,0.15)", color: "#818cf8" }}
+        >
+          {index + 1}
+        </span>
+      </td>
       <td className="px-4 py-3">{trilha.titulo}</td>
-      <td className="px-4 py-3">{trilha.categoriaNome}</td>
       <td className="px-4 py-3">{trilha.nivel || "—"}</td>
       <td className="px-4 py-3">{trilha.destaque ? "⭐" : "—"}</td>
       <td className="px-4 py-3">
@@ -147,20 +151,72 @@ export default function AdminTrilhas() {
     );
   }, []);
 
-  async function handleDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
+  // Agrupa as trilhas por categoria, respeitando a ordem das categorias
+  const grupos = useMemo(() => {
+    const mapa = new Map<
+      string,
+      { categoria: Categoria | null; trilhas: Trilha[] }
+    >();
 
-    const oldIndex = trilhas.findIndex((t) => t.id === active.id);
-    const newIndex = trilhas.findIndex((t) => t.id === over.id);
-    setTrilhas(arrayMove(trilhas, oldIndex, newIndex));
-    setOrdemAlterada(true);
+    for (const c of categorias) {
+      mapa.set(c.id, { categoria: c, trilhas: [] });
+    }
+
+    const semCat: Trilha[] = [];
+
+    for (const t of trilhas) {
+      const key =
+        t.categoriaId && mapa.has(t.categoriaId) ? t.categoriaId : SEM_CATEGORIA;
+      if (key === SEM_CATEGORIA) {
+        semCat.push(t);
+      } else {
+        mapa.get(key)!.trilhas.push(t);
+      }
+    }
+
+    const result = Array.from(mapa.values()).filter((g) => g.trilhas.length > 0);
+
+    if (semCat.length > 0) {
+      result.push({ categoria: null, trilhas: semCat });
+    }
+
+    return result;
+  }, [trilhas, categorias]);
+
+  function handleDragEndGrupo(grupoKey: string) {
+    return (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      setTrilhas((prev) => {
+        const dentroDoGrupo = prev.filter(
+          (t) => (t.categoriaId ?? SEM_CATEGORIA) === grupoKey,
+        );
+        const foraDoGrupo = prev.filter(
+          (t) => (t.categoriaId ?? SEM_CATEGORIA) !== grupoKey,
+        );
+
+        const oldIndex = dentroDoGrupo.findIndex((t) => t.id === active.id);
+        const newIndex = dentroDoGrupo.findIndex((t) => t.id === over.id);
+        const reordenadas = arrayMove(dentroDoGrupo, oldIndex, newIndex);
+
+        return [...foraDoGrupo, ...reordenadas];
+      });
+
+      setOrdemAlterada(true);
+    };
   }
 
   async function handleSalvarOrdem() {
     try {
+      // Achata na ordem visual (categoria a categoria) para enviar ao backend
+      const flat: Trilha[] = [];
+      for (const g of grupos) {
+        flat.push(...g.trilhas);
+      }
+
       await adminApi.reordenarTrilhas(
-        trilhas.map((trilha, index) => ({ id: trilha.id, ordem: index })),
+        flat.map((t, i) => ({ id: t.id, ordem: i })),
       );
       setOrdemAlterada(false);
       alert("Ordem salva com sucesso!");
@@ -185,7 +241,10 @@ export default function AdminTrilhas() {
     setImporting(true);
     setImportError("");
     try {
-      const trilha = await adminApi.importarPlaylist(importUrl, importCategoriaId);
+      const trilha = await adminApi.importarPlaylist(
+        importUrl,
+        importCategoriaId,
+      );
       setTrilhas((prev) => [trilha, ...prev]);
       setImportOpen(false);
     } catch (err: any) {
@@ -245,13 +304,13 @@ export default function AdminTrilhas() {
     <>
       <AdminPageHeader
         title="Trilhas"
-        description="Trilhas de aprendizado organizadas por categoria."
+        description="Arraste dentro de cada categoria para definir a ordem em que aparecem no site. Trilhas no topo aparecem primeiro."
         actions={
           <div className="flex gap-2">
             {ordemAlterada && (
               <button
                 onClick={handleSalvarOrdem}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-semibold"
               >
                 Salvar Ordem
               </button>
@@ -267,49 +326,134 @@ export default function AdminTrilhas() {
         }
       />
 
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <div
-          className="rounded-xl border overflow-hidden"
-          style={{
-            backgroundColor: "var(--card-bg, white)",
-            borderColor: "var(--border-color, #e5e7eb)",
-          }}
-        >
-          <table className="w-full text-sm">
-            <thead>
-              <tr
+      <div className="flex flex-col gap-6">
+        {grupos.map((grupo) => {
+          const grupoKey = grupo.categoria?.id ?? SEM_CATEGORIA;
+          const nomeGrupo = grupo.categoria?.nome ?? "Sem categoria";
+
+          return (
+            <div
+              key={grupoKey}
+              className="rounded-xl border overflow-hidden"
+              style={{
+                backgroundColor: "var(--card-bg, white)",
+                borderColor: "var(--border-color, #e5e7eb)",
+              }}
+            >
+              <div
+                className="px-4 py-3 flex items-center justify-between"
                 style={{
                   backgroundColor: "var(--table-head-bg, #f9fafb)",
                   borderBottom: "1px solid var(--border-color, #e5e7eb)",
                 }}
               >
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted, #9ca3af)" }}></th>
-                <th className="px-4 py-3 text-left">Título</th>
-                <th className="px-4 py-3 text-left">Categoria</th>
-                <th className="px-4 py-3 text-left">Nível</th>
-                <th className="px-4 py-3 text-left">Destaque</th>
-                <th className="px-4 py-3 text-left">Status</th>
-                <th className="px-4 py-3 text-left">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <SortableContext
-                items={trilhas.map((t) => t.id)}
-                strategy={verticalListSortingStrategy}
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-sm font-bold"
+                    style={{ color: "var(--text-color)" }}
+                  >
+                    {nomeGrupo}
+                  </span>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ background: "rgba(99,102,241,0.12)", color: "#818cf8" }}
+                  >
+                    {grupo.trilhas.length} trilha
+                    {grupo.trilhas.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--text-muted, #9ca3af)" }}
+                >
+                  Ordem sequencial de exibição
+                </span>
+              </div>
+
+              <DndContext
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEndGrupo(grupoKey)}
               >
-                {trilhas.map((trilha) => (
-                  <SortableRow
-                    key={trilha.id}
-                    trilha={trilha}
-                    openEdit={openEdit}
-                    handleDelete={handleDelete}
-                  />
-                ))}
-              </SortableContext>
-            </tbody>
-          </table>
-        </div>
-      </DndContext>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr
+                      style={{
+                        borderBottom: "1px solid var(--border-color, #f3f4f6)",
+                      }}
+                    >
+                      <th style={{ width: 40 }} />
+                      <th
+                        className="px-4 py-2 text-left text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #9ca3af)", width: 40 }}
+                      >
+                        #
+                      </th>
+                      <th
+                        className="px-4 py-2 text-left text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      >
+                        Título
+                      </th>
+                      <th
+                        className="px-4 py-2 text-left text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      >
+                        Nível
+                      </th>
+                      <th
+                        className="px-4 py-2 text-left text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      >
+                        Destaque
+                      </th>
+                      <th
+                        className="px-4 py-2 text-left text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      >
+                        Status
+                      </th>
+                      <th
+                        className="px-4 py-2 text-left text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      >
+                        Ações
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <SortableContext
+                      items={grupo.trilhas.map((t) => t.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {grupo.trilhas.map((trilha, idx) => (
+                        <SortableTrilhaRow
+                          key={trilha.id}
+                          trilha={trilha}
+                          index={idx}
+                          openEdit={openEdit}
+                          handleDelete={handleDelete}
+                        />
+                      ))}
+                    </SortableContext>
+                  </tbody>
+                </table>
+              </DndContext>
+            </div>
+          );
+        })}
+
+        {grupos.length === 0 && (
+          <div
+            className="rounded-xl border py-16 text-center text-sm"
+            style={{
+              borderColor: "var(--border-color, #e5e7eb)",
+              color: "var(--text-muted, #9ca3af)",
+            }}
+          >
+            Nenhuma trilha cadastrada ainda.
+          </div>
+        )}
+      </div>
 
       {/* Modal de importação */}
       <AdminModal
@@ -322,7 +466,10 @@ export default function AdminTrilhas() {
             <button
               onClick={() => setImportOpen(false)}
               className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
-              style={{ borderColor: "var(--border-color, #e5e7eb)", color: "var(--text-color)" }}
+              style={{
+                borderColor: "var(--border-color, #e5e7eb)",
+                color: "var(--text-color)",
+              }}
             >
               Cancelar
             </button>
@@ -356,7 +503,9 @@ export default function AdminTrilhas() {
             >
               <option value="">Selecionar...</option>
               {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
               ))}
             </select>
           </Field>
@@ -377,7 +526,10 @@ export default function AdminTrilhas() {
             <button
               onClick={() => setEditOpen(false)}
               className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
-              style={{ borderColor: "var(--border-color, #e5e7eb)", color: "var(--text-color)" }}
+              style={{
+                borderColor: "var(--border-color, #e5e7eb)",
+                color: "var(--text-color)",
+              }}
             >
               Cancelar
             </button>
@@ -399,7 +551,9 @@ export default function AdminTrilhas() {
             <Field label="Título *">
               <input
                 value={editForm.titulo}
-                onChange={(e) => setEditForm({ ...editForm, titulo: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, titulo: e.target.value })
+                }
                 className="input-admin"
               />
             </Field>
@@ -414,19 +568,25 @@ export default function AdminTrilhas() {
           <Field label="Categoria">
             <select
               value={editForm.categoriaId}
-              onChange={(e) => setEditForm({ ...editForm, categoriaId: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, categoriaId: e.target.value })
+              }
               className="input-admin"
             >
               <option value="">Selecionar...</option>
               {categorias.map((c) => (
-                <option key={c.id} value={c.id}>{c.nome}</option>
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
               ))}
             </select>
           </Field>
           <Field label="Nível">
             <select
               value={editForm.nivel}
-              onChange={(e) => setEditForm({ ...editForm, nivel: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, nivel: e.target.value })
+              }
               className="input-admin"
             >
               <option value="">Selecionar...</option>
@@ -438,7 +598,9 @@ export default function AdminTrilhas() {
           <Field label="YouTube Playlist ID">
             <input
               value={editForm.youtubePlaylistId}
-              onChange={(e) => setEditForm({ ...editForm, youtubePlaylistId: e.target.value })}
+              onChange={(e) =>
+                setEditForm({ ...editForm, youtubePlaylistId: e.target.value })
+              }
               className="input-admin"
             />
           </Field>
@@ -446,7 +608,9 @@ export default function AdminTrilhas() {
             <Field label="Descrição">
               <textarea
                 value={editForm.descricao}
-                onChange={(e) => setEditForm({ ...editForm, descricao: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, descricao: e.target.value })
+                }
                 rows={2}
                 className="input-admin resize-none"
               />
@@ -457,28 +621,40 @@ export default function AdminTrilhas() {
               <input
                 type="checkbox"
                 checked={editForm.ativa}
-                onChange={(e) => setEditForm({ ...editForm, ativa: e.target.checked })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, ativa: e.target.checked })
+                }
                 className="w-4 h-4 accent-blue-600"
               />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>Trilha ativa</span>
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>
+                Trilha ativa
+              </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={editForm.destaque}
-                onChange={(e) => setEditForm({ ...editForm, destaque: e.target.checked })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, destaque: e.target.checked })
+                }
                 className="w-4 h-4 accent-yellow-500"
               />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>Destaque</span>
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>
+                Destaque
+              </span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={editForm.isCurated}
-                onChange={(e) => setEditForm({ ...editForm, isCurated: e.target.checked })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, isCurated: e.target.checked })
+                }
                 className="w-4 h-4 accent-blue-600"
               />
-              <span className="text-sm" style={{ color: "var(--text-color)" }}>Curada</span>
+              <span className="text-sm" style={{ color: "var(--text-color)" }}>
+                Curada
+              </span>
             </label>
           </div>
         </div>

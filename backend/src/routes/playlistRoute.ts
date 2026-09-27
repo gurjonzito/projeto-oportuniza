@@ -8,16 +8,13 @@ import {
   criarTrilha,
   editarTrilha,
   deletarTrilha,
-  reordenarTrilhas
+  reordenarTrilhas,
 } from '../controllers/playlistController'
 
 const router = Router()
 
-router.patch(
-  '/reorder',
-  authMiddleware,
-  reordenarTrilhas
-)
+// ⚠️ /reorder precisa vir antes de /:id e /:slug
+router.patch('/reorder', authMiddleware, reordenarTrilhas)
 
 router.post('/import', authMiddleware, importarPlaylist)
 router.get('/admin', authMiddleware, listarTodasTrilhas)

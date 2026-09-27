@@ -73,6 +73,15 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
       });
     }
 
+    // Ordem calculada DENTRO da categoria
+    const ultimaDaCategoria = await tx.trilha.findFirst({
+      where: { categoriaId },
+      orderBy: { ordem: "desc" },
+      select: { ordem: true },
+    });
+
+    const proximaOrdem = (ultimaDaCategoria?.ordem ?? -1) + 1;
+
     const trilha = await tx.trilha.create({
       data: {
         titulo: playlistData.snippet.title,
@@ -83,6 +92,7 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
         categoriaId,
         canalId: canal.id,
         isCurated: true,
+        ordem: proximaOrdem,
       },
     });
 
@@ -127,15 +137,20 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
   });
 }
 
+// ─── Listagem pública ────────────────────────────────────────────────────
+
 export async function listarTrilhasService() {
   return prisma.trilha.findMany({
     where: { ativa: true },
     include: {
-      categoria: true,
+      categoria: { select: { id: true, nome: true, ordem: true } },
       canal: true,
       videos: true,
     },
-    orderBy: { ordem: "asc" },
+    orderBy: [
+      { categoria: { ordem: "asc" } },
+      { ordem: "asc" },
+    ],
   });
 }
 
