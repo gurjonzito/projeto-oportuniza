@@ -190,9 +190,9 @@ export const adminApi = {
   },
 
   async sincronizarTrilha(id: string): Promise<SyncResult> {
-  const { data } = await api.post(`/playlist/${id}/sync`);
-  return data;
-},
+    const { data } = await api.post(`/playlist/${id}/sync`);
+    return data;
+  },
 
   // ─── VÍDEOS ──────────────────────────────────────────────────────────────
 

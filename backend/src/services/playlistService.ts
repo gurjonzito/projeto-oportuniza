@@ -26,6 +26,30 @@ async function gerarSlugUnico(titulo: string): Promise<string> {
   return slug;
 }
 
+// ─── Helper: garante que um canal existe e devolve ele ────────────────────
+
+async function obterOuCriarCanal(
+  tx: any,
+  youtubeChannelId: string,
+  nome: string,
+  thumbnailUrl?: string | null
+) {
+  let canal = await tx.canal.findUnique({ where: { youtubeChannelId } });
+
+  if (!canal) {
+    canal = await tx.canal.create({
+      data: {
+        youtubeChannelId,
+        nome,
+        descricao: "",
+        thumbnailUrl: thumbnailUrl ?? null,
+      },
+    });
+  }
+
+  return canal;
+}
+
 // ─── IMPORTAR ─────────────────────────────────────────────────────────────
 
 export async function importarPlaylistService(url: string, categoriaId: string) {
@@ -47,32 +71,30 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
     buscarVideosPlaylist(playlistId),
   ]);
 
-  const firstVideo = videosData[0];
-  const youtubeChannelId = firstVideo?.snippet?.videoOwnerChannelId || "unknown";
-  const channelName =
-    firstVideo?.snippet?.videoOwnerChannelTitle ||
-    firstVideo?.snippet?.channelTitle ||
-    "Canal";
-
   const slug = await gerarSlugUnico(playlistData.snippet.title);
 
   const videosValidos = videosData.filter(
     (item: any) => !isVideoPrivado(item.snippet.title)
   );
 
-  return await prisma.$transaction(async (tx) => {
-    let canal = await tx.canal.findUnique({ where: { youtubeChannelId } });
+  // Canal principal (dono da playlist) — só pra colocar no header da trilha
+  const primeiroVideo = videosValidos[0];
+  const canalPrincipalYoutubeId =
+    primeiroVideo?.snippet?.videoOwnerChannelId ||
+    primeiroVideo?.snippet?.channelId ||
+    "unknown";
+  const canalPrincipalNome =
+    primeiroVideo?.snippet?.videoOwnerChannelTitle ||
+    primeiroVideo?.snippet?.channelTitle ||
+    "Canal";
 
-    if (!canal) {
-      canal = await tx.canal.create({
-        data: {
-          youtubeChannelId,
-          nome: channelName,
-          descricao: "",
-          thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
-        },
-      });
-    }
+  return await prisma.$transaction(async (tx) => {
+    const canalPrincipal = await obterOuCriarCanal(
+      tx,
+      canalPrincipalYoutubeId,
+      canalPrincipalNome,
+      playlistData.snippet.thumbnails?.high?.url
+    );
 
     const ultimaDaCategoria = await tx.trilha.findFirst({
       where: { categoriaId },
@@ -86,11 +108,11 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
       data: {
         titulo: playlistData.snippet.title,
         descricao: playlistData.snippet.description,
-        thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
+        thumbnailUrl: playlistData.snippet.thumbnails?.high?.url,
         youtubePlaylistId: playlistId,
         slug,
         categoriaId,
-        canalId: canal.id,
+        canalId: canalPrincipal.id,
         isCurated: true,
         ordem: proximaOrdem,
       },
@@ -98,22 +120,50 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
 
     for (let i = 0; i < videosValidos.length; i++) {
       const item = videosValidos[i];
-      const videoId = item.snippet.resourceId.videoId;
+      const youtubeVideoId = item.snippet.resourceId.videoId;
+
+      // Canal específico DESTE vídeo
+      const videoCanalYoutubeId =
+        item.snippet.videoOwnerChannelId ||
+        item.snippet.channelId ||
+        canalPrincipalYoutubeId;
+
+      const videoCanalNome =
+        item.snippet.videoOwnerChannelTitle ||
+        item.snippet.channelTitle ||
+        canalPrincipalNome;
+
+      const canalDoVideo = await obterOuCriarCanal(
+        tx,
+        videoCanalYoutubeId,
+        videoCanalNome
+      );
 
       let video = await tx.video.findUnique({
-        where: { youtubeVideoId: videoId },
+        where: { youtubeVideoId },
       });
 
       if (!video) {
         video = await tx.video.create({
           data: {
-            youtubeVideoId: videoId,
+            youtubeVideoId,
             titulo: item.snippet.title,
             descricao: item.snippet.description,
-            thumbnailUrl: item.snippet.thumbnails.high?.url,
-            canalId: canal.id,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
             tags: [],
             isCurated: true,
+          },
+        });
+      } else {
+        // Corrige canal se já existia com o valor errado
+        video = await tx.video.update({
+          where: { id: video.id },
+          data: {
+            titulo: item.snippet.title,
+            descricao: item.snippet.description,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
           },
         });
       }
@@ -159,26 +209,23 @@ export async function sincronizarPlaylistService(trilhaId: string) {
   );
 
   const primeiroVideo = videosValidos[0];
-  const youtubeChannelId =
-    primeiroVideo?.snippet?.videoOwnerChannelId || "unknown";
-  const channelName =
+  const canalPrincipalYoutubeId =
+    primeiroVideo?.snippet?.videoOwnerChannelId ||
+    primeiroVideo?.snippet?.channelId ||
+    "unknown";
+  const canalPrincipalNome =
     primeiroVideo?.snippet?.videoOwnerChannelTitle ||
     primeiroVideo?.snippet?.channelTitle ||
     "Canal";
 
   return await prisma.$transaction(async (tx) => {
-    // 1. Garantir canal
-    let canal = await tx.canal.findUnique({ where: { youtubeChannelId } });
-    if (!canal) {
-      canal = await tx.canal.create({
-        data: {
-          youtubeChannelId,
-          nome: channelName,
-          descricao: "",
-          thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
-        },
-      });
-    }
+    // 1. Garantir canal principal
+    await obterOuCriarCanal(
+      tx,
+      canalPrincipalYoutubeId,
+      canalPrincipalNome,
+      playlistData.snippet.thumbnails?.high?.url
+    );
 
     // 2. Atualizar metadados da trilha
     await tx.trilha.update({
@@ -186,7 +233,7 @@ export async function sincronizarPlaylistService(trilhaId: string) {
       data: {
         titulo: playlistData.snippet.title,
         descricao: playlistData.snippet.description,
-        thumbnailUrl: playlistData.snippet.thumbnails.high?.url,
+        thumbnailUrl: playlistData.snippet.thumbnails?.high?.url,
       },
     });
 
@@ -224,6 +271,23 @@ export async function sincronizarPlaylistService(trilhaId: string) {
       const item = videosValidos[i];
       const youtubeVideoId = item.snippet.resourceId.videoId;
 
+      // Canal específico DESTE vídeo
+      const videoCanalYoutubeId =
+        item.snippet.videoOwnerChannelId ||
+        item.snippet.channelId ||
+        canalPrincipalYoutubeId;
+
+      const videoCanalNome =
+        item.snippet.videoOwnerChannelTitle ||
+        item.snippet.channelTitle ||
+        canalPrincipalNome;
+
+      const canalDoVideo = await obterOuCriarCanal(
+        tx,
+        videoCanalYoutubeId,
+        videoCanalNome
+      );
+
       const videoExistente = await tx.video.findUnique({
         where: { youtubeVideoId },
       });
@@ -235,8 +299,8 @@ export async function sincronizarPlaylistService(trilhaId: string) {
             youtubeVideoId,
             titulo: item.snippet.title,
             descricao: item.snippet.description,
-            thumbnailUrl: item.snippet.thumbnails.high?.url,
-            canalId: canal.id,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
             tags: [],
             isCurated: true,
           },
@@ -248,7 +312,8 @@ export async function sincronizarPlaylistService(trilhaId: string) {
           data: {
             titulo: item.snippet.title,
             descricao: item.snippet.description,
-            thumbnailUrl: item.snippet.thumbnails.high?.url,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
           },
         });
         atualizados++;
@@ -288,7 +353,18 @@ export async function listarTrilhasService() {
     include: {
       categoria: { select: { id: true, nome: true, ordem: true } },
       canal: true,
-      videos: true,
+      videos: {
+        include: {
+          video: {
+            include: {
+              canal: {
+                select: { id: true, nome: true, thumbnailUrl: true },
+              },
+            },
+          },
+        },
+        orderBy: { ordem: "asc" },
+      },
     },
     orderBy: [{ categoria: { ordem: "asc" } }, { ordem: "asc" }],
   });
@@ -304,7 +380,7 @@ export async function buscarTrilhaService(slug: string) {
         include: {
           video: {
             include: {
-              canal: { select: { nome: true } },
+              canal: { select: { id: true, nome: true, thumbnailUrl: true } },
             },
           },
         },

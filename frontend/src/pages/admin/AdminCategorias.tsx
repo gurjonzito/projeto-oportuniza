@@ -44,8 +44,14 @@ function SortableCategoriaRow({
   openEdit: (c: Categoria) => void;
   handleDelete: (id: string) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
-    useSortable({ id: categoria.id });
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: categoria.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
