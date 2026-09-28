@@ -18,6 +18,8 @@ export default function AdminCanais() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Canal | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     adminApi
@@ -45,22 +47,52 @@ export default function AdminCanais() {
 
   async function handleSave() {
     if (!form.nome || !form.youtubeChannelId) return;
-    if (editing) {
-      await adminApi.editarCanal(editing.id, form);
-      setCanais((prev) =>
-        prev.map((c) => (c.id === editing.id ? { ...editing, ...form } : c)),
+    setSaving(true);
+    try {
+      if (editing) {
+        await adminApi.editarCanal(editing.id, form);
+        setCanais((prev) =>
+          prev.map((c) => (c.id === editing.id ? { ...editing, ...form } : c)),
+        );
+      } else {
+        const novo = await adminApi.criarCanal(form);
+        setCanais((prev) => [...prev, novo]);
+      }
+      setModalOpen(false);
+    } catch (err: any) {
+      console.error("Erro ao salvar canal:", err);
+      alert(
+        err?.response?.data?.erro ??
+          err?.response?.data?.error ??
+          "Erro ao salvar canal."
       );
-    } else {
-      const novo = await adminApi.criarCanal(form);
-      setCanais((prev) => [...prev, novo]);
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false);
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Remover este canal?")) return;
-    await adminApi.deletarCanal(id);
-    setCanais((prev) => prev.filter((c) => c.id !== id));
+    if (!confirm("Remover este canal? Os vídeos vinculados também serão removidos.")) {
+      return;
+    }
+
+    setDeletingId(id);
+    try {
+      await adminApi.deletarCanal(id);
+      setCanais((prev) => prev.filter((c) => c.id !== id));
+    } catch (err: any) {
+      console.error("Erro ao remover canal:", err);
+
+      const mensagem =
+        err?.response?.data?.erro ??
+        err?.response?.data?.error ??
+        err?.message ??
+        "Erro ao remover canal. Verifique se há trilhas ou vídeos vinculados.";
+
+      alert(mensagem);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   const columns: Column<Canal>[] = [
@@ -71,6 +103,7 @@ export default function AdminCanais() {
         row.thumbnailUrl ? (
           <img
             src={row.thumbnailUrl}
+            alt={row.nome}
             className="w-8 h-8 rounded-full object-cover"
           />
         ) : (
@@ -101,9 +134,14 @@ export default function AdminCanais() {
               e.stopPropagation();
               handleDelete(row.id);
             }}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition"
+            disabled={deletingId === row.id}
+            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition disabled:opacity-40"
           >
-            <Trash2 size={14} />
+            {deletingId === row.id ? (
+              <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Trash2 size={14} />
+            )}
           </button>
         </div>
       ),
@@ -134,7 +172,8 @@ export default function AdminCanais() {
           <>
             <button
               onClick={() => setModalOpen(false)}
-              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
+              disabled={saving}
+              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition disabled:opacity-60"
               style={{
                 borderColor: "var(--border-color, #e5e7eb)",
                 color: "var(--text-color)",
@@ -144,9 +183,13 @@ export default function AdminCanais() {
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition"
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
             >
-              Salvar
+              {saving && (
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              )}
+              {saving ? "Salvando..." : "Salvar"}
             </button>
           </>
         }
