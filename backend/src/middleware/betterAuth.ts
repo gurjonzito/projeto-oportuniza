@@ -12,9 +12,16 @@ export const auth = betterAuth({
   basePath: "/api/auth",
 
   trustedOrigins: [
-    "http://localhost:5173",
-    "https://oportunizajovem.vercel.app",
-  ],
+  // Produção — com e sem www
+  "https://oportunizajovem.com.br",
+  "https://www.oportunizajovem.com.br",
+
+  // Backend próprio (para chamadas server-side, se houver)
+  "https://api.oportunizajovem.com.br",
+
+  // Desenvolvimento local
+  "http://localhost:5173",
+],
 
   emailAndPassword: {
     enabled: true,

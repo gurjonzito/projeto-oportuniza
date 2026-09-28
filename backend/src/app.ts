@@ -23,6 +23,7 @@ const app = express();
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://www.oportunizajovem.com.br",
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
