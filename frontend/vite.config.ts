@@ -51,10 +51,11 @@ export default defineConfig({
       },
 
       workbox: {
-        globPatterns: [
-          "**/*.{js,css,html,ico,png,svg,woff2}",
-        ],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallback: "/index.html",
+        skipWaiting: true,           // ← SW novo assume imediatamente
+        clientsClaim: true,          // ← Toma controle das abas já abertas
+        cleanupOutdatedCaches: true, // ← Limpa caches antigos
       },
     }),
   ],
