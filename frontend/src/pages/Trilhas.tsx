@@ -25,11 +25,15 @@ import {
 
 import RecomendacoesIA from "../components/RecomendacoesIA";
 
+/* ────────────────────────────── TIPOS ────────────────────────────── */
+
 type GrupoCategoria = {
   numero: number;
   nome: string;
   trilhas: Trilha[];
 };
+
+/* ──────────────────────────── CONFIG ─────────────────────────────── */
 
 const CATEGORIA_CONFIG: Record<string, { emoji: string; color: string }> = {
   Emprego: { emoji: "💼", color: "#3b82f6" },
@@ -40,10 +44,32 @@ const CATEGORIA_CONFIG: Record<string, { emoji: string; color: string }> = {
   Desenvolvimento: { emoji: "🧠", color: "#06b6d4" },
 };
 
-const NIVEL_CONFIG: Record<string, { bg: string; color: string }> = {
-  Básico: { bg: "rgba(16,185,129,0.15)", color: "#10b981" },
-  Intermediário: { bg: "rgba(245,158,11,0.15)", color: "#f59e0b" },
-  Avançado: { bg: "rgba(239,68,68,0.15)", color: "#ef4444" },
+const NIVEL_CONFIG: Record<string, { bg: string; color: string; label: string }> = {
+  "Iniciante": {
+    bg: "rgba(16,185,129,0.15)",
+    color: "#10b981",
+    label: "Iniciante",
+  },
+  "Básico": {
+    bg: "rgba(16,185,129,0.15)",
+    color: "#10b981",
+    label: "Iniciante",
+  },
+  "Intermediário": {
+    bg: "rgba(245,158,11,0.15)",
+    color: "#f59e0b",
+    label: "Intermediário",
+  },
+  "Avançado": {
+    bg: "rgba(239,68,68,0.15)",
+    color: "#ef4444",
+    label: "Avançado",
+  },
+  "Todos os níveis": {
+    bg: "rgba(99,102,241,0.15)",
+    color: "#818cf8",
+    label: "Todos os níveis",
+  },
 };
 
 function getCfg(nome: string) {
@@ -56,6 +82,26 @@ function hexAlpha(hex: string, alpha: number) {
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
+
+/* ───────────────────── HOOK: detecta breakpoint ──────────────────── */
+
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" ? window.innerWidth < breakpoint : false,
+  );
+
+  useEffect(() => {
+    function handleResize() {
+      setIsMobile(window.innerWidth < breakpoint);
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
+/* ──────────────────────────── OPÇÕES ─────────────────────────────── */
 
 const OBJETIVOS = [
   "Conseguir meu primeiro emprego",
@@ -86,6 +132,8 @@ const TEMPOS = [
   "Mais de 5 horas por semana",
 ];
 
+/* ─────────────────────────── COMPONENTE ──────────────────────────── */
+
 export default function Trilhas() {
   const [grupos, setGrupos] = useState<GrupoCategoria[]>([]);
   const [todasTrilhas, setTodasTrilhas] = useState<Trilha[]>([]);
@@ -107,6 +155,7 @@ export default function Trilhas() {
   const [erroIA, setErroIA] = useState("");
 
   const navigate = useNavigate();
+  const isMobile = useIsMobile(640);
 
   useEffect(() => {
     getTrilhas()
@@ -255,7 +304,7 @@ export default function Trilhas() {
         style={{
           backgroundColor: "var(--card-bg)",
           borderBottom: "1px solid var(--border-color)",
-          padding: "48px 20px 40px",
+          padding: isMobile ? "36px 16px 32px" : "48px 20px 40px",
           textAlign: "center",
         }}
       >
@@ -264,14 +313,14 @@ export default function Trilhas() {
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 600,
             color: "#818cf8",
             background: "rgba(99,102,241,0.12)",
             border: "1px solid rgba(99,102,241,0.25)",
             borderRadius: 999,
             padding: "4px 14px",
-            marginBottom: 18,
+            marginBottom: 16,
             textTransform: "uppercase",
             letterSpacing: ".06em",
           }}
@@ -281,7 +330,7 @@ export default function Trilhas() {
 
         <h1
           style={{
-            fontSize: "clamp(24px, 5vw, 38px)",
+            fontSize: "clamp(22px, 5vw, 38px)",
             fontWeight: 700,
             color: "var(--text-color)",
             margin: "0 0 12px",
@@ -293,10 +342,10 @@ export default function Trilhas() {
 
         <p
           style={{
-            fontSize: 15,
+            fontSize: isMobile ? 14 : 15,
             color: "var(--text-muted)",
             maxWidth: 460,
-            margin: "0 auto 32px",
+            margin: "0 auto 28px",
             lineHeight: 1.65,
           }}
         >
@@ -313,10 +362,10 @@ export default function Trilhas() {
             background: "rgba(99,102,241,0.08)",
             border: "1px solid rgba(99,102,241,0.22)",
             borderRadius: 16,
-            padding: "14px 18px",
+            padding: isMobile ? "12px 14px" : "14px 18px",
             display: "flex",
             alignItems: "center",
-            gap: 14,
+            gap: isMobile ? 10 : 14,
             textAlign: "left",
             cursor: "pointer",
             color: "var(--text-color)",
@@ -324,8 +373,8 @@ export default function Trilhas() {
         >
           <div
             style={{
-              width: 42,
-              height: 42,
+              width: isMobile ? 36 : 42,
+              height: isMobile ? 36 : 42,
               borderRadius: 12,
               background: "rgba(99,102,241,0.18)",
               display: "flex",
@@ -335,7 +384,7 @@ export default function Trilhas() {
               color: "#818cf8",
             }}
           >
-            <Sparkles size={20} />
+            <Sparkles size={isMobile ? 18 : 20} />
           </div>
 
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -354,7 +403,7 @@ export default function Trilhas() {
 
             <p
               style={{
-                fontSize: 14,
+                fontSize: isMobile ? 13 : 14,
                 fontWeight: 600,
                 color: "var(--text-color)",
                 margin: "0 0 2px",
@@ -365,7 +414,7 @@ export default function Trilhas() {
 
             <p
               style={{
-                fontSize: 12,
+                fontSize: 11,
                 color: "var(--text-muted)",
                 margin: 0,
               }}
@@ -383,7 +432,7 @@ export default function Trilhas() {
         style={{
           maxWidth: 820,
           margin: "0 auto",
-          padding: "36px 20px 60px",
+          padding: isMobile ? "24px 14px 48px" : "36px 20px 60px",
         }}
       >
         {recomendacoes.length > 0 && (
@@ -395,18 +444,18 @@ export default function Trilhas() {
 
         <p
           style={{
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: 700,
             color: "var(--text-muted)",
             textTransform: "uppercase",
             letterSpacing: ".08em",
-            marginBottom: 16,
+            marginBottom: 14,
           }}
         >
           Categorias disponíveis
         </p>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {grupos.map((grupo) => {
             const aberto = abertos.has(grupo.nome);
             const cfg = getCfg(grupo.nome);
@@ -419,7 +468,7 @@ export default function Trilhas() {
                   border: aberto
                     ? `1px solid ${hexAlpha(cfg.color, 0.45)}`
                     : "1px solid var(--border-color)",
-                  borderRadius: 20,
+                  borderRadius: 18,
                   overflow: "hidden",
                   transition: "border-color .15s, box-shadow .15s",
                   boxShadow: aberto
@@ -433,8 +482,8 @@ export default function Trilhas() {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 16,
-                    padding: "20px 22px",
+                    gap: isMobile ? 12 : 16,
+                    padding: isMobile ? "16px 16px" : "20px 22px",
                     width: "100%",
                     textAlign: "left",
                     background: "transparent",
@@ -445,14 +494,14 @@ export default function Trilhas() {
                 >
                   <div
                     style={{
-                      width: 54,
-                      height: 54,
-                      borderRadius: 15,
+                      width: isMobile ? 44 : 54,
+                      height: isMobile ? 44 : 54,
+                      borderRadius: 14,
                       background: hexAlpha(cfg.color, 0.15),
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
-                      fontSize: 26,
+                      fontSize: isMobile ? 20 : 26,
                       flexShrink: 0,
                     }}
                   >
@@ -462,7 +511,7 @@ export default function Trilhas() {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p
                       style={{
-                        fontSize: 17,
+                        fontSize: isMobile ? 15 : 17,
                         fontWeight: 700,
                         color: "var(--text-color)",
                         margin: "0 0 4px",
@@ -471,7 +520,7 @@ export default function Trilhas() {
                       <span
                         style={{
                           color: cfg.color,
-                          fontSize: 13,
+                          fontSize: isMobile ? 11 : 13,
                           fontWeight: 600,
                           marginRight: 8,
                         }}
@@ -483,7 +532,7 @@ export default function Trilhas() {
 
                     <p
                       style={{
-                        fontSize: 12,
+                        fontSize: isMobile ? 11 : 12,
                         color: "var(--text-muted)",
                         margin: 0,
                         display: "flex",
@@ -523,7 +572,7 @@ export default function Trilhas() {
                   <div
                     style={{
                       borderTop: "1px solid var(--border-color)",
-                      padding: "22px 22px 26px",
+                      padding: isMobile ? "16px 14px 20px" : "22px 22px 26px",
                     }}
                   >
                     {/* Selo curadoria */}
@@ -532,13 +581,13 @@ export default function Trilhas() {
                         display: "inline-flex",
                         alignItems: "center",
                         gap: 6,
-                        marginBottom: 20,
+                        marginBottom: isMobile ? 16 : 20,
                         padding: "5px 12px",
                         borderRadius: 999,
                         background: hexAlpha(cfg.color, 0.1),
                         border: `1px solid ${hexAlpha(cfg.color, 0.25)}`,
                         color: cfg.color,
-                        fontSize: 11,
+                        fontSize: isMobile ? 10 : 11,
                         fontWeight: 600,
                       }}
                     >
@@ -551,7 +600,7 @@ export default function Trilhas() {
                       <div
                         style={{
                           position: "absolute",
-                          left: 27,
+                          left: isMobile ? 21 : 27,
                           top: 50,
                           bottom: 50,
                           width: 2,
@@ -567,13 +616,12 @@ export default function Trilhas() {
                         style={{
                           display: "flex",
                           flexDirection: "column",
-                          gap: 14,
+                          gap: isMobile ? 10 : 14,
                         }}
                       >
                         {grupo.trilhas.map((trilha, idx) => {
                           const nivel = trilha.nivel ?? "";
                           const nivelCfg = NIVEL_CONFIG[nivel];
-                          const ultimo = idx === grupo.trilhas.length - 1;
 
                           return (
                             <button
@@ -584,11 +632,11 @@ export default function Trilhas() {
                               style={{
                                 display: "flex",
                                 alignItems: "stretch",
-                                gap: 16,
+                                gap: isMobile ? 10 : 16,
                                 background: "var(--bg-subtle)",
                                 border: "1px solid var(--border-color)",
-                                borderRadius: 16,
-                                padding: 14,
+                                borderRadius: 14,
+                                padding: isMobile ? 10 : 14,
                                 cursor: "pointer",
                                 textAlign: "left",
                                 color: "var(--text-color)",
@@ -614,10 +662,10 @@ export default function Trilhas() {
                                   "translateY(0)";
                               }}
                             >
-                              {/* Badge numerado + "Etapa" */}
+                              {/* Coluna esquerda: número + nível */}
                               <div
                                 style={{
-                                  width: 54,
+                                  width: isMobile ? 42 : 54,
                                   flexShrink: 0,
                                   display: "flex",
                                   flexDirection: "column",
@@ -628,9 +676,9 @@ export default function Trilhas() {
                               >
                                 <div
                                   style={{
-                                    width: 44,
-                                    height: 44,
-                                    borderRadius: 14,
+                                    width: isMobile ? 36 : 44,
+                                    height: isMobile ? 36 : 44,
+                                    borderRadius: 12,
                                     background: hexAlpha(cfg.color, 0.15),
                                     border: `1px solid ${hexAlpha(
                                       cfg.color,
@@ -641,23 +689,26 @@ export default function Trilhas() {
                                     alignItems: "center",
                                     justifyContent: "center",
                                     fontWeight: 800,
-                                    fontSize: 18,
+                                    fontSize: isMobile ? 15 : 18,
                                     lineHeight: 1,
                                   }}
                                 >
                                   {idx + 1}
                                 </div>
-                                {!ultimo && (
+
+                                {nivelCfg && (
                                   <span
                                     style={{
-                                      fontSize: 9,
+                                      fontSize: isMobile ? 8 : 9,
                                       fontWeight: 700,
-                                      color: "var(--text-muted)",
+                                      color: nivelCfg.color,
                                       textTransform: "uppercase",
-                                      letterSpacing: ".06em",
+                                      letterSpacing: ".04em",
+                                      textAlign: "center",
+                                      lineHeight: 1.1,
                                     }}
                                   >
-                                    Etapa
+                                    {nivelCfg.label}
                                   </span>
                                 )}
                               </div>
@@ -668,9 +719,9 @@ export default function Trilhas() {
                                   src={trilha.thumbnailUrl}
                                   alt={trilha.titulo}
                                   style={{
-                                    width: 148,
-                                    height: 96,
-                                    borderRadius: 12,
+                                    width: isMobile ? 88 : 148,
+                                    height: isMobile ? 58 : 96,
+                                    borderRadius: 10,
                                     objectFit: "cover",
                                     flexShrink: 0,
                                     display: "block",
@@ -679,14 +730,14 @@ export default function Trilhas() {
                               ) : (
                                 <div
                                   style={{
-                                    width: 148,
-                                    height: 96,
-                                    borderRadius: 12,
+                                    width: isMobile ? 88 : 148,
+                                    height: isMobile ? 58 : 96,
+                                    borderRadius: 10,
                                     background: hexAlpha(cfg.color, 0.15),
                                     display: "flex",
                                     alignItems: "center",
                                     justifyContent: "center",
-                                    fontSize: 34,
+                                    fontSize: isMobile ? 22 : 34,
                                     flexShrink: 0,
                                   }}
                                 >
@@ -702,22 +753,26 @@ export default function Trilhas() {
                                   display: "flex",
                                   flexDirection: "column",
                                   justifyContent: "center",
-                                  gap: 6,
+                                  gap: 4,
                                 }}
                               >
                                 <p
                                   style={{
-                                    fontSize: 16,
+                                    fontSize: isMobile ? 13 : 16,
                                     fontWeight: 700,
                                     color: "var(--text-color)",
                                     margin: 0,
                                     lineHeight: 1.3,
+                                    display: "-webkit-box",
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: "vertical",
+                                    overflow: "hidden",
                                   }}
                                 >
                                   {trilha.titulo}
                                 </p>
 
-                                {trilha.descricao && (
+                                {!isMobile && trilha.descricao && (
                                   <p
                                     style={{
                                       fontSize: 13,
@@ -738,7 +793,7 @@ export default function Trilhas() {
                                   style={{
                                     display: "flex",
                                     alignItems: "center",
-                                    gap: 10,
+                                    gap: 8,
                                     marginTop: 2,
                                     flexWrap: "wrap",
                                   }}
@@ -748,33 +803,16 @@ export default function Trilhas() {
                                       display: "flex",
                                       alignItems: "center",
                                       gap: 4,
-                                      fontSize: 12,
+                                      fontSize: isMobile ? 11 : 12,
                                       color: "var(--text-muted)",
                                       fontWeight: 500,
                                     }}
                                   >
-                                    <Play size={11} fill="currentColor" />
+                                    <Play size={10} fill="currentColor" />
                                     {trilha.videos?.length ?? 0} vídeos
                                   </span>
 
-                                  {nivelCfg && (
-                                    <span
-                                      style={{
-                                        fontSize: 10,
-                                        fontWeight: 700,
-                                        padding: "3px 9px",
-                                        borderRadius: 999,
-                                        background: nivelCfg.bg,
-                                        color: nivelCfg.color,
-                                        textTransform: "uppercase",
-                                        letterSpacing: ".04em",
-                                      }}
-                                    >
-                                      {nivel}
-                                    </span>
-                                  )}
-
-                                  {trilha.isCurated && (
+                                  {trilha.isCurated && !isMobile && (
                                     <span
                                       style={{
                                         fontSize: 10,
@@ -797,15 +835,17 @@ export default function Trilhas() {
                                 </div>
                               </div>
 
-                              <ArrowRight
-                                size={20}
-                                style={{
-                                  color: cfg.color,
-                                  flexShrink: 0,
-                                  alignSelf: "center",
-                                  opacity: 0.7,
-                                }}
-                              />
+                              {!isMobile && (
+                                <ArrowRight
+                                  size={20}
+                                  style={{
+                                    color: cfg.color,
+                                    flexShrink: 0,
+                                    alignSelf: "center",
+                                    opacity: 0.7,
+                                  }}
+                                />
+                              )}
                             </button>
                           );
                         })}
@@ -829,7 +869,7 @@ export default function Trilhas() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: 20,
+            padding: isMobile ? 12 : 20,
             zIndex: 1000,
           }}
         >
@@ -842,7 +882,7 @@ export default function Trilhas() {
               backgroundColor: "var(--card-bg)",
               border: "1px solid var(--border-color)",
               borderRadius: 22,
-              padding: 24,
+              padding: isMobile ? 20 : 24,
               position: "relative",
             }}
           >
@@ -851,8 +891,8 @@ export default function Trilhas() {
                 onClick={fecharQuestionario}
                 style={{
                   position: "absolute",
-                  right: 18,
-                  top: 18,
+                  right: 16,
+                  top: 16,
                   width: 32,
                   height: 32,
                   borderRadius: 9,
@@ -894,7 +934,7 @@ export default function Trilhas() {
 
               <h2
                 style={{
-                  fontSize: 22,
+                  fontSize: isMobile ? 20 : 22,
                   margin: "0 0 8px",
                   color: "var(--text-color)",
                 }}
@@ -1119,6 +1159,8 @@ export default function Trilhas() {
     </div>
   );
 }
+
+/* ───────────────────────── ESTILOS COMPARTILHADOS ────────────────── */
 
 const tituloPergunta: React.CSSProperties = {
   fontSize: 17,
