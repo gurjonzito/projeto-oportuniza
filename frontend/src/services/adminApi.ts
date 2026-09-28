@@ -83,6 +83,20 @@ export interface Video {
   tags: string[];
 }
 
+export interface VideoCandidato {
+  youtubeVideoId: string;
+  channelId?: string;
+  titulo: string;
+  canal?: string;
+  thumbnail?: string;
+  descricao?: string;
+  publishedAt?: string;
+  categoria?: string;
+  duracaoSegundos?: number;
+  jaExiste: boolean;
+  curado: boolean;
+}
+
 export interface Recurso {
   id: string;
   nome: string;
@@ -203,10 +217,35 @@ export const adminApi = {
       ...v,
       youtubeVideoId: v.videoId ?? v.youtubeVideoId ?? "",
       titulo: v.title ?? v.titulo ?? "",
-      canal: v.channel ? { nome: v.channel } : v.canal,
+      canal: v.canal ? v.canal : v.channel ? { nome: v.channel } : undefined,
       tags: v.tags ?? [],
       isCurated: v.isCurated ?? false,
     }));
+  },
+
+  async descobrirVideos(termo: string): Promise<VideoCandidato[]> {
+    const { data } = await api.get("/videos/descobrir", {
+      params: { termo },
+    });
+
+    return (data.videos ?? []).map((v: any) => ({
+      youtubeVideoId: v.youtubeVideoId,
+      channelId: v.channelId,
+      titulo: v.titulo,
+      canal: v.canal,
+      thumbnail: v.thumbnail,
+      descricao: v.descricao,
+      publishedAt: v.publishedAt,
+      categoria: v.categoria,
+      duracaoSegundos: v.duracaoSegundos,
+      jaExiste: v.jaExiste ?? false,
+      curado: v.curado ?? false,
+    }));
+  },
+
+  async curarVideo(candidato: VideoCandidato): Promise<Video> {
+    const { data } = await api.post("/videos/curar", candidato);
+    return data.video;
   },
 
   async toggleCurated(id: string, value: boolean): Promise<void> {

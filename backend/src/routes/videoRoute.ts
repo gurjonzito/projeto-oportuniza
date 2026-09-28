@@ -1,7 +1,17 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth'
-import { searchVideos } from '../services/videoService'
-import { updateVideoCurated, updateVideoTags, listarTodosVideos } from '../repositories/videoRepository'
+
+import {
+  searchVideos,
+  descobrirVideosService,
+  curarVideoService,
+} from '../services/videoService'
+
+import {
+  updateVideoCurated,
+  updateVideoTags,
+  listarTodosVideos,
+} from '../repositories/videoRepository'
 
 const router = Router()
 
@@ -9,18 +19,24 @@ function mapVideo(v: any) {
   return {
     id: v.id,
     videoId: v.youtubeVideoId,
+    youtubeVideoId: v.youtubeVideoId,
     title: v.titulo,
+    titulo: v.titulo,
     channel: v.canal?.nome ?? '',
+    canal: v.canal ? { nome: v.canal.nome } : undefined,
     thumbnail: v.thumbnailUrl,
+    thumbnailUrl: v.thumbnailUrl,
     duration: v.duracao ?? '',
     summary: v.descricao,
+    descricao: v.descricao,
     category: v.categoria ?? 'geral',
     isCurated: v.isCurated,
     tags: v.tags ?? [],
   }
 }
 
-// Rota pública — só curados
+// ─── Rotas PÚBLICAS ──────────────────────────────────────────────────────
+
 router.get('/', async (req, res, next) => {
   try {
     const query = (req.query.q as string) || 'mercado de trabalho jovem'
@@ -37,7 +53,10 @@ router.get('/search', async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
-// Rota admin — todos os vídeos sem filtro de curadoria
+// ─── Rotas ADMIN ─────────────────────────────────────────────────────────
+// ⚠️ As rotas estáticas (/descobrir, /curar, /admin/all) vêm ANTES de /:id
+
+// Lista todos os vídeos (curados e não curados)
 router.get('/admin/all', authMiddleware, async (req, res, next) => {
   try {
     const videos = await listarTodosVideos()
@@ -45,16 +64,45 @@ router.get('/admin/all', authMiddleware, async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// Descobrir vídeos por termo nos canais cadastrados (NÃO salva nada)
+router.get('/descobrir', authMiddleware, async (req, res) => {
+  try {
+    const termo = (req.query.termo as string) ?? ''
+    const videos = await descobrirVideosService(termo)
+    res.json({ videos })
+  } catch (err: any) {
+    res.status(400).json({ erro: err.message ?? 'Erro ao buscar vídeos.' })
+  }
+})
+
+// Curar um vídeo — salva no banco com isCurated: true
+router.post('/curar', authMiddleware, async (req, res) => {
+  try {
+    const video = await curarVideoService(req.body)
+    res.status(201).json({ video })
+  } catch (err: any) {
+    res.status(400).json({ erro: err.message ?? 'Erro ao curar vídeo.' })
+  }
+})
+
+// ─── Rotas com :id ──────────────────────────────────────────────────────
+
 router.patch('/:id/curated', authMiddleware, async (req, res, next) => {
   try {
-    const video = await updateVideoCurated(req.params.id as string, req.body.isCurated)
+    const video = await updateVideoCurated(
+      req.params.id as string,
+      req.body.isCurated
+    )
     res.json({ video })
   } catch (err) { next(err) }
 })
 
 router.patch('/:id/tags', authMiddleware, async (req, res, next) => {
   try {
-    const video = await updateVideoTags(req.params.id as string, req.body.tags)
+    const video = await updateVideoTags(
+      req.params.id as string,
+      req.body.tags
+    )
     res.json({ video })
   } catch (err) { next(err) }
 })

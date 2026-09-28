@@ -1,49 +1,141 @@
-import { useState, useEffect, useMemo } from "react";
-import { Check, X, Tag, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  adminApi,
+  type Video,
+  type VideoCandidato,
+} from "../../services/adminApi";
+import {
+  Search,
+  Check,
+  Loader2,
+  ExternalLink,
+  Star,
+  StarOff,
+  Tag,
+} from "lucide-react";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
-import AdminTable, { type Column } from "../../components/admin/AdminTable";
 import AdminModal from "../../components/admin/AdminModal";
-import { adminApi, type Video } from "../../services/adminApi";
 
-type Filter = "all" | "curated" | "not";
+type Aba = "descobrir" | "curados" | "todos";
+
+function formatarDuracao(seg?: number) {
+  if (!seg) return "";
+  const m = Math.floor(seg / 60);
+  const s = seg % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 export default function AdminVideos() {
+  const [aba, setAba] = useState<Aba>("descobrir");
+
+  // ─── Descoberta ─────────────────────────────────────────────────────
+  const [termo, setTermo] = useState("");
+  const [buscando, setBuscando] = useState(false);
+  const [candidatos, setCandidatos] = useState<VideoCandidato[]>([]);
+  const [buscou, setBuscou] = useState(false);
+  const [curandoId, setCurandoId] = useState<string | null>(null);
+
+  // ─── Listagem ───────────────────────────────────────────────────────
   const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<Filter>("all");
-  const [search, setSearch] = useState("");
+  const [loadingVideos, setLoadingVideos] = useState(false);
+
+  // ─── Modal de tags ──────────────────────────────────────────────────
   const [editingTags, setEditingTags] = useState<Video | null>(null);
   const [tagsInput, setTagsInput] = useState("");
   const [savingTags, setSavingTags] = useState(false);
 
+  // ─── Carrega a lista quando muda a aba ──────────────────────────────
   useEffect(() => {
-    adminApi
-      .listarVideos()
-      .then(setVideos)
-      .finally(() => setLoading(false));
-  }, []);
+    if (aba === "descobrir") return;
 
-  async function toggleCurated(id: string, current: boolean) {
+    async function carregar() {
+      setLoadingVideos(true);
+      try {
+        const lista = await adminApi.listarVideos();
+        setVideos(lista);
+      } catch (err) {
+        console.error("Erro ao listar vídeos:", err);
+      } finally {
+        setLoadingVideos(false);
+      }
+    }
+
+    carregar();
+  }, [aba]);
+
+  // ─── Handlers ───────────────────────────────────────────────────────
+
+  async function handleBuscar() {
+    if (!termo.trim()) return;
+
+    setBuscando(true);
+    setBuscou(true);
+    try {
+      const r = await adminApi.descobrirVideos(termo.trim());
+      setCandidatos(r);
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.erro ?? "Erro ao buscar vídeos.");
+      setCandidatos([]);
+    } finally {
+      setBuscando(false);
+    }
+  }
+
+  async function handleCurar(video: VideoCandidato) {
+    setCurandoId(video.youtubeVideoId);
+    try {
+      await adminApi.curarVideo(video);
+      setCandidatos((prev) =>
+        prev.map((v) =>
+          v.youtubeVideoId === video.youtubeVideoId
+            ? { ...v, curado: true, jaExiste: true }
+            : v,
+        ),
+      );
+    } catch (err: any) {
+      console.error(err);
+      alert(err?.response?.data?.erro ?? "Erro ao curar vídeo.");
+    } finally {
+      setCurandoId(null);
+    }
+  }
+
+  async function handleToggleCurado(video: Video) {
+    const novo = !video.isCurated;
+
     // Optimistic update
     setVideos((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, isCurated: !current } : v)),
+      prev.map((v) => (v.id === video.id ? { ...v, isCurated: novo } : v)),
     );
+
     try {
-      await adminApi.toggleCurated(id, !current);
-    } catch {
-      // Revert on error
+      await adminApi.toggleCurated(video.id, novo);
+    } catch (err) {
+      console.error(err);
+      // Reverte em caso de erro
       setVideos((prev) =>
-        prev.map((v) => (v.id === id ? { ...v, isCurated: current } : v)),
+        prev.map((v) =>
+          v.id === video.id ? { ...v, isCurated: video.isCurated } : v,
+        ),
       );
+      alert("Erro ao atualizar curadoria.");
     }
+  }
+
+  function openTagsModal(video: Video) {
+    setEditingTags(video);
+    setTagsInput(video.tags.join(", "));
   }
 
   async function saveTags() {
     if (!editingTags) return;
+
     const tags = tagsInput
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean);
+
     setSavingTags(true);
     try {
       await adminApi.atualizarTags(editingTags.id, tags);
@@ -51,211 +143,311 @@ export default function AdminVideos() {
         prev.map((v) => (v.id === editingTags.id ? { ...v, tags } : v)),
       );
       setEditingTags(null);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao salvar tags.");
     } finally {
       setSavingTags(false);
     }
   }
 
-  function openTagsModal(v: Video) {
-    setEditingTags(v);
-    setTagsInput(v.tags.join(", "));
-  }
-
-  const filtered = useMemo(() => {
-    let list = videos;
-    if (filter === "curated") list = list.filter((v) => v.isCurated);
-    if (filter === "not") list = list.filter((v) => !v.isCurated);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(
-        (v) =>
-          v.titulo.toLowerCase().includes(q) ||
-          v.canal?.nome?.toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [videos, filter, search]);
-
-  const columns: Column<Video>[] = [
-    {
-      key: "thumb",
-      label: "",
-      render: (row) => (
-        <a
-          href={`https://youtube.com/watch?v=${row.youtubeVideoId}`}
-          target="_blank"
-          rel="noreferrer"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <img
-            src={
-              row.thumbnailUrl ??
-              (row.youtubeVideoId
-                ? `https://img.youtube.com/vi/${row.youtubeVideoId}/mqdefault.jpg`
-                : "")
-            }
-            className="w-20 h-12 object-cover rounded-md hover:opacity-80 transition"
-            alt=""
-          />
-        </a>
-      ),
-    },
-    {
-      key: "titulo",
-      label: "Vídeo",
-      render: (row) => (
-        <div>
-          <p
-            className="font-medium text-sm leading-snug"
-            style={{ color: "var(--text-color)" }}
-          >
-            {row.titulo}
-          </p>
-          <p
-            className="text-xs mt-0.5"
-            style={{ color: "var(--text-muted, #9ca3af)" }}
-          >
-            {row.canal?.nome}
-          </p>
-        </div>
-      ),
-    },
-    {
-      key: "tags",
-      label: "Tags",
-      render: (row) => (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-          {row.tags.length > 0 ? (
-            row.tags.map((t) => (
-              <span
-                key={t}
-                className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-xs font-medium"
-              >
-                {t}
-              </span>
-            ))
-          ) : (
-            <span
-              className="text-xs"
-              style={{ color: "var(--text-muted, #9ca3af)" }}
-            >
-              sem tags
-            </span>
-          )}
-        </div>
-      ),
-    },
-    {
-      key: "isCurated",
-      label: "Curado",
-      render: (row) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleCurated(row.id, row.isCurated);
-          }}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition ${
-            row.isCurated
-              ? "bg-green-100 text-green-700 hover:bg-green-200"
-              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
-          }`}
-        >
-          {row.isCurated ? (
-            <>
-              <Check size={11} />
-              Sim
-            </>
-          ) : (
-            <>
-              <X size={11} />
-              Não
-            </>
-          )}
-        </button>
-      ),
-    },
-    {
-      key: "acoes",
-      label: "",
-      render: (row) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            openTagsModal(row);
-          }}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs hover:bg-gray-50 transition"
-          style={{
-            borderColor: "var(--border-color, #e5e7eb)",
-            color: "var(--text-color)",
-          }}
-          title="Editar tags"
-        >
-          <Tag size={12} />
-          Tags
-        </button>
-      ),
-    },
-  ];
+  // ─── Filtros derivados ──────────────────────────────────────────────
+  const videosFiltrados = videos.filter((v) => {
+    if (aba === "curados") return v.isCurated;
+    return true; // "todos"
+  });
 
   return (
     <div>
       <AdminPageHeader
         title="Vídeos"
-        description="Gerencie vídeos da plataforma, organize categorias e aplique tags para facilitar a curadoria."
-        actions={
-          <div className="flex items-center gap-2">
-            {/* Search */}
-            <div
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm"
-              style={{
-                backgroundColor: "var(--card-bg, white)",
-                borderColor: "var(--border-color, #e5e7eb)",
-              }}
-            >
+        description="Descubra vídeos dos canais cadastrados e escolha quais merecem ser curados."
+      />
+
+      {/* Abas */}
+      <div
+        className="flex gap-1 mb-6 border-b"
+        style={{ borderColor: "var(--border-color, #e5e7eb)" }}
+      >
+        {[
+          { id: "descobrir" as Aba, label: "Descobrir" },
+          { id: "curados" as Aba, label: "Curados" },
+          { id: "todos" as Aba, label: "Todos" },
+        ].map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setAba(t.id)}
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition ${
+              aba === t.id
+                ? "border-[#1E40AF] text-[#1E40AF]"
+                : "border-transparent text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ─── Aba Descobrir ──────────────────────────────────────────── */}
+      {aba === "descobrir" && (
+        <>
+          <div className="flex gap-2 mb-6">
+            <div className="relative flex-1">
               <Search
-                size={13}
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2"
                 style={{ color: "var(--text-muted, #9ca3af)" }}
               />
               <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar vídeo..."
-                className="bg-transparent outline-none w-36 text-sm"
-                style={{ color: "var(--text-color)" }}
+                value={termo}
+                onChange={(e) => setTermo(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleBuscar();
+                }}
+                placeholder="Ex: currículo, entrevista de emprego, educação financeira..."
+                className="input-admin w-full pl-10 pr-4 py-2.5 rounded-xl border"
               />
             </div>
-            {/* Filter tabs */}
-            <div
-              className="flex items-center rounded-lg border overflow-hidden text-xs"
-              style={{ borderColor: "var(--border-color, #e5e7eb)" }}
+            <button
+              onClick={handleBuscar}
+              disabled={buscando || !termo.trim()}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-50"
             >
-              {(["all", "curated", "not"] as Filter[]).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 transition ${filter === f ? "bg-[#1E40AF] text-white" : "hover:bg-gray-50"}`}
-                  style={filter !== f ? { color: "var(--text-color)" } : {}}
+              {buscando ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <Search size={15} />
+              )}
+              {buscando ? "Buscando..." : "Buscar"}
+            </button>
+          </div>
+
+          {!buscou && (
+            <div
+              className="rounded-xl border py-16 text-center text-sm"
+              style={{
+                borderColor: "var(--border-color, #e5e7eb)",
+                color: "var(--text-muted, #9ca3af)",
+              }}
+            >
+              Digite um tema acima para ver vídeos recomendados dos canais
+              cadastrados.
+            </div>
+          )}
+
+          {buscou && !buscando && candidatos.length === 0 && (
+            <div
+              className="rounded-xl border py-16 text-center text-sm"
+              style={{
+                borderColor: "var(--border-color, #e5e7eb)",
+                color: "var(--text-muted, #9ca3af)",
+              }}
+            >
+              Nenhum vídeo encontrado para "{termo}".
+            </div>
+          )}
+
+          {buscou && candidatos.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {candidatos.map((v) => (
+                <div
+                  key={v.youtubeVideoId}
+                  className="rounded-xl border overflow-hidden flex flex-col"
+                  style={{
+                    backgroundColor: "var(--card-bg, white)",
+                    borderColor: v.curado
+                      ? "#10b981"
+                      : "var(--border-color, #e5e7eb)",
+                  }}
                 >
-                  {f === "all"
-                    ? "Todos"
-                    : f === "curated"
-                      ? "Curados"
-                      : "Não curados"}
-                </button>
+                  <img
+                    src={v.thumbnail}
+                    alt={v.titulo}
+                    className="w-full aspect-video object-cover"
+                    loading="lazy"
+                  />
+
+                  <div className="p-4 flex flex-col gap-2 flex-1">
+                    <p
+                      className="text-sm font-bold line-clamp-2"
+                      style={{ color: "var(--text-color)" }}
+                    >
+                      {v.titulo}
+                    </p>
+
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--text-muted, #9ca3af)" }}
+                    >
+                      {v.canal}
+                      {v.duracaoSegundos
+                        ? ` · ${formatarDuracao(v.duracaoSegundos)}`
+                        : ""}
+                    </p>
+
+                    <div className="mt-auto flex items-center gap-2 pt-2">
+                      {v.curado ? (
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-green-600">
+                          <Check size={14} />
+                          Curado
+                        </span>
+                      ) : (
+                        <button
+                          onClick={() => handleCurar(v)}
+                          disabled={curandoId === v.youtubeVideoId}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E40AF] text-white text-xs font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+                        >
+                          {curandoId === v.youtubeVideoId ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Check size={12} />
+                          )}
+                          Curar este vídeo
+                        </button>
+                      )}
+
+                      <a
+                        href={`https://www.youtube.com/watch?v=${v.youtubeVideoId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+                        title="Abrir no YouTube"
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
-        }
-      />
+          )}
+        </>
+      )}
 
-      <AdminTable
-        columns={columns}
-        data={filtered}
-        loading={loading}
-        emptyMessage="Nenhum vídeo encontrado."
-      />
+      {/* ─── Abas Curados / Todos ───────────────────────────────────── */}
+      {aba !== "descobrir" && (
+        <>
+          {loadingVideos && (
+            <div className="flex items-center justify-center py-16 gap-2 text-sm">
+              <Loader2 size={16} className="animate-spin" />
+              Carregando vídeos...
+            </div>
+          )}
 
-      {/* Tags modal */}
+          {!loadingVideos && videosFiltrados.length === 0 && (
+            <div
+              className="rounded-xl border py-16 text-center text-sm"
+              style={{
+                borderColor: "var(--border-color, #e5e7eb)",
+                color: "var(--text-muted, #9ca3af)",
+              }}
+            >
+              {aba === "curados"
+                ? "Nenhum vídeo curado ainda. Use a aba Descobrir para adicionar."
+                : "Nenhum vídeo cadastrado ainda."}
+            </div>
+          )}
+
+          {!loadingVideos && videosFiltrados.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {videosFiltrados.map((v) => (
+                <div
+                  key={v.id}
+                  className="rounded-xl border overflow-hidden flex flex-col"
+                  style={{
+                    backgroundColor: "var(--card-bg, white)",
+                    borderColor: v.isCurated
+                      ? "#10b981"
+                      : "var(--border-color, #e5e7eb)",
+                  }}
+                >
+                  <img
+                    src={
+                      v.thumbnailUrl ??
+                      `https://img.youtube.com/vi/${v.youtubeVideoId}/mqdefault.jpg`
+                    }
+                    alt={v.titulo}
+                    className="w-full aspect-video object-cover"
+                    loading="lazy"
+                  />
+
+                  <div className="p-4 flex flex-col gap-2 flex-1">
+                    <p
+                      className="text-sm font-bold line-clamp-2"
+                      style={{ color: "var(--text-color)" }}
+                    >
+                      {v.titulo}
+                    </p>
+
+                    <p
+                      className="text-xs"
+                      style={{ color: "var(--text-muted, #9ca3af)" }}
+                    >
+                      {v.canal?.nome ?? "—"}
+                    </p>
+
+                    {v.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {v.tags.map((t) => (
+                          <span
+                            key={t}
+                            className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 text-[10px] font-medium"
+                          >
+                            {t}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="mt-auto flex items-center gap-2 pt-2">
+                      <button
+                        onClick={() => handleToggleCurado(v)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                          v.isCurated
+                            ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+                            : "bg-green-100 text-green-700 hover:bg-green-200"
+                        }`}
+                      >
+                        {v.isCurated ? (
+                          <>
+                            <StarOff size={12} />
+                            Descurar
+                          </>
+                        ) : (
+                          <>
+                            <Star size={12} />
+                            Curar
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        onClick={() => openTagsModal(v)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+                        title="Editar tags"
+                      >
+                        <Tag size={14} />
+                      </button>
+
+                      <a
+                        href={`https://www.youtube.com/watch?v=${v.youtubeVideoId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+                        title="Abrir no YouTube"
+                      >
+                        <ExternalLink size={14} />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ─── Modal de tags ─────────────────────────────────────────── */}
       <AdminModal
         title="Editar Tags"
         open={!!editingTags}
@@ -289,7 +481,7 @@ export default function AdminVideos() {
         {editingTags && (
           <div className="flex flex-col gap-3">
             <p
-              className="text-sm font-medium"
+              className="text-sm font-medium line-clamp-2"
               style={{ color: "var(--text-color)" }}
             >
               {editingTags.titulo}
