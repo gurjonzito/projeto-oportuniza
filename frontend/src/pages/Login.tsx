@@ -1,14 +1,22 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { signIn, signUp, authClient } from "../lib/auth-client";
+import { authClient } from "../lib/auth-client";
 
-import { BookOpen, Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle2 } from "lucide-react";
+import {
+  BookOpen,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowLeft,
+  CheckCircle2,
+} from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
 
-  // "login" | "cadastro" | "forgot"
-  const [view, setView] = useState<"login" | "cadastro" | "forgot">("login");
+  // "login" | "cadastro"
+  const [view, setView] = useState<"login" | "cadastro">("login");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,9 +31,8 @@ export default function Login() {
   const [success, setSuccess] = useState("");
 
   const isCadastro = view === "cadastro";
-  const isForgot = view === "forgot";
 
-  function trocarView(novaView: "login" | "cadastro" | "forgot") {
+  function trocarView(novaView: "login" | "cadastro") {
     setView(novaView);
     setError("");
     setSuccess("");
@@ -35,7 +42,7 @@ export default function Login() {
     setError("");
     setSuccess("");
 
-    if (!email || (!isForgot && !password)) {
+    if (!email || !password) {
       setError("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -51,29 +58,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // ─── ESQUECI A SENHA ────────────────────────────────────────────
-      if (isForgot) {
-        const { error: forgotError } = await authClient.requestPasswordReset({
-          email,
-          redirectTo: `${window.location.origin}/reset-password`,
-        });
-
-        if (forgotError) {
-          setError(
-            forgotError.message || "Não foi possível enviar o email."
-          );
-          return;
-        }
-
-        setSuccess(
-          "Se este email estiver cadastrado, enviamos um link para redefinir sua senha. Verifique também a caixa de spam."
-        );
-        return;
-      }
-
       // ─── LOGIN ──────────────────────────────────────────────────────
       if (view === "login") {
-        const res = await signIn.email({ email, password, callbackURL: "/" });
+        const res = await authClient.signIn.email({ email, password });
 
         if (res?.error) {
           setError(res.error.message || "Email ou senha incorretos.");
@@ -85,11 +72,10 @@ export default function Login() {
       }
 
       // ─── CADASTRO ───────────────────────────────────────────────────
-      const res = await signUp.email({
+      const res = await authClient.signUp.email({
         email,
         password,
         name: name.trim(),
-        callbackURL: "/",
       });
 
       if (res?.error) {
@@ -141,51 +127,43 @@ export default function Login() {
             </div>
 
             <h1 className="text-white text-2xl font-bold leading-tight">
-              {isForgot
-                ? "Recuperar senha"
-                : isCadastro
-                  ? "Crie sua conta"
-                  : "Bem-vindo de volta"}
+              {isCadastro ? "Crie sua conta" : "Bem-vindo de volta"}
             </h1>
             <p className="text-blue-200 text-sm mt-1">
-              {isForgot
-                ? "Enviaremos um link para você criar uma nova senha"
-                : isCadastro
-                  ? "Comece sua jornada de aprendizado"
-                  : "Acesse trilhas de aprendizado gratuitas"}
+              {isCadastro
+                ? "Comece sua jornada de aprendizado"
+                : "Acesse trilhas de aprendizado gratuitas"}
             </p>
           </div>
 
-          {/* Abas — só aparecem em login/cadastro */}
-          {!isForgot && (
-            <div
-              className="flex border-b"
-              style={{ borderColor: "var(--border-color, #e5e7eb)" }}
+          {/* Abas */}
+          <div
+            className="flex border-b"
+            style={{ borderColor: "var(--border-color, #e5e7eb)" }}
+          >
+            <button
+              type="button"
+              onClick={() => trocarView("login")}
+              className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
+                view === "login"
+                  ? "border-[#1E40AF] text-[#1E40AF]"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
             >
-              <button
-                type="button"
-                onClick={() => trocarView("login")}
-                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
-                  view === "login"
-                    ? "border-[#1E40AF] text-[#1E40AF]"
-                    : "border-transparent text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                Entrar
-              </button>
-              <button
-                type="button"
-                onClick={() => trocarView("cadastro")}
-                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
-                  view === "cadastro"
-                    ? "border-[#1E40AF] text-[#1E40AF]"
-                    : "border-transparent text-gray-400 hover:text-gray-600"
-                }`}
-              >
-                Cadastrar
-              </button>
-            </div>
-          )}
+              Entrar
+            </button>
+            <button
+              type="button"
+              onClick={() => trocarView("cadastro")}
+              className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
+                view === "cadastro"
+                  ? "border-[#1E40AF] text-[#1E40AF]"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              Cadastrar
+            </button>
+          </div>
 
           {/* Conteúdo */}
           <div className={`px-7 ${isCadastro ? "py-5" : "py-6"}`}>
@@ -239,54 +217,41 @@ export default function Login() {
                   </div>
                 </div>
 
-                {/* Senha (login/cadastro) */}
-                {!isForgot && (
-                  <div className="flex flex-col gap-1">
-                    <label
-                      className="text-xs font-semibold"
-                      style={{ color: "var(--text-muted, #6b7280)" }}
+                {/* Senha */}
+                <div className="flex flex-col gap-1">
+                  <label
+                    className="text-xs font-semibold"
+                    style={{ color: "var(--text-muted, #6b7280)" }}
+                  >
+                    Senha
+                  </label>
+
+                  <div className="relative">
+                    <Lock
+                      size={15}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                      style={{ color: "var(--text-muted, #9ca3af)" }}
+                    />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSubmit();
+                      }}
+                      placeholder="••••••••"
+                      className="auth-input w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
+                      style={{ color: "var(--text-muted, #9ca3af)" }}
                     >
-                      Senha
-                    </label>
-
-                    <div className="relative">
-                      <Lock
-                        size={15}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                        style={{ color: "var(--text-muted, #9ca3af)" }}
-                      />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSubmit();
-                        }}
-                        placeholder="••••••••"
-                        className="auth-input w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
-                        style={{ color: "var(--text-muted, #9ca3af)" }}
-                      >
-                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                      </button>
-                    </div>
-
-                    {/* 👇 Link "Esqueci minha senha" abaixo do input */}
-                    {view === "login" && (
-                      <button
-                        type="button"
-                        onClick={() => trocarView("forgot")}
-                        className="self-end text-[11px] font-semibold text-[#23A6F0] hover:underline -mt-0.5"
-                      >
-                        Esqueci minha senha
-                      </button>
-                    )}
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
                   </div>
-                )}
+                </div>
 
                 {/* Confirmar senha (só cadastro) */}
                 {isCadastro && (
@@ -369,27 +334,23 @@ export default function Login() {
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
                   {loading
-                    ? isForgot
-                      ? "Enviando..."
-                      : isCadastro
-                        ? "Criando conta..."
-                        : "Entrando..."
-                    : isForgot
-                      ? "Enviar link de recuperação"
-                      : isCadastro
-                        ? "Criar conta"
-                        : "Entrar"}
+                    ? isCadastro
+                      ? "Criando conta..."
+                      : "Entrando..."
+                    : isCadastro
+                      ? "Criar conta"
+                      : "Entrar"}
                 </button>
 
-                {/* Voltar para login (só em forgot) */}
-                {isForgot && (
+                {/* Voltar para login */}
+                {isCadastro && (
                   <button
                     type="button"
                     onClick={() => trocarView("login")}
                     className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-1"
                   >
                     <ArrowLeft size={13} />
-                    Voltar para o login
+                    Já tenho conta
                   </button>
                 )}
               </div>

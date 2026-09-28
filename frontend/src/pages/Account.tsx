@@ -16,7 +16,8 @@ import {
   GraduationCap,
 } from "lucide-react";
 
-import { useSession } from "../lib/auth-client";
+// ⚠️ Importa o authClient do SDK do Neon
+import { authClient } from "../lib/auth-client";
 import api from "../services/api";
 
 import SelectCustom from "../components/SelectCustom";
@@ -122,7 +123,8 @@ interface Usuario {
 // =========================================================
 
 export default function Account() {
-  const { data: session, isPending } = useSession();
+  // ⚠️ useSession do SDK do Neon
+  const { data: session, isPending } = authClient.useSession();
 
   const [activeSection, setActiveSection] = useState("perfil");
 
@@ -423,7 +425,7 @@ export default function Account() {
   }
 
   // =========================================================
-  // ALTERAR SENHA
+  // ALTERAR SENHA (via SDK do Neon)
   // =========================================================
 
   async function alterarSenha() {
@@ -447,9 +449,8 @@ export default function Account() {
     try {
       setLoadingPassword(true);
 
-      const { error: changeError } = await (
-        await import("../lib/auth-client")
-      ).authClient.changePassword({
+      // ⚠️ changePassword do SDK do Neon
+      const { error: changeError } = await authClient.changePassword({
         currentPassword,
         newPassword,
         revokeOtherSessions: false,

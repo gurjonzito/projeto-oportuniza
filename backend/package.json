@@ -4,8 +4,11 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn src/server.ts",
-    "build": "prisma generate && tsc",
-    "start": "node dist/server.js"
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd ../frontend && npm install --include=dev && npm run build",
+    "build:backend": "prisma generate && tsc",
+    "start": "node dist/server.js",
+    "postinstall": "prisma generate"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +33,7 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jose": "^6.2.12",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
     "nodemailer": "^9.0.5",
