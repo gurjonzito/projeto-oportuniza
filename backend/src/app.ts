@@ -64,7 +64,13 @@ const frontendPath = path.join(__dirname, "../../frontend/dist");
 
 app.use(express.static(frontendPath));
 
-app.get("/{*splat}", (req, res, next) => {
+app.use((req, res, next) => {
+  // Só serve o index.html para GET e HEAD
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return next();
+  }
+
+  // Ignora rotas de API
   if (
     req.path.startsWith("/api/") ||
     req.path.startsWith("/playlist") ||
@@ -73,10 +79,13 @@ app.get("/{*splat}", (req, res, next) => {
     req.path.startsWith("/categorias") ||
     req.path.startsWith("/canais") ||
     req.path.startsWith("/recursos") ||
-    req.path.startsWith("/user")
+    req.path.startsWith("/user") ||
+    req.path.startsWith("/health")
   ) {
     return next();
   }
+
+  // Serve o index.html do React
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
