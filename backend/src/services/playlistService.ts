@@ -29,15 +29,17 @@ async function gerarSlugUnico(titulo: string): Promise<string> {
 // ─── Helper: garante que um canal existe e devolve ele ────────────────────
 
 async function obterOuCriarCanal(
-  tx: any,
+  client: any,
   youtubeChannelId: string,
   nome: string,
   thumbnailUrl?: string | null
 ) {
-  let canal = await tx.canal.findUnique({ where: { youtubeChannelId } });
+  let canal = await client.canal.findUnique({
+    where: { youtubeChannelId },
+  });
 
   if (!canal) {
-    canal = await tx.canal.create({
+    canal = await client.canal.create({
       data: {
         youtubeChannelId,
         nome,
@@ -88,40 +90,53 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
     primeiroVideo?.snippet?.channelTitle ||
     "Canal";
 
-  return await prisma.$transaction(
-    async (tx) => {
-      const canalPrincipal = await obterOuCriarCanal(
-        tx,
-        canalPrincipalYoutubeId,
-        canalPrincipalNome,
-        playlistData.snippet.thumbnails?.high?.url
-      );
+  // ─── 1) Canal principal (fora de transação) ─────────────────────────────
+  const canalPrincipal = await obterOuCriarCanal(
+    prisma,
+    canalPrincipalYoutubeId,
+    canalPrincipalNome,
+    playlistData.snippet.thumbnails?.high?.url
+  );
 
-      const ultimaDaCategoria = await tx.trilha.findFirst({
-        where: { categoriaId },
-        orderBy: { ordem: "desc" },
-        select: { ordem: true },
-      });
+  // ─── 2) Ordem na categoria ──────────────────────────────────────────────
+  const ultimaDaCategoria = await prisma.trilha.findFirst({
+    where: { categoriaId },
+    orderBy: { ordem: "desc" },
+    select: { ordem: true },
+  });
 
-      const proximaOrdem = (ultimaDaCategoria?.ordem ?? -1) + 1;
+  const proximaOrdem = (ultimaDaCategoria?.ordem ?? -1) + 1;
 
-      const trilha = await tx.trilha.create({
-        data: {
-          titulo: playlistData.snippet.title,
-          descricao: playlistData.snippet.description,
-          thumbnailUrl: playlistData.snippet.thumbnails?.high?.url,
-          youtubePlaylistId: playlistId,
-          slug,
-          categoriaId,
-          canalId: canalPrincipal.id,
-          isCurated: true,
-          ordem: proximaOrdem,
-        },
-      });
+  // ─── 3) Cria a trilha ───────────────────────────────────────────────────
+  const trilha = await prisma.trilha.create({
+    data: {
+      titulo: playlistData.snippet.title,
+      descricao: playlistData.snippet.description,
+      thumbnailUrl: playlistData.snippet.thumbnails?.high?.url,
+      youtubePlaylistId: playlistId,
+      slug,
+      categoriaId,
+      canalId: canalPrincipal.id,
+      isCurated: true,
+      ordem: proximaOrdem,
+    },
+  });
 
-      for (let i = 0; i < videosValidos.length; i++) {
-        const item = videosValidos[i];
+  // ─── 4) Processa os vídeos em lotes, fora de transação ──────────────────
+  const CHUNK_SIZE = 20;
+  const relacoesParaCriar: {
+    trilhaId: string;
+    videoId: string;
+    ordem: number;
+  }[] = [];
+
+  for (let i = 0; i < videosValidos.length; i += CHUNK_SIZE) {
+    const chunk = videosValidos.slice(i, i + CHUNK_SIZE);
+
+    await Promise.all(
+      chunk.map(async (item: any, j: number) => {
         const youtubeVideoId = item.snippet.resourceId.videoId;
+        const posicao = i + j;
 
         // Canal específico DESTE vídeo
         const videoCanalYoutubeId =
@@ -135,62 +150,49 @@ export async function importarPlaylistService(url: string, categoriaId: string) 
           canalPrincipalNome;
 
         const canalDoVideo = await obterOuCriarCanal(
-          tx,
+          prisma,
           videoCanalYoutubeId,
           videoCanalNome
         );
 
-        let video = await tx.video.findUnique({
+        // Upsert do vídeo (cria se não existir, atualiza canal/título se existir)
+        const video = await prisma.video.upsert({
           where: { youtubeVideoId },
+          update: {
+            titulo: item.snippet.title,
+            descricao: item.snippet.description,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
+          },
+          create: {
+            youtubeVideoId,
+            titulo: item.snippet.title,
+            descricao: item.snippet.description,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
+            tags: [],
+            isCurated: true,
+          },
         });
 
-        if (!video) {
-          video = await tx.video.create({
-            data: {
-              youtubeVideoId,
-              titulo: item.snippet.title,
-              descricao: item.snippet.description,
-              thumbnailUrl: item.snippet.thumbnails?.high?.url,
-              canalId: canalDoVideo.id,
-              tags: [],
-              isCurated: true,
-            },
-          });
-        } else {
-          // Corrige canal se já existia com o valor errado
-          video = await tx.video.update({
-            where: { id: video.id },
-            data: {
-              titulo: item.snippet.title,
-              descricao: item.snippet.description,
-              thumbnailUrl: item.snippet.thumbnails?.high?.url,
-              canalId: canalDoVideo.id,
-            },
-          });
-        }
-
-        const relationExists = await tx.trilhaVideo.findFirst({
-          where: { trilhaId: trilha.id, videoId: video.id },
+        relacoesParaCriar.push({
+          trilhaId: trilha.id,
+          videoId: video.id,
+          ordem: posicao + 1,
         });
+      })
+    );
+  }
 
-        if (!relationExists) {
-          await tx.trilhaVideo.create({
-            data: {
-              trilhaId: trilha.id,
-              videoId: video.id,
-              ordem: i + 1,
-            },
-          });
-        }
-      }
+  // ─── 5) Cria todas as relações TrilhaVideo de uma vez ──────────────────
+  if (relacoesParaCriar.length > 0) {
+    await prisma.trilhaVideo.createMany({
+      data: relacoesParaCriar,
+      skipDuplicates: true,
+    });
+  }
 
-      return trilha;
-    },
-    {
-      maxWait: 10000,
-      timeout: 30000,
-    }
-  );
+  return trilha;
 }
 
 // ─── SINCRONIZAR UMA TRILHA ───────────────────────────────────────────────
@@ -224,61 +226,63 @@ export async function sincronizarPlaylistService(trilhaId: string) {
     primeiroVideo?.snippet?.channelTitle ||
     "Canal";
 
-  return await prisma.$transaction(
-    async (tx) => {
-      // 1. Garantir canal principal
-      await obterOuCriarCanal(
-        tx,
-        canalPrincipalYoutubeId,
-        canalPrincipalNome,
-        playlistData.snippet.thumbnails?.high?.url
-      );
+  // ─── 1) Canal principal ────────────────────────────────────────────────
+  await obterOuCriarCanal(
+    prisma,
+    canalPrincipalYoutubeId,
+    canalPrincipalNome,
+    playlistData.snippet.thumbnails?.high?.url
+  );
 
-      // 2. Atualizar metadados da trilha
-      await tx.trilha.update({
-        where: { id: trilha.id },
-        data: {
-          titulo: playlistData.snippet.title,
-          descricao: playlistData.snippet.description,
-          thumbnailUrl: playlistData.snippet.thumbnails?.high?.url,
-        },
-      });
+  // ─── 2) Atualizar metadados da trilha ──────────────────────────────────
+  await prisma.trilha.update({
+    where: { id: trilha.id },
+    data: {
+      titulo: playlistData.snippet.title,
+      descricao: playlistData.snippet.description,
+      thumbnailUrl: playlistData.snippet.thumbnails?.high?.url,
+    },
+  });
 
-      // 3. Relações atuais
-      const relacoesAtuais = await tx.trilhaVideo.findMany({
-        where: { trilhaId: trilha.id },
-        include: {
-          video: { select: { id: true, youtubeVideoId: true } },
-        },
-      });
+  // ─── 3) Relações atuais ────────────────────────────────────────────────
+  const relacoesAtuais = await prisma.trilhaVideo.findMany({
+    where: { trilhaId: trilha.id },
+    include: {
+      video: { select: { id: true, youtubeVideoId: true } },
+    },
+  });
 
-      const youtubeIdsAtuais = new Set<string>(
-        videosValidos.map((v: any) => v.snippet.resourceId.videoId)
-      );
+  const youtubeIdsAtuais = new Set<string>(
+    videosValidos.map((v: any) => v.snippet.resourceId.videoId)
+  );
 
-      // 4. Remover relações cujo vídeo saiu da playlist
-      const relacoesParaRemover = relacoesAtuais.filter(
-        (r) => !youtubeIdsAtuais.has(r.video.youtubeVideoId)
-      );
+  // ─── 4) Remover relações cujo vídeo saiu da playlist ───────────────────
+  const relacoesParaRemover = relacoesAtuais.filter(
+    (r) => !youtubeIdsAtuais.has(r.video.youtubeVideoId)
+  );
 
-      if (relacoesParaRemover.length > 0) {
-        await tx.trilhaVideo.deleteMany({
-          where: {
-            trilhaId: trilha.id,
-            videoId: { in: relacoesParaRemover.map((r) => r.video.id) },
-          },
-        });
-      }
+  if (relacoesParaRemover.length > 0) {
+    await prisma.trilhaVideo.deleteMany({
+      where: {
+        trilhaId: trilha.id,
+        videoId: { in: relacoesParaRemover.map((r) => r.video.id) },
+      },
+    });
+  }
 
-      // 5. Upsert na ordem atual do YouTube
-      let adicionados = 0;
-      let atualizados = 0;
+  // ─── 5) Processa os vídeos em lotes, fora de transação ─────────────────
+  const CHUNK_SIZE = 20;
+  let adicionados = 0;
+  let atualizados = 0;
 
-      for (let i = 0; i < videosValidos.length; i++) {
-        const item = videosValidos[i];
+  for (let i = 0; i < videosValidos.length; i += CHUNK_SIZE) {
+    const chunk = videosValidos.slice(i, i + CHUNK_SIZE);
+
+    await Promise.all(
+      chunk.map(async (item: any, j: number) => {
         const youtubeVideoId = item.snippet.resourceId.videoId;
+        const posicao = i + j;
 
-        // Canal específico DESTE vídeo
         const videoCanalYoutubeId =
           item.snippet.videoOwnerChannelId ||
           item.snippet.channelId ||
@@ -290,71 +294,64 @@ export async function sincronizarPlaylistService(trilhaId: string) {
           canalPrincipalNome;
 
         const canalDoVideo = await obterOuCriarCanal(
-          tx,
+          prisma,
           videoCanalYoutubeId,
           videoCanalNome
         );
 
-        const videoExistente = await tx.video.findUnique({
+        const existente = await prisma.video.findUnique({
           where: { youtubeVideoId },
+          select: { id: true },
         });
 
-        let video;
-        if (!videoExistente) {
-          video = await tx.video.create({
-            data: {
-              youtubeVideoId,
-              titulo: item.snippet.title,
-              descricao: item.snippet.description,
-              thumbnailUrl: item.snippet.thumbnails?.high?.url,
-              canalId: canalDoVideo.id,
-              tags: [],
-              isCurated: true,
-            },
-          });
-          adicionados++;
-        } else {
-          video = await tx.video.update({
-            where: { id: videoExistente.id },
-            data: {
-              titulo: item.snippet.title,
-              descricao: item.snippet.description,
-              thumbnailUrl: item.snippet.thumbnails?.high?.url,
-              canalId: canalDoVideo.id,
-            },
-          });
-          atualizados++;
-        }
+        const video = await prisma.video.upsert({
+          where: { youtubeVideoId },
+          update: {
+            titulo: item.snippet.title,
+            descricao: item.snippet.description,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
+          },
+          create: {
+            youtubeVideoId,
+            titulo: item.snippet.title,
+            descricao: item.snippet.description,
+            thumbnailUrl: item.snippet.thumbnails?.high?.url,
+            canalId: canalDoVideo.id,
+            tags: [],
+            isCurated: true,
+          },
+        });
 
-        await tx.trilhaVideo.upsert({
+        if (existente) atualizados++;
+        else adicionados++;
+
+        // Upsert da relação
+        await prisma.trilhaVideo.upsert({
           where: {
             trilhaId_videoId: {
               trilhaId: trilha.id,
               videoId: video.id,
             },
           },
-          update: { ordem: i + 1 },
+          update: { ordem: posicao + 1 },
           create: {
             trilhaId: trilha.id,
             videoId: video.id,
-            ordem: i + 1,
+            ordem: posicao + 1,
           },
         });
-      }
+      })
+    );
+  }
 
-      return {
-        ok: true,
-        adicionados,
-        atualizados,
-        removidos: relacoesParaRemover.length,
-        total: videosValidos.length,
-      };
-    },
-    {
-      maxWait: 10000,
-      timeout: 30000,
-    }
-  );
+  return {
+    ok: true,
+    adicionados,
+    atualizados,
+    removidos: relacoesParaRemover.length,
+    total: videosValidos.length,
+  };
 }
 
 // ─── Listagem pública ────────────────────────────────────────────────────
