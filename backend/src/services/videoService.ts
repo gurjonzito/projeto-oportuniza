@@ -13,44 +13,66 @@ import {
 import { findCanalByYoutubeId } from "../repositories/canalRepository";
 import { buscarVideos } from "./youtubeService";
 
+// ⚠️ Ajuste o caminho do prisma conforme seu projeto
+// (pode ser "../config/prisma" ou "../lib/prisma")
+import { prisma } from "../config/prisma";
+
+/**
+ * Busca pública de vídeos.
+ *
+ * Estratégia:
+ *  1. Verifica cache por termo.
+ *  2. Se não há cache, chama o YouTube (via buscarVideos).
+ *  3. Cruza os resultados do YouTube com os vídeos JÁ CURADOS no banco.
+ *  4. NÃO salva vídeos novos — quem salva é o admin ao curar.
+ *  5. Atualiza o cache com os IDs curados encontrados.
+ */
 export async function searchVideos(query: string) {
   const now = new Date();
 
+  // 1. Cache
   const cache = await findCacheByTerm(query);
 
   if (cache && cache.expiraEm && cache.expiraEm > now) {
-    return findCuratedVideosByIds(cache.resultadoIds); // ← só curados do cache
+    return findCuratedVideosByIds(cache.resultadoIds);
   }
 
+  // 2. Busca no YouTube (não salva nada)
   const youtubeVideos = await buscarVideos(query);
-  const savedVideos = [];
 
-  for (const item of youtubeVideos) {
-    const canal = await findCanalByYoutubeId(item.channelId);
-    if (!canal) continue;
-
-    let video = await findVideoByYoutubeId(item.youtubeVideoId);
-
-    if (!video) {
-      video = await createVideo({
-        youtubeVideoId: item.youtubeVideoId,
-        canalId: canal.id,
-        titulo: item.titulo,
-        descricao: item.descricao,
-        thumbnailUrl: item.thumbnail,
-        tags: [],
-        publicadoEm: new Date(item.publishedAt),
-        cacheExpiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  if (youtubeVideos.length === 0) {
+    // Salva cache vazio para não bater na API do YouTube à toa
+    if (cache) {
+      await updateCache(cache.id, {
+        resultadoIds: [],
+        buscadoEm: now,
+        expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      });
+    } else {
+      await createCache({
+        termo: query,
+        resultadoIds: [],
+        buscadoEm: now,
+        expiraEm: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       });
     }
-
-    savedVideos.push(video);
+    return [];
   }
 
-  if (savedVideos.length === 0) return [];
+  // 3. Cruza com o que já está curado no banco
+  const ids = youtubeVideos.map((v) => v.youtubeVideoId);
 
-  const resultIds = savedVideos.map((v) => v.id);
+  const curados = await prisma.video.findMany({
+    where: {
+      youtubeVideoId: { in: ids },
+      isCurated: true,
+    },
+    select: { id: true },
+  });
 
+  const resultIds = curados.map((v) => v.id);
+
+  // 4. Atualiza / cria cache
   if (cache) {
     await updateCache(cache.id, {
       resultadoIds: resultIds,
@@ -66,5 +88,6 @@ export async function searchVideos(query: string) {
     });
   }
 
-  return findCuratedVideosByIds(resultIds); // ← só curados no retorno final
+  // 5. Retorna apenas os curados
+  return findCuratedVideosByIds(resultIds);
 }
