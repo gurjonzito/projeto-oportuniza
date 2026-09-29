@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* ─── Tema Tailwind v4 ────────────────────────────────────────────────
+   Definição das cores e fontes customizadas para gerar as classes
+   utilitárias (bg-lightBg, text-darkText, font-sans, etc.)
+   ──────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-lightBg: #f8fafc;
+  --color-darkBg: #252b42;
+  --color-lightText: #1f2937;
+  --color-darkText: #f3f4f6;
+  --font-sans: "Poppins", sans-serif;
+}
+
+/* ─── Variáveis CSS do tema claro ─────────────────────────────────── */
 :root {
   --bg-color: #f9fafb;
   --text-color: #1f2937;
@@ -13,6 +26,7 @@
   --bg-subtle: #f3f4f6;
 }
 
+/* ─── Variáveis CSS do tema escuro ────────────────────────────────── */
 .dark {
   --bg-color: #252b42;
   --text-color: #f3f4f6;
@@ -26,7 +40,7 @@
   --bg-subtle: #1f2540;
 }
 
-/* cards */
+/* ─── Cards ───────────────────────────────────────────────────────── */
 .card {
   background-color: var(--card-color);
   color: var(--text-color);
@@ -35,6 +49,7 @@
   overflow: hidden;
 }
 
+/* ─── Base ────────────────────────────────────────────────────────── */
 html,
 body,
 #root {
@@ -47,7 +62,7 @@ body,
     color 0.3s;
 }
 
-/* Adicione no seu CSS */
+/* ─── Inputs ──────────────────────────────────────────────────────── */
 .input-field {
   background-color: color-mix(
     in srgb,
