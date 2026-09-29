@@ -16,7 +16,11 @@ import Mobile from "../pages/Mobile";
 import Playlist from "../pages/TrilhaDetalhe";
 import Login from "../pages/Login";
 import Account from "../pages/Account";
+import Preferences from "../pages/Preferences";
 import AuthViewPage from "../pages/AuthViewPage";
+
+// ⚠️ NOVO IMPORT: componente customizado de reset de senha
+import ResetPassword from "../pages/ResetPassword";
 
 import Seguranca from "../pages/legal/Seguranca";
 import Termos from "../pages/legal/Termos";
@@ -49,12 +53,13 @@ export default function AppRoutes() {
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/privacidade" element={<Privacidade />} />
         <Route path="/user" element={<Account />} />
+        <Route path="/preferencias" element={<Preferences />} />
 
-        {/* Auth — todas usando <AuthView> */}
+        {/* Auth */}
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Login />} />
         <Route path="/esqueci-senha" element={<AuthViewPage />} />
-        <Route path="/reset-password" element={<AuthViewPage />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
 
       {/* Login admin — fora do AdminLayout */}

@@ -167,7 +167,7 @@ export default function Navbar() {
 
                   <button
                     onClick={() => {
-                      navigate("/user?tab=preferencias");
+                      navigate("/preferencias");
                       setDropdownOpen(false);
                     }}
                     className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"

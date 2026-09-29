@@ -14,9 +14,9 @@ import {
   Calendar,
   Phone,
   GraduationCap,
+  AlertCircle,
 } from "lucide-react";
 
-// ⚠️ Importa o authClient do SDK do Neon
 import { authClient } from "../lib/auth-client";
 import api from "../services/api";
 
@@ -123,7 +123,6 @@ interface Usuario {
 // =========================================================
 
 export default function Account() {
-  // ⚠️ useSession do SDK do Neon
   const { data: session, isPending } = authClient.useSession();
 
   const [activeSection, setActiveSection] = useState("perfil");
@@ -148,6 +147,7 @@ export default function Account() {
   const [goal, setGoal] = useState("");
 
   // SEGURANÇA
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null); 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -161,6 +161,7 @@ export default function Account() {
   const [loadingComplementary, setLoadingComplementary] = useState(false);
   const [loadingPassword, setLoadingPassword] = useState(false);
   const [uploadingFoto, setUploadingFoto] = useState(false);
+  const [creatingPassword, setCreatingPassword] = useState(false);
 
   // MENSAGENS
   const [message, setMessage] = useState("");
@@ -193,6 +194,78 @@ export default function Account() {
   function limparMensagens() {
     setMessage("");
     setError("");
+  }
+
+  // =========================================================
+  // VERIFICAR SE O USUÁRIO TEM SENHA CADASTRADA
+  // =========================================================
+
+  async function verificarSeTemSenha() {
+    try {
+      const { data: accounts, error } = await authClient.listAccounts();
+
+      if (error) {
+        console.error("Erro ao listar contas:", error);
+        setHasPassword(false); 
+        return;
+      }
+
+      const temSenha = accounts?.some(
+        (acc: any) => acc.providerId === "credential"
+      );
+
+      setHasPassword(!!temSenha);
+    } catch (err) {
+      console.error("Erro ao verificar senha:", err);
+      setHasPassword(false);
+    }
+  }
+
+  useEffect(() => {
+    if (session?.user) {
+      verificarSeTemSenha();
+    }
+  }, [session]);
+
+  // =========================================================
+  // CRIAR SENHA (para usuários que entraram via Google)
+  // =========================================================
+
+  async function criarSenha() {
+    limparMensagens();
+
+    if (!email) {
+      setError("E-mail não encontrado.");
+      return;
+    }
+
+    try {
+      setCreatingPassword(true);
+
+      const { error: resetError } = await authClient.requestPasswordReset({
+        email,
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (resetError) {
+        throw new Error(
+          resetError.message ||
+            "Não foi possível enviar o e-mail para criar sua senha."
+        );
+      }
+
+      setMessage(
+        "Enviamos um link para o seu e-mail. Clique nele para criar sua senha."
+      );
+    } catch (error: any) {
+      console.error("Erro ao criar senha:", error);
+      setError(
+        error?.message ||
+          "Não foi possível enviar o e-mail para criar sua senha. Tente novamente."
+      );
+    } finally {
+      setCreatingPassword(false);
+    }
   }
 
   // =========================================================
@@ -272,7 +345,6 @@ export default function Account() {
         setOccupation(usuario.profile?.situacaoProfissional ?? "");
         setGoal(usuario.profile?.objetivoPrincipal ?? "");
 
-        // ⚠️ ALTERAÇÃO AQUI: Fallback para a sessão do Neon caso a API retorne null
         setFotoAtual(usuario.image || session?.user?.image || null);
       } catch (error: any) {
         console.error("Erro ao carregar usuário:", error);
@@ -450,7 +522,6 @@ export default function Account() {
     try {
       setLoadingPassword(true);
 
-      // ⚠️ changePassword do SDK do Neon
       const { error: changeError } = await authClient.changePassword({
         currentPassword,
         newPassword,
@@ -581,7 +652,7 @@ export default function Account() {
                       src={fotoAtual}
                       alt={name || session.user.name || "Foto do usuário"}
                       className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer" // ⚠️ ADICIONADO AQUI
+                      referrerPolicy="no-referrer" 
                     />
                   ) : (
                     <User size={21} color="white" />
@@ -678,7 +749,7 @@ export default function Account() {
                           src={fotoAtual}
                           alt={name}
                           className="w-full h-full object-cover"
-                          referrerPolicy="no-referrer" // ⚠️ ADICIONADO AQUI
+                          referrerPolicy="no-referrer" 
                         />
                       ) : (
                         <User size={28} color="white" />
@@ -976,71 +1047,137 @@ export default function Account() {
                     className="text-sm mt-1"
                     style={{ color: "var(--text-muted, #6b7280)" }}
                   >
-                    Altere a senha da sua conta.
+                    Gerencie a senha da sua conta.
                   </p>
                 </div>
 
                 <div className="p-6">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-[#1E40AF]/10 flex items-center justify-center">
-                      <Lock size={19} className="text-[#1E40AF]" />
+                  {/* ⚠️ AINDA VERIFICANDO SE TEM SENHA */}
+                  {hasPassword === null && (
+                    <div className="flex items-center gap-3">
+                      <div className="w-5 h-5 border-2 border-[#1E40AF] border-t-transparent rounded-full animate-spin" />
+                      <span className="text-sm">Verificando sua conta...</span>
                     </div>
+                  )}
 
-                    <div>
-                      <p className="text-sm font-semibold">Senha da conta</p>
-                      <p
-                        className="text-xs mt-0.5"
-                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                  {/* ⚠️ USUÁRIO NÃO TEM SENHA (login via Google) */}
+                  {hasPassword === false && (
+                    <div className="flex flex-col gap-4">
+                      {/* Card de aviso usando as variáveis do tema (dark/light) */}
+                      <div
+                        className="flex items-start gap-3 p-4 rounded-xl border"
+                        style={{
+                          backgroundColor: "var(--bg-subtle, #f3f4f6)",
+                          borderColor: "var(--border-color, #e5e7eb)",
+                        }}
                       >
-                        Sua senha deve ter pelo menos 8 caracteres.
-                      </p>
+                        <AlertCircle
+                          size={20}
+                          className="text-[#23A6F0] shrink-0 mt-0.5"
+                        />
+                        <div>
+                          <p
+                            className="text-sm font-semibold"
+                            style={{ color: "var(--text-color, #1f2937)" }}
+                          >
+                            Sua conta não possui senha
+                          </p>
+                          <p
+                            className="text-xs mt-1 leading-relaxed"
+                            style={{ color: "var(--text-muted, #6b7280)" }}
+                          >
+                            Você entrou usando o Google. Se quiser, pode criar
+                            uma senha para acessar sua conta também por e-mail
+                            e senha.
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={criarSenha}
+                        disabled={creatingPassword}
+                        className="flex items-center justify-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 w-fit"
+                      >
+                        {creatingPassword ? (
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Lock size={16} />
+                        )}
+                        {creatingPassword
+                          ? "Enviando e-mail..."
+                          : "Criar senha"}
+                      </button>
                     </div>
-                  </div>
+                  )}
 
-                  <div className="space-y-4">
-                    <PasswordInput
-                      label="Senha atual"
-                      value={currentPassword}
-                      onChange={setCurrentPassword}
-                      show={showCurrentPassword}
-                      setShow={setShowCurrentPassword}
-                    />
+                  {/* ⚠️ USUÁRIO JÁ TEM SENHA (cadastro manual) */}
+                  {hasPassword === true && (
+                    <>
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 rounded-xl bg-[#1E40AF]/10 flex items-center justify-center">
+                          <Lock size={19} className="text-[#1E40AF]" />
+                        </div>
 
-                    <PasswordInput
-                      label="Nova senha"
-                      value={newPassword}
-                      onChange={setNewPassword}
-                      show={showNewPassword}
-                      setShow={setShowNewPassword}
-                    />
+                        <div>
+                          <p className="text-sm font-semibold">
+                            Senha da conta
+                          </p>
+                          <p
+                            className="text-xs mt-0.5"
+                            style={{ color: "var(--text-muted, #9ca3af)" }}
+                          >
+                            Sua senha deve ter pelo menos 8 caracteres.
+                          </p>
+                        </div>
+                      </div>
 
-                    <PasswordInput
-                      label="Confirmar nova senha"
-                      value={confirmPassword}
-                      onChange={setConfirmPassword}
-                      show={showConfirmPassword}
-                      setShow={setShowConfirmPassword}
-                    />
-                  </div>
+                      <div className="space-y-4">
+                        <PasswordInput
+                          label="Senha atual"
+                          value={currentPassword}
+                          onChange={setCurrentPassword}
+                          show={showCurrentPassword}
+                          setShow={setShowCurrentPassword}
+                        />
 
-                  <div
-                    className="flex justify-end mt-6 pt-5 border-t"
-                    style={{ borderColor: "var(--border-color, #e5e7eb)" }}
-                  >
-                    <button
-                      type="button"
-                      onClick={alterarSenha}
-                      disabled={loadingPassword}
-                      className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
-                    >
-                      {loadingPassword ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Lock size={16} />
-                      )}
-                      {loadingPassword ? "Salvando..." : "Alterar senha"}
-                    </button>
-                  </div>
+                        <PasswordInput
+                          label="Nova senha"
+                          value={newPassword}
+                          onChange={setNewPassword}
+                          show={showNewPassword}
+                          setShow={setShowNewPassword}
+                        />
+
+                        <PasswordInput
+                          label="Confirmar nova senha"
+                          value={confirmPassword}
+                          onChange={setConfirmPassword}
+                          show={showConfirmPassword}
+                          setShow={setShowConfirmPassword}
+                        />
+                      </div>
+
+                      <div
+                        className="flex justify-end mt-6 pt-5 border-t"
+                        style={{ borderColor: "var(--border-color, #e5e7eb)" }}
+                      >
+                        <button
+                          type="button"
+                          onClick={alterarSenha}
+                          disabled={loadingPassword}
+                          className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+                        >
+                          {loadingPassword ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Lock size={16} />
+                          )}
+                          {loadingPassword ? "Salvando..." : "Alterar senha"}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </section>
             )}
