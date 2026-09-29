@@ -1,4 +1,5 @@
-@import "@neondatabase/auth-ui/styles.css" layer(neon);
+@import "../node_modules/@neondatabase/auth-ui/dist/tailwind.css" layer(neon);
+@import "../node_modules/@neondatabase/auth-ui/dist/style.css" layer(neon);
 
 @import "tailwindcss";
 
