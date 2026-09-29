@@ -272,7 +272,8 @@ export default function Account() {
         setOccupation(usuario.profile?.situacaoProfissional ?? "");
         setGoal(usuario.profile?.objetivoPrincipal ?? "");
 
-        setFotoAtual(usuario.image ?? null);
+        // ⚠️ ALTERAÇÃO AQUI: Fallback para a sessão do Neon caso a API retorne null
+        setFotoAtual(usuario.image || session?.user?.image || null);
       } catch (error: any) {
         console.error("Erro ao carregar usuário:", error);
 
@@ -580,6 +581,7 @@ export default function Account() {
                       src={fotoAtual}
                       alt={name || session.user.name || "Foto do usuário"}
                       className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer" // ⚠️ ADICIONADO AQUI
                     />
                   ) : (
                     <User size={21} color="white" />
@@ -676,6 +678,7 @@ export default function Account() {
                           src={fotoAtual}
                           alt={name}
                           className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer" // ⚠️ ADICIONADO AQUI
                         />
                       ) : (
                         <User size={28} color="white" />
