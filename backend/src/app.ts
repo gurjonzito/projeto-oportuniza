@@ -21,30 +21,80 @@ const app = express();
 
 app.set("trust proxy", 1);
 
+// ─── Caminho do frontend (definido ANTES, para servir static sem CORS) ─
+const frontendPath = path.resolve(__dirname, "../../frontend/dist");
+const assetsPath = path.join(frontendPath, "assets");
+
+// Validação dura no boot — se faltar arquivo, crasha e você vê no Railway
+if (!fs.existsSync(frontendPath)) {
+  throw new Error(`❌ frontend/dist não encontrado em ${frontendPath}`);
+}
+if (!fs.existsSync(path.join(frontendPath, "index.html"))) {
+  throw new Error(`❌ index.html não encontrado em ${frontendPath}`);
+}
+if (!fs.existsSync(assetsPath)) {
+  throw new Error(`❌ pasta assets não encontrada em ${assetsPath}`);
+}
+
+if (process.env.NODE_ENV !== "production") {
+  console.log("✅ Frontend path:", frontendPath);
+  console.log("✅ assets:", fs.readdirSync(assetsPath));
+}
+
+// ─── 1) ASSETS ESTÁTICOS PRIMEIRO (nunca passam por CORS) ──────────────
+// Assets com hash (JS/CSS): cache de 1 ano — o hash muda a cada build
+app.use(
+  "/assets",
+  express.static(assetsPath, {
+    maxAge: "1y",
+    immutable: true,
+    fallthrough: false, // se não achar → 404 direto, nunca cai no fallback SPA
+  })
+);
+
+// Arquivos raiz (favicon, pics, etc): sem cache. NÃO serve index.html auto.
+app.use(
+  express.static(frontendPath, {
+    maxAge: 0,
+    etag: false,
+    index: false,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith("index.html")) {
+        res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+      }
+    },
+  })
+);
+
+// ─── 2) CORS ───────────────────────────────────────────────────────────
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:3000",
   "https://oportunizajovem.com.br",
   "https://www.oportunizajovem.com.br",
+  "https://projeto-oportuniza-production.up.railway.app",
   process.env.FRONTEND_URL,
 ].filter(Boolean) as string[];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+      // Sem Origin (curl, same-origin, proxy) → permite
+      if (!origin) return callback(null, true);
+      // Origin conhecido → permite
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Origin desconhecido → NEGA CORS silenciosamente (não quebra a request)
+      return callback(null, false);
     },
     credentials: true,
   })
 );
 
+// ─── 3) Parsers ────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(cookieParser());
 
-// ─── Rotas de API ──────────────────────────────────────────────────────
+// ─── 4) Rotas de API ───────────────────────────────────────────────────
 app.use("/playlist", playlistRoutes);
 app.use("/videos", videoRoutes);
 app.use("/youtube", youtubeRoutes);
@@ -60,62 +110,34 @@ app.use("/api/trilhas", trilhaProgressRoutes);
 
 app.get("/health", (_, res) => res.json({ status: "OK" }));
 
-// ─── Servir o frontend buildado ────────────────────────────────────────
-const frontendPath = path.join(__dirname, "../../frontend/dist");
-
-// Debug — remover após confirmar
-console.log("📁 Frontend path:", frontendPath);
-console.log("📁 Existe:", fs.existsSync(frontendPath));
-if (fs.existsSync(frontendPath)) {
-  console.log("📁 Conteúdo:", fs.readdirSync(frontendPath));
-} else {
-  console.log("📁 Conteúdo de /app:", fs.readdirSync("/app"));
-}
-console.log("📁 Conteúdo dist:", fs.readdirSync(frontendPath));
-console.log("📁 Conteúdo assets:", fs.readdirSync(path.join(frontendPath, "assets")));
-
-// Assets com hash (JS/CSS): cache de 1 ano — o hash muda a cada build
-app.use("/assets", express.static(path.join(frontendPath, "assets"), {
-  maxAge: "1y",
-  immutable: true,
-}));
-
-// index.html e outros arquivos raiz: nunca cachear
-app.use(express.static(frontendPath, {
-  maxAge: 0,
-  etag: false,
-  setHeaders: (res, filePath) => {
-    if (filePath.endsWith("index.html")) {
-      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    }
-  },
-}));
-
-app.use(express.static(frontendPath));
+// ─── 5) Fallback SPA (DEVE SER O ÚLTIMO middleware) ────────────────────
+const apiPrefixes = [
+  "/api/",
+  "/playlist",
+  "/videos",
+  "/youtube",
+  "/categorias",
+  "/canais",
+  "/recursos",
+  "/user",
+  "/health",
+];
 
 app.use((req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
 
-  if (
-    req.path.startsWith("/api/") ||
-    req.path.startsWith("/playlist") ||
-    req.path.startsWith("/videos") ||
-    req.path.startsWith("/youtube") ||
-    req.path.startsWith("/categorias") ||
-    req.path.startsWith("/canais") ||
-    req.path.startsWith("/recursos") ||
-    req.path.startsWith("/user") ||
-    req.path.startsWith("/health")
-  ) {
+  // Requisições de API → deixa passar (vão cair no 404 do Express se não existirem)
+  if (apiPrefixes.some((p) => req.path === p || req.path.startsWith(p))) {
     return next();
   }
 
-  // Só serve index.html se o path parece uma rota do SPA (sem extensão de arquivo)
-  const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(req.path);
-  if (hasFileExtension) {
-    return res.status(404).send("Not found");
+  // Se tem extensão de arquivo, é asset — não é rota de SPA.
+  // (Já tentamos servir acima; se chegou aqui, é 404 real.)
+  if (/\.[a-zA-Z0-9]+$/.test(req.path)) {
+    return res.status(404).type("text/plain").send("Not found");
   }
 
+  // Rota de SPA → devolve index.html
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
