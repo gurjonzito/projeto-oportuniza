@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@source "./src/**/*.{js,ts,jsx,tsx}"; 
+
 /* ─── Tema Tailwind v4 ────────────────────────────────────────────────
    Definição das cores e fontes customizadas para gerar as classes
    utilitárias (bg-lightBg, text-darkText, font-sans, etc.)
