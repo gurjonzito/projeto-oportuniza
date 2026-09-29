@@ -71,6 +71,8 @@ if (fs.existsSync(frontendPath)) {
 } else {
   console.log("📁 Conteúdo de /app:", fs.readdirSync("/app"));
 }
+console.log("📁 Conteúdo dist:", fs.readdirSync(frontendPath));
+console.log("📁 Conteúdo assets:", fs.readdirSync(path.join(frontendPath, "assets")));
 
 // Assets com hash (JS/CSS): cache de 1 ano — o hash muda a cada build
 app.use("/assets", express.static(path.join(frontendPath, "assets"), {
