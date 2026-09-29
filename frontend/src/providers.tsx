@@ -1,5 +1,4 @@
 import { NeonAuthUIProvider } from "@neondatabase/auth-ui";
-import "@neondatabase/auth-ui/css";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { authClient } from "./lib/auth-client";
 

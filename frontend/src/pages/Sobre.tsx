@@ -8,7 +8,7 @@ export default function Sobre() {
         {/* Título */}
         <div className="text-center mb-12">
           <h1 className="text-3xl md:text-4xl font-bold">Sobre</h1>
-          <p className="text-lg mt-2 text-[var(--text-color)/80]">
+          <p className="text-lg mt-2 text-(--text-color)/80">
             Conheça nosso projeto
           </p>
         </div>
@@ -18,7 +18,7 @@ export default function Sobre() {
           <h2 className="text-xl font-semibold mb-4">Introdução</h2>
 
           <div className="card p-6">
-            <p className="leading-relaxed text-[var(--text-color)/90]">
+            <p className="leading-relaxed text-(--text-color)/90">
               Este projeto foi desenvolvido como Trabalho de Conclusão de Curso
               (TCC) e tem como objetivo a criação de uma plataforma digital
               voltada à orientação e preparação de jovens para o ingresso no
@@ -43,7 +43,7 @@ export default function Sobre() {
           </h2>
 
           <div className="card p-6">
-            <p className="leading-relaxed text-[var(--text-color)/90]">
+            <p className="leading-relaxed text-(--text-color)/90">
               A plataforma é direcionada principalmente a jovens entre 15 e 29
               anos que estão iniciando ou pretendem iniciar sua trajetória no
               mercado de trabalho, incluindo estudantes e pessoas em busca do
@@ -60,7 +60,7 @@ export default function Sobre() {
           <h2 className="text-xl font-semibold mb-4">Nossa missão</h2>
 
           <div className="card p-6">
-            <p className="leading-relaxed text-[var(--text-color)/90]">
+            <p className="leading-relaxed text-(--text-color)/90">
               A missão da plataforma é contribuir para a democratização do
               acesso à informação e à preparação para o mercado de trabalho,
               oferecendo uma ferramenta digital aberta e gratuita que

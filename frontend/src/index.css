@@ -1,4 +1,8 @@
+@import "@neondatabase/auth-ui/styles.css" layer(neon);
+
 @import "tailwindcss";
+
+@plugin "@tailwindcss/typography";
 
 /* ─── Tema Tailwind v4 ────────────────────────────────────────────────
    Definição das cores e fontes customizadas para gerar as classes
