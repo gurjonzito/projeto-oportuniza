@@ -65,12 +65,8 @@ const frontendPath = path.join(__dirname, "../../frontend/dist");
 app.use(express.static(frontendPath));
 
 app.use((req, res, next) => {
-  // Só serve o index.html para GET e HEAD
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    return next();
-  }
+  if (req.method !== "GET" && req.method !== "HEAD") return next();
 
-  // Ignora rotas de API
   if (
     req.path.startsWith("/api/") ||
     req.path.startsWith("/playlist") ||
@@ -85,7 +81,12 @@ app.use((req, res, next) => {
     return next();
   }
 
-  // Serve o index.html do React
+  // Só serve index.html se o path parece uma rota do SPA (sem extensão de arquivo)
+  const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(req.path);
+  if (hasFileExtension) {
+    return res.status(404).send("Not found");
+  }
+
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
