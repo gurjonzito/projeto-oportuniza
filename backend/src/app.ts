@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import path from "path";
+import fs from "fs";
 
 import playlistRoutes from "./routes/playlistRoute";
 import { videoRoutes } from "./routes/videoRoute";
@@ -61,6 +62,32 @@ app.get("/health", (_, res) => res.json({ status: "OK" }));
 
 // ─── Servir o frontend buildado ────────────────────────────────────────
 const frontendPath = path.join(__dirname, "../../frontend/dist");
+
+// Debug — remover após confirmar
+console.log("📁 Frontend path:", frontendPath);
+console.log("📁 Existe:", fs.existsSync(frontendPath));
+if (fs.existsSync(frontendPath)) {
+  console.log("📁 Conteúdo:", fs.readdirSync(frontendPath));
+} else {
+  console.log("📁 Conteúdo de /app:", fs.readdirSync("/app"));
+}
+
+// Assets com hash (JS/CSS): cache de 1 ano — o hash muda a cada build
+app.use("/assets", express.static(path.join(frontendPath, "assets"), {
+  maxAge: "1y",
+  immutable: true,
+}));
+
+// index.html e outros arquivos raiz: nunca cachear
+app.use(express.static(frontendPath, {
+  maxAge: 0,
+  etag: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith("index.html")) {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+    }
+  },
+}));
 
 app.use(express.static(frontendPath));
 
