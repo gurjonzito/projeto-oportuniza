@@ -1,7 +1,5 @@
 @import "tailwindcss";
 
-@source "./src/**/*.{js,ts,jsx,tsx}"; 
-
 /* ─── Tema Tailwind v4 ────────────────────────────────────────────────
    Definição das cores e fontes customizadas para gerar as classes
    utilitárias (bg-lightBg, text-darkText, font-sans, etc.)
@@ -14,118 +12,128 @@
   --font-sans: "Poppins", sans-serif;
 }
 
-/* ─── Variáveis CSS do tema claro ─────────────────────────────────── */
-:root {
-  --bg-color: #f9fafb;
-  --text-color: #1f2937;
-  --wave-color: #f8fafc;
-  --card-color: #ffffff;
-  --card-bg: #ffffff;
-  --border-color: #e5e7eb;
-  --text-muted: #6b7280;
-  --table-head-bg: #f9fafb;
-  --hover-bg: #eff6ff;
-  --bg-subtle: #f3f4f6;
+/* ═════════════════════════════════════════════════════════════════════
+   BASE — variáveis de tema + reset de html/body/#root
+   ═════════════════════════════════════════════════════════════════════ */
+@layer base {
+  /* ─── Variáveis CSS do tema claro ─────────────────────────────── */
+  :root {
+    --bg-color: #f9fafb;
+    --text-color: #1f2937;
+    --wave-color: #f8fafc;
+    --card-color: #ffffff;
+    --card-bg: #ffffff;
+    --border-color: #e5e7eb;
+    --text-muted: #6b7280;
+    --table-head-bg: #f9fafb;
+    --hover-bg: #eff6ff;
+    --bg-subtle: #f3f4f6;
+  }
+
+  /* ─── Variáveis CSS do tema escuro ────────────────────────────── */
+  .dark {
+    --bg-color: #252b42;
+    --text-color: #f3f4f6;
+    --wave-color: #252b42;
+    --card-color: #2e3553;
+    --card-bg: #2e3553;
+    --border-color: #3d4566;
+    --text-muted: #9ca3af;
+    --table-head-bg: #1f2540;
+    --hover-bg: #1e3a5f;
+    --bg-subtle: #1f2540;
+  }
+
+  /* ─── Base ────────────────────────────────────────────────────── */
+  html,
+  body,
+  #root {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    height: 100%;
+    font-family: "Poppins", sans-serif;
+    transition:
+      background-color 0.3s,
+      color 0.3s;
+  }
 }
 
-/* ─── Variáveis CSS do tema escuro ────────────────────────────────── */
-.dark {
-  --bg-color: #252b42;
-  --text-color: #f3f4f6;
-  --wave-color: #252b42;
-  --card-color: #2e3553;
-  --card-bg: #2e3553;
-  --border-color: #3d4566;
-  --text-muted: #9ca3af;
-  --table-head-bg: #1f2540;
-  --hover-bg: #1e3a5f;
-  --bg-subtle: #1f2540;
-}
+/* ═════════════════════════════════════════════════════════════════════
+   COMPONENTS — classes reutilizáveis (.card, .input-*, .auth-input)
+   ═════════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* ─── Cards ───────────────────────────────────────────────────── */
+  .card {
+    background-color: var(--card-color);
+    color: var(--text-color);
+    border-radius: 1rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+  }
 
-/* ─── Cards ───────────────────────────────────────────────────────── */
-.card {
-  background-color: var(--card-color);
-  color: var(--text-color);
-  border-radius: 1rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
+  /* ─── Inputs ──────────────────────────────────────────────────── */
+  .input-field {
+    background-color: color-mix(
+      in srgb,
+      var(--card-color) 80%,
+      var(--text-color) 10%
+    );
+    color: var(--text-color);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    transition:
+      background-color 0.3s,
+      color 0.3s;
+  }
 
-/* ─── Base ────────────────────────────────────────────────────────── */
-html,
-body,
-#root {
-  background-color: var(--bg-color);
-  color: var(--text-color);
-  height: 100%;
-  font-family: "Poppins", sans-serif;
-  transition:
-    background-color 0.3s,
-    color 0.3s;
-}
+  .input-field:focus {
+    outline: none;
+  }
 
-/* ─── Inputs ──────────────────────────────────────────────────────── */
-.input-field {
-  background-color: color-mix(
-    in srgb,
-    var(--card-color) 80%,
-    var(--text-color) 10%
-  );
-  color: var(--text-color);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  transition:
-    background-color 0.3s,
-    color 0.3s;
-}
+  .input-admin {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    background-color: var(--bg-color, #f9fafb);
+    color: var(--text-color);
+    font-size: 13px;
+    outline: none;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
 
-.input-field:focus {
-  outline: none;
-}
+  .input-admin:focus {
+    border-color: #1e40af;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.08);
+  }
 
-.input-admin {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color, #e5e7eb);
-  background-color: var(--bg-color, #f9fafb);
-  color: var(--text-color);
-  font-size: 13px;
-  outline: none;
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
+  .input-admin:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 
-.input-admin:focus {
-  border-color: #1e40af;
-  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.08);
-}
+  select.input-admin {
+    cursor: pointer;
+  }
 
-.input-admin:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+  .auth-input {
+    background-color: var(--card-bg, #ffffff);
+    color: var(--text-color, #1f2937);
+    border: 1px solid var(--border-color, #e5e7eb);
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
 
-select.input-admin {
-  cursor: pointer;
-}
+  .auth-input:focus {
+    border-color: #1e40af;
+    box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.08);
+    outline: none;
+  }
 
-.auth-input {
-  background-color: var(--card-bg, #ffffff);
-  color: var(--text-color, #1f2937);
-  border: 1px solid var(--border-color, #e5e7eb);
-  transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
-}
-
-.auth-input:focus {
-  border-color: #1e40af;
-  box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.08);
-  outline: none;
-}
-
-.auth-input:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+  .auth-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
