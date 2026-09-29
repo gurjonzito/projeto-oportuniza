@@ -16,7 +16,7 @@ import Mobile from "../pages/Mobile";
 import Playlist from "../pages/TrilhaDetalhe";
 import Login from "../pages/Login";
 import Account from "../pages/Account";
-import ResetPassword from "../pages/ResetPassword";
+import AuthViewPage from "../pages/AuthViewPage";
 
 import Seguranca from "../pages/legal/Seguranca";
 import Termos from "../pages/legal/Termos";
@@ -48,9 +48,13 @@ export default function AppRoutes() {
         <Route path="/termos" element={<Termos />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/privacidade" element={<Privacidade />} />
-        <Route path="/login" element={<Login />} />
         <Route path="/user" element={<Account />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
+
+        {/* Auth — todas usando <AuthView> */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/cadastro" element={<Login />} />
+        <Route path="/esqueci-senha" element={<AuthViewPage />} />
+        <Route path="/reset-password" element={<AuthViewPage />} />
       </Route>
 
       {/* Login admin — fora do AdminLayout */}

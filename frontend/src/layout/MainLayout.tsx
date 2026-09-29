@@ -2,10 +2,17 @@ import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
+const AUTH_PAGES = [
+  "/login",
+  "/cadastro",
+  "/esqueci-senha",
+  "/reset-password",
+];
+
 export default function MainLayout() {
   const location = useLocation();
 
-  const isAuthPage = location.pathname === "/login";
+  const isAuthPage = AUTH_PAGES.includes(location.pathname);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#1e293b]">

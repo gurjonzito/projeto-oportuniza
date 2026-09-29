@@ -16,16 +16,17 @@ import { fotoRoutes } from "./routes/fotoRoute";
 import { quizRoutes } from "./routes/quizRoute";
 import { trilhaProgressRoutes } from "./routes/trilhaProgressRoute";
 import { recomendacaoRoutes } from "./routes/recomendacaoRoute";
+import { authRoutes } from "./routes/authRoute";
+import { neonWebhookRoute } from "./routes/neonWebhookRoute";
 
 const app = express();
 
 app.set("trust proxy", 1);
 
-// ─── Caminho do frontend (definido ANTES, para servir static sem CORS) ─
+// ─── Caminho do frontend ───────────────────────────────────────────────
 const frontendPath = path.resolve(__dirname, "../../frontend/dist");
 const assetsPath = path.join(frontendPath, "assets");
 
-// Validação dura no boot — se faltar arquivo, crasha e você vê no Railway
 if (!fs.existsSync(frontendPath)) {
   throw new Error(`❌ frontend/dist não encontrado em ${frontendPath}`);
 }
@@ -41,18 +42,16 @@ if (process.env.NODE_ENV !== "production") {
   console.log("✅ assets:", fs.readdirSync(assetsPath));
 }
 
-// ─── 1) ASSETS ESTÁTICOS PRIMEIRO (nunca passam por CORS) ──────────────
-// Assets com hash (JS/CSS): cache de 1 ano — o hash muda a cada build
+// ─── 1) ASSETS ESTÁTICOS ───────────────────────────────────────────────
 app.use(
   "/assets",
   express.static(assetsPath, {
     maxAge: "1y",
     immutable: true,
-    fallthrough: false, // se não achar → 404 direto, nunca cai no fallback SPA
+    fallthrough: false,
   })
 );
 
-// Arquivos raiz (favicon, pics, etc): sem cache. NÃO serve index.html auto.
 app.use(
   express.static(frontendPath, {
     maxAge: 0,
@@ -79,22 +78,23 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Sem Origin (curl, same-origin, proxy) → permite
       if (!origin) return callback(null, true);
-      // Origin conhecido → permite
       if (allowedOrigins.includes(origin)) return callback(null, true);
-      // Origin desconhecido → NEGA CORS silenciosamente (não quebra a request)
       return callback(null, false);
     },
     credentials: true,
   })
 );
 
-// ─── 3) Parsers ────────────────────────────────────────────────────────
+// ─── 3) WEBHOOK DO NEON — ANTES do express.json() ─────────────────────
+app.use("/api/neon-webhook", express.raw({ type: "application/json" }));
+app.use("/api/neon-webhook", neonWebhookRoute);
+
+// ─── 4) Parsers ────────────────────────────────────────────────────────
 app.use(express.json());
 app.use(cookieParser());
 
-// ─── 4) Rotas de API ───────────────────────────────────────────────────
+// ─── 5) Rotas de API ───────────────────────────────────────────────────
 app.use("/playlist", playlistRoutes);
 app.use("/videos", videoRoutes);
 app.use("/youtube", youtubeRoutes);
@@ -107,10 +107,32 @@ app.use("/recursos", recursoRoutes);
 app.use("/user", userRoutes);
 app.use("/user", fotoRoutes);
 app.use("/api/trilhas", trilhaProgressRoutes);
+app.use("/auth", authRoutes);
 
 app.get("/health", (_, res) => res.json({ status: "OK" }));
 
-// ─── 5) Fallback SPA (DEVE SER O ÚLTIMO middleware) ────────────────────
+// ─── 6) ERROR HANDLER GLOBAL (antes do fallback SPA) ──────────────────
+app.use(
+  (
+    err: any,
+    req: express.Request,
+    res: express.Response,
+    _next: express.NextFunction,
+  ) => {
+    console.error(`[ERRO] ${req.method} ${req.path} →`, err.message);
+    console.error(err.stack);
+
+    const status = err.status || err.statusCode || 500;
+    const message =
+      process.env.NODE_ENV === "production"
+        ? "Erro interno do servidor"
+        : err.message || "Erro interno do servidor";
+
+    res.status(status).json({ error: message });
+  }
+);
+
+// ─── 7) Fallback SPA (ÚLTIMO middleware) ──────────────────────────────
 const apiPrefixes = [
   "/api/",
   "/playlist",
@@ -121,23 +143,20 @@ const apiPrefixes = [
   "/recursos",
   "/user",
   "/health",
+  "/auth",
 ];
 
 app.use((req, res, next) => {
   if (req.method !== "GET" && req.method !== "HEAD") return next();
 
-  // Requisições de API → deixa passar (vão cair no 404 do Express se não existirem)
   if (apiPrefixes.some((p) => req.path === p || req.path.startsWith(p))) {
     return next();
   }
 
-  // Se tem extensão de arquivo, é asset — não é rota de SPA.
-  // (Já tentamos servir acima; se chegou aqui, é 404 real.)
   if (/\.[a-zA-Z0-9]+$/.test(req.path)) {
     return res.status(404).type("text/plain").send("Not found");
   }
 
-  // Rota de SPA → devolve index.html
   res.sendFile(path.join(frontendPath, "index.html"));
 });
 
