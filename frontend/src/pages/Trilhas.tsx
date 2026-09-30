@@ -25,6 +25,8 @@ import {
 
 import RecomendacoesIA from "../components/RecomendacoesIA";
 
+import Loading from "../components/Loading";
+
 /* ────────────────────────────── TIPOS ────────────────────────────── */
 
 type GrupoCategoria = {
@@ -278,18 +280,22 @@ export default function Trilhas() {
   }
 
   if (loading) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          backgroundColor: "var(--bg-color)",
-          color: "var(--text-color)",
-        }}
-      >
-        Carregando trilhas...
-      </div>
-    );
-  }
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--bg-color)",
+        color: "var(--text-color)",
+        minHeight: "100vh",
+      }}
+    >
+      <Loading
+        texto="Carregando trilhas..."
+        subtexto="Buscando categorias e curadorias"
+        altura="100vh"
+      />
+    </div>
+  );
+}
 
   return (
     <div

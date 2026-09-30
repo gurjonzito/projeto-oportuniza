@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-
 import Search from "../components/Search";
 import ResourceCard from "../components/ResourceCard";
-
 import type { Recurso } from "../types/recurso";
-
 import { getRecursos } from "../services/recursoService";
+import Loading from "../components/Loading";
 
 export default function Recursos() {
   const [recursos, setRecursos] = useState<Recurso[]>([]);
@@ -16,9 +14,7 @@ export default function Recursos() {
     getRecursos()
       .then((recursosData) => {
         // Apenas recursos ativos aparecem para o usuário
-        const recursosAtivos = recursosData.filter(
-          (recurso) => recurso.ativo
-        );
+        const recursosAtivos = recursosData.filter((recurso) => recurso.ativo);
 
         setRecursos(recursosAtivos);
 
@@ -26,10 +22,8 @@ export default function Recursos() {
         // existentes nos recursos cadastrados
         const categorias = Array.from(
           new Set(
-            recursosAtivos
-              .map((recurso) => recurso.categoria)
-              .filter(Boolean)
-          )
+            recursosAtivos.map((recurso) => recurso.categoria).filter(Boolean),
+          ),
         ).sort((a, b) => a.localeCompare(b));
 
         setCategories(["todos", ...categorias]);
@@ -48,6 +42,16 @@ export default function Recursos() {
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase();
 
+  if (loading) {
+    return (
+      <div
+        className="min-h-screen"
+        style={{ backgroundColor: "var(--bg-color)" }}
+      >
+        <Loading texto="Carregando recursos..." altura="100vh" />
+      </div>
+    );
+  }
   return (
     <Search
       items={recursos}
@@ -67,8 +71,7 @@ export default function Recursos() {
           selectedCategories.includes("todos") ||
           selectedCategories.some(
             (categoria) =>
-              normalizar(categoria) ===
-              normalizar(recurso.categoria)
+              normalizar(categoria) === normalizar(recurso.categoria),
           );
 
         return matchSearch && matchCategoria;

@@ -2,16 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Palette,
-  Bell,
   Accessibility,
   Monitor,
   Moon,
   Sun,
-  Volume2,
   Zap,
-  Type,
-  Mail,
-  Smartphone,
   Check,
   Save,
   ArrowLeft,
@@ -24,37 +19,31 @@ import {
 type Tema = "light" | "dark" | "system";
 type TamanhoFonte = "sm" | "md" | "lg";
 
-interface Preferencias {
+export interface Preferencias {
   tema: Tema;
   tamanhoFonte: TamanhoFonte;
   reduzirAnimacoes: boolean;
   altoContraste: boolean;
-  notifEmail: boolean;
-  notifNovosVideos: boolean;
-  notifTrilhas: boolean;
-  notifPush: boolean;
 }
 
-const PADRAO: Preferencias = {
+export const PADRAO: Preferencias = {
   tema: "system",
   tamanhoFonte: "md",
   reduzirAnimacoes: false,
   altoContraste: false,
-  notifEmail: true,
-  notifNovosVideos: true,
-  notifTrilhas: false,
-  notifPush: false,
 };
 
-const STORAGE_KEY = "oportuniza:preferencias";
+export const STORAGE_KEY = "oportuniza:preferencias";
 
 // =========================================================
-// HELPERS
+// HELPERS — exportados para uso no App.tsx
 // =========================================================
 
-function aplicarTema(tema: Tema) {
+export function aplicarTema(tema: Tema) {
   const root = document.documentElement;
-  const prefereEscuro = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const prefereEscuro = window.matchMedia(
+    "(prefers-color-scheme: dark)"
+  ).matches;
 
   const usarEscuro = tema === "dark" || (tema === "system" && prefereEscuro);
 
@@ -65,7 +54,7 @@ function aplicarTema(tema: Tema) {
   }
 }
 
-function aplicarTamanhoFonte(tamanho: TamanhoFonte) {
+export function aplicarTamanhoFonte(tamanho: TamanhoFonte) {
   const mapa: Record<TamanhoFonte, string> = {
     sm: "14px",
     md: "16px",
@@ -74,7 +63,7 @@ function aplicarTamanhoFonte(tamanho: TamanhoFonte) {
   document.documentElement.style.fontSize = mapa[tamanho];
 }
 
-function aplicarAnimacoes(reduzir: boolean) {
+export function aplicarAnimacoes(reduzir: boolean) {
   document.documentElement.style.setProperty(
     "--animation-duration",
     reduzir ? "0s" : "0.3s"
@@ -82,38 +71,60 @@ function aplicarAnimacoes(reduzir: boolean) {
   document.body.classList.toggle("reduce-motion", reduzir);
 }
 
+export function aplicarAltoContraste(ativo: boolean) {
+  document.body.classList.toggle("high-contrast", ativo);
+}
+
+/**
+ * Lê as preferências do localStorage e devolve um objeto completo.
+ * Usado tanto no App.tsx (global) quanto no Preferences.tsx (local).
+ */
+export function carregarPreferencias(): Preferencias {
+  try {
+    const salvo = localStorage.getItem(STORAGE_KEY);
+    if (salvo) {
+      return { ...PADRAO, ...JSON.parse(salvo) };
+    }
+  } catch (err) {
+    console.error("Erro ao carregar preferências:", err);
+  }
+  return PADRAO;
+}
+
+/**
+ * Aplica TODAS as preferências de uma vez.
+ * Usado no App.tsx ao iniciar a aplicação.
+ */
+export function aplicarPreferenciasGlobais() {
+  const prefs = carregarPreferencias();
+  aplicarTema(prefs.tema);
+  aplicarTamanhoFonte(prefs.tamanhoFonte);
+  aplicarAnimacoes(prefs.reduzirAnimacoes);
+  aplicarAltoContraste(prefs.altoContraste);
+  return prefs;
+}
+
 // =========================================================
 // COMPONENTE PRINCIPAL
 // =========================================================
 
 export default function Preferences() {
-  const [prefs, setPrefs] = useState<Preferencias>(PADRAO);
+  // ⚠️ Inicializa lendo do localStorage, evitando o "flash" de padrão
+  const [prefs, setPrefs] = useState<Preferencias>(carregarPreferencias);
   const [message, setMessage] = useState("");
-
-  // ─── Carrega as preferências salvas ───────────────────────
-  useEffect(() => {
-    try {
-      const salvo = localStorage.getItem(STORAGE_KEY);
-      if (salvo) {
-        const parsed = { ...PADRAO, ...JSON.parse(salvo) };
-        setPrefs(parsed);
-        aplicarTema(parsed.tema);
-        aplicarTamanhoFonte(parsed.tamanhoFonte);
-        aplicarAnimacoes(parsed.reduzirAnimacoes);
-      } else {
-        aplicarTema(PADRAO.tema);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar preferências:", err);
-    }
-  }, []);
 
   // ─── Aplica mudanças em tempo real ────────────────────────
   useEffect(() => {
     aplicarTema(prefs.tema);
     aplicarTamanhoFonte(prefs.tamanhoFonte);
     aplicarAnimacoes(prefs.reduzirAnimacoes);
-  }, [prefs.tema, prefs.tamanhoFonte, prefs.reduzirAnimacoes]);
+    aplicarAltoContraste(prefs.altoContraste);
+  }, [
+    prefs.tema,
+    prefs.tamanhoFonte,
+    prefs.reduzirAnimacoes,
+    prefs.altoContraste,
+  ]);
 
   // ─── Atualiza uma preferência ─────────────────────────────
   function atualizar<K extends keyof Preferencias>(
@@ -295,71 +306,11 @@ export default function Preferences() {
                 onChange={(v) => atualizar("reduzirAnimacoes", v)}
               />
               <Toggle
-                icon={<Volume2 size={16} />}
+                icon={<Accessibility size={16} />}
                 titulo="Alto contraste"
                 descricao="Aumenta o contraste das cores para leitura."
                 ativo={prefs.altoContraste}
                 onChange={(v) => atualizar("altoContraste", v)}
-              />
-            </div>
-          </section>
-
-          {/* ═══════════════ NOTIFICAÇÕES ═══════════════ */}
-          <section
-            className="rounded-2xl border overflow-hidden"
-            style={{
-              backgroundColor: "var(--card-bg, white)",
-              borderColor: "var(--border-color, #e5e7eb)",
-            }}
-          >
-            <div
-              className="px-6 py-4 border-b flex items-center gap-3"
-              style={{ borderColor: "var(--border-color, #e5e7eb)" }}
-            >
-              <div className="w-9 h-9 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                <Bell size={18} className="text-yellow-500" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold">Notificações</h2>
-                <p
-                  className="text-xs"
-                  style={{ color: "var(--text-muted, #6b7280)" }}
-                >
-                  Escolha o que você quer receber.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 flex flex-col gap-4">
-              <Toggle
-                icon={<Mail size={16} />}
-                titulo="Notificações por e-mail"
-                descricao="Receba avisos importantes na sua caixa de entrada."
-                ativo={prefs.notifEmail}
-                onChange={(v) => atualizar("notifEmail", v)}
-              />
-              <Toggle
-                icon={<Volume2 size={16} />}
-                titulo="Novos vídeos"
-                descricao="Avisamos quando novas aulas forem publicadas."
-                ativo={prefs.notifNovosVideos}
-                onChange={(v) => atualizar("notifNovosVideos", v)}
-                disabled={!prefs.notifEmail}
-              />
-              <Toggle
-                icon={<Type size={16} />}
-                titulo="Trilhas recomendadas"
-                descricao="Sugestões personalizadas baseadas no seu perfil."
-                ativo={prefs.notifTrilhas}
-                onChange={(v) => atualizar("notifTrilhas", v)}
-                disabled={!prefs.notifEmail}
-              />
-              <Toggle
-                icon={<Smartphone size={16} />}
-                titulo="Notificações push"
-                descricao="Receba avisos no navegador ou celular."
-                ativo={prefs.notifPush}
-                onChange={(v) => atualizar("notifPush", v)}
               />
             </div>
           </section>

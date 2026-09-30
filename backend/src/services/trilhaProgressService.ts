@@ -10,19 +10,24 @@ import {
 } from "../repositories/trilhaProgressRepository";
 
 function mapProgress(progress: any) {
+  const totalVideos = progress.trilha.videos.length;
+  const videosConcluidos = progress.videosConcluidos.length;
+
   return {
     slug: progress.trilha.slug,
     titulo: progress.trilha.titulo,
 
-    totalVideos: progress.trilha.videos.length,
-
-    videosConcluidos: progress.videosConcluidos.length,
+    totalVideos,
+    videosConcluidos,
 
     videosConcluidosIds: progress.videosConcluidos.map(
       (item: any) => item.video.youtubeVideoId
     ),
 
     ultimoAcesso: progress.ultimoAcesso.getTime(),
+
+    // ⚠️ flag útil para o frontend
+    concluida: totalVideos > 0 && videosConcluidos === totalVideos,
   };
 }
 
@@ -31,7 +36,10 @@ export async function listarTrilhasEmAndamentoService(
 ) {
   const progressos = await listarTrilhasEmAndamento(userId);
 
-  return progressos.map(mapProgress);
+  return progressos
+    .map(mapProgress)
+    // ⚠️ Remove as trilhas concluídas (todos os vídeos assistidos)
+    .filter((p) => !p.concluida);
 }
 
 export async function buscarTrilhaProgressService(

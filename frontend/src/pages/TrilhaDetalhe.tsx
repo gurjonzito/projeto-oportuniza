@@ -10,6 +10,8 @@ import {
   marcarVideoConcluido,
 } from "../services/trilhaProgress";
 
+import Loading from "../components/Loading";
+
 export default function TrailVideos() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
@@ -136,12 +138,16 @@ export default function TrailVideos() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Carregando trilha...
-      </div>
-    );
-  }
+  return (
+    <div className="min-h-screen bg-[#0a1a45]">
+      <Loading
+        texto="Carregando trilha..."
+        subtexto="Preparando lista de aulas"
+        altura="100vh"
+      />
+    </div>
+  );
+}
 
   if (!trail) {
     return (

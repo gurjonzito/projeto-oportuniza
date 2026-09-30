@@ -3,6 +3,7 @@ import Search from "../components/Search";
 import VideoCard from "../components/VideoCard";
 import type { Video } from "../types/video";
 import { getVideos, searchVideos } from "../services/videoService";
+import Loading from "../components/Loading";
 
 export default function Videos() {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -34,6 +35,21 @@ export default function Videos() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (loading && videos.length === 0) {
+    return (
+      <div
+        className="min-h-screen"
+        style={{ backgroundColor: "var(--bg-color)" }}
+      >
+        <Loading
+          texto="Carregando vídeos..."
+          subtexto="Preparando sua biblioteca"
+          altura="100vh"
+        />
+      </div>
+    );
   }
 
   return (

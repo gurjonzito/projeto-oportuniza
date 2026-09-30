@@ -5,4 +5,5 @@ export interface TrilhaProgress {
   videosConcluidos: number;
   videosConcluidosIds: string[];
   ultimoAcesso: number;
+  concluida?: boolean;
 }

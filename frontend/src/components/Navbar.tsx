@@ -272,6 +272,17 @@ export default function Navbar() {
                 </button>
 
                 <button
+                  onClick={() => {
+                    navigate("/preferencias");
+                    setMenuOpen(false);
+                  }}
+                  className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition"
+                >
+                  <Settings size={14} />
+                  Preferências
+                </button>
+
+                <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 text-sm text-red-300 hover:text-red-200 transition"
                 >

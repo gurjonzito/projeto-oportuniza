@@ -60,6 +60,38 @@
       background-color 0.3s,
       color 0.3s;
   }
+
+  /* ─── Acessibilidade: Reduzir animações ───────────────────────── */
+  .reduce-motion *,
+  .reduce-motion *::before,
+  .reduce-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* ─── Acessibilidade: Alto contraste ──────────────────────────── */
+  .high-contrast {
+    --text-color: #000000;
+    --text-muted: #1f2937;
+    --border-color: #000000;
+  }
+
+  .high-contrast.dark {
+    --text-color: #ffffff;
+    --text-muted: #e5e7eb;
+    --border-color: #ffffff;
+  }
+
+  /* Esconde a scrollbar mantendo o scroll funcional */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 /* ═════════════════════════════════════════════════════════════════════

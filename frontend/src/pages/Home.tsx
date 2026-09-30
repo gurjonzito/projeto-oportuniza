@@ -1,6 +1,6 @@
-import { BookOpen, PlayCircle, Link } from "lucide-react";
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { BookOpen, PlayCircle, Link, ChevronLeft, ChevronRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import Card from "../components/Card";
 import { getTrilhasProgress } from "../services/trilhaProgress";
@@ -82,159 +82,342 @@ function Hero() {
   );
 }
 
+/* ═════════════════════════════════════════════════════════════════════
+   CARROSSEL DE TRILHAS EM ANDAMENTO
+   ═════════════════════════════════════════════════════════════════════ */
+
 function ContinueTrilhas() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isAuthenticated, isLoading: loadingSession } = useSession();
 
   const [trilhas, setTrilhas] = useState<TrilhaProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [podeVoltar, setPodeVoltar] = useState(false);
+  const [podeAvancar, setPodeAvancar] = useState(false);
+
+  // ─── Carrega as trilhas ─────────────────────────────────────
   useEffect(() => {
     if (loadingSession) return;
 
     if (!isAuthenticated) {
+      setTrilhas([]);
       setLoading(false);
-      return; // não faz a requisição — sem log de 401
+      return;
     }
+
+    let cancelado = false;
 
     async function carregarTrilhas() {
       try {
+        setLoading(true);
         const data = await getTrilhasProgress();
-        setTrilhas(data);
+        if (cancelado) return;
+
+        // Remove trilhas concluídas (reforço no frontend)
+        const emAndamento = data.filter(
+          (t) =>
+            !(t.totalVideos > 0 && t.videosConcluidos === t.totalVideos)
+        );
+
+        setTrilhas(emAndamento);
       } catch (error) {
-        console.error("Erro ao carregar trilhas em andamento:", error);
-        setTrilhas([]);
+        if (!cancelado) {
+          console.error("Erro ao carregar trilhas em andamento:", error);
+          setTrilhas([]);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelado) setLoading(false);
       }
     }
 
     carregarTrilhas();
-  }, [isAuthenticated, loadingSession]);
 
-  if (loading) {
-    return null;
+    return () => {
+      cancelado = true;
+    };
+  }, [isAuthenticated, loadingSession, location.key]);
+
+  // ─── Atualiza estado das setas conforme o scroll ────────────
+  function atualizarSetas() {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+
+    setPodeVoltar(scrollLeft > 4);
+    setPodeAvancar(scrollLeft + clientWidth < scrollWidth - 4);
   }
 
-  if (trilhas.length === 0) {
+  useEffect(() => {
+    atualizarSetas();
+
+    const el = scrollRef.current;
+    if (!el) return;
+
+    el.addEventListener("scroll", atualizarSetas, { passive: true });
+    window.addEventListener("resize", atualizarSetas);
+
+    return () => {
+      el.removeEventListener("scroll", atualizarSetas);
+      window.removeEventListener("resize", atualizarSetas);
+    };
+  }, [trilhas]);
+
+  // ─── Função que rola o carrossel ────────────────────────────
+  function scrollPor(direcao: "esquerda" | "direita") {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    // Largura de um card + gap
+    const card = el.querySelector<HTMLElement>("[data-card]");
+    const cardWidth = card?.offsetWidth ?? 360;
+    const gap = 24;
+    const passo = cardWidth + gap;
+
+    el.scrollBy({
+      left: direcao === "direita" ? passo : -passo,
+      behavior: "smooth",
+    });
+  }
+
+  // Se terminou de carregar e não há nada, não mostra a seção
+  if (!loading && trilhas.length === 0) {
     return null;
   }
 
   return (
     <section
       className="py-20 transition-colors"
-      style={{
-        backgroundColor: "var(--bg-color)",
-      }}
+      style={{ backgroundColor: "var(--bg-color)" }}
     >
       <div className="max-w-6xl mx-auto px-6">
+        {/* ─── Cabeçalho ──────────────────────────────────── */}
         <p
           className="text-sm text-center"
-          style={{
-            color: "var(--text-color)",
-          }}
+          style={{ color: "var(--text-color)" }}
         >
           Continue aprendendo
         </p>
 
         <h2
           className="text-2xl md:text-3xl font-semibold text-center mt-2"
-          style={{
-            color: "var(--text-color)",
-          }}
+          style={{ color: "var(--text-color)" }}
         >
           Continue de onde parou
         </h2>
 
         <p
-          className="text-sm mt-3 mb-12 text-center"
-          style={{
-            color: "var(--text-color)",
-          }}
+          className="text-sm mt-3 mb-10 text-center"
+          style={{ color: "var(--text-color)" }}
         >
           Retome suas trilhas e continue evoluindo.
         </p>
 
-        <div
-          className={
-            trilhas.length === 1
-              ? "flex justify-center"
-              : "grid md:grid-cols-2 gap-8"
-          }
-        >
-          {trilhas.map((trilha) => {
-            const progresso =
-              trilha.totalVideos > 0
-                ? Math.round(
-                  (trilha.videosConcluidos /
-                    trilha.totalVideos) *
-                  100
-                )
-                : 0;
+        {/* ─── Carrossel ───────────────────────────────────── */}
+        <div className="relative group/carousel">
+          {/* Seta ESQUERDA */}
+          <button
+            type="button"
+            aria-label="Voltar"
+            onClick={() => scrollPor("esquerda")}
+            disabled={!podeVoltar}
+            className={`
+              hidden md:flex
+              absolute left-0 top-1/2 -translate-y-1/2
+              z-20
+              w-11 h-11 rounded-full
+              items-center justify-center
+              bg-white/95 dark:bg-[#2E3553]/95
+              border border-gray-200 dark:border-[#414A6B]
+              text-gray-700 dark:text-gray-200
+              shadow-lg
+              transition-all duration-200
+              hover:scale-110
+              hover:bg-white dark:hover:bg-[#2E3553]
+              hover:text-[#1E40AF] dark:hover:text-[#818cf8]
+              disabled:opacity-0 disabled:pointer-events-none
+              cursor-pointer
+              -translate-x-1/2
+            `}
+          >
+            <ChevronLeft size={22} strokeWidth={2.5} />
+          </button>
 
-            return (
-              <Card
-                key={trilha.slug}
-                className={
-                  trilhas.length === 1
-                    ? "w-full max-w-xl"
-                    : ""
-                }
-              >
-                <span className="text-blue-500 text-sm font-semibold">
-                  Trilha em andamento
-                </span>
+          {/* Seta DIREITA */}
+          <button
+            type="button"
+            aria-label="Avançar"
+            onClick={() => scrollPor("direita")}
+            disabled={!podeAvancar}
+            className={`
+              hidden md:flex
+              absolute right-0 top-1/2 -translate-y-1/2
+              z-20
+              w-11 h-11 rounded-full
+              items-center justify-center
+              bg-white/95 dark:bg-[#2E3553]/95
+              border border-gray-200 dark:border-[#414A6B]
+              text-gray-700 dark:text-gray-200
+              shadow-lg
+              transition-all duration-200
+              hover:scale-110
+              hover:bg-white dark:hover:bg-[#2E3553]
+              hover:text-[#1E40AF] dark:hover:text-[#818cf8]
+              disabled:opacity-0 disabled:pointer-events-none
+              cursor-pointer
+              translate-x-1/2
+            `}
+          >
+            <ChevronRight size={22} strokeWidth={2.5} />
+          </button>
 
-                <h3
-                  className="text-xl font-semibold mt-2"
-                  style={{
-                    color: "var(--text-color)",
-                  }}
-                >
-                  {trilha.titulo}
-                </h3>
+          {/* Gradiente à esquerda (fade) */}
+          {podeVoltar && (
+            <div
+              className="
+                hidden md:block
+                absolute left-0 top-0 bottom-0 w-16 z-10
+                pointer-events-none
+                bg-linear-to-r
+                from-(--bg-color) to-transparent
+              "
+            />
+          )}
 
-                <p
-                  className="text-sm mt-2"
-                  style={{
-                    color: "var(--text-color)",
-                  }}
-                >
-                  {trilha.videosConcluidos} de{" "}
-                  {trilha.totalVideos} aulas concluídas
-                </p>
+          {/* Gradiente à direita (fade) */}
+          {podeAvancar && (
+            <div
+              className="
+                hidden md:block
+                absolute right-0 top-0 bottom-0 w-16 z-10
+                pointer-events-none
+                bg-linear-to-l
+                from-(--bg-color) to-transparent
+              "
+            />
+          )}
 
-                <div className="mt-5 h-2 bg-black/10 rounded-full overflow-hidden">
+          {/* ─── Scroll horizontal ──────────────────────── */}
+          <div
+            ref={scrollRef}
+            className="
+              flex gap-6
+              overflow-x-auto
+              scroll-smooth
+              snap-x snap-mandatory
+              scrollbar-hide
+              pb-4
+              px-2
+            "
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+            }}
+          >
+            {loading
+              ? // ─── Skeletons durante o loading ─────────
+                Array.from({ length: 3 }).map((_, idx) => (
                   <div
-                    className="h-full bg-cyan-400 transition-all"
+                    key={`skeleton-${idx}`}
+                    className="shrink-0 snap-start w-85 md:w-95 rounded-2xl animate-pulse"
                     style={{
-                      width: `${progresso}%`,
+                      backgroundColor: "var(--card-bg)",
+                      height: 240,
                     }}
                   />
-                </div>
+                ))
+              : // ─── Cards reais ──────────────────────────
+                trilhas.map((trilha) => {
+                  const progresso =
+                    trilha.totalVideos > 0
+                      ? Math.round(
+                          (trilha.videosConcluidos /
+                            trilha.totalVideos) *
+                            100
+                        )
+                      : 0;
 
-                <div className="flex items-center justify-between mt-3">
-                  <span
-                    className="text-xs"
-                    style={{
-                      color: "var(--text-color)",
-                    }}
-                  >
-                    {progresso}% concluído
-                  </span>
+                  return (
+                    <div
+                      key={trilha.slug}
+                      data-card
+                      className="
+                        shrink-0
+                        snap-start
+                        w-85 md:w-95
+                      "
+                    >
+                      <Card className="h-full">
+                        <span className="text-blue-500 text-sm font-semibold">
+                          Trilha em andamento
+                        </span>
 
-                  <button
-                    onClick={() =>
-                      navigate(`/trilhas/${trilha.slug}`)
+                        <h3
+                          className="text-lg font-semibold mt-2 line-clamp-2 min-h-14"
+                          style={{ color: "var(--text-color)" }}
+                        >
+                          {trilha.titulo}
+                        </h3>
+
+                        <p
+                          className="text-sm mt-2"
+                          style={{ color: "var(--text-color)" }}
+                        >
+                          {trilha.videosConcluidos} de {trilha.totalVideos}{" "}
+                          aulas concluídas
+                        </p>
+
+                        <div className="mt-5 h-2 bg-black/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-cyan-400 transition-all"
+                            style={{ width: `${progresso}%` }}
+                          />
+                        </div>
+
+                        <div className="flex items-center justify-between mt-3">
+                          <span
+                            className="text-xs"
+                            style={{ color: "var(--text-color)" }}
+                          >
+                            {progresso}% concluído
+                          </span>
+
+                          <button
+                            onClick={() =>
+                              navigate(`/trilhas/${trilha.slug}`)
+                            }
+                            className="cursor-pointer border border-blue-500 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-500 hover:text-white transition text-sm"
+                          >
+                            Continuar →
+                          </button>
+                        </div>
+                      </Card>
+                    </div>
+                  );
+                })}
+          </div>
+
+          {/* ─── Indicador de progresso (bolinhas) ──────── */}
+          {!loading && trilhas.length > 1 && (
+            <div className="flex justify-center gap-1.5 mt-4">
+              {trilhas.map((t, idx) => (
+                <span
+                  key={t.slug}
+                  className={`
+                    w-1.5 h-1.5 rounded-full transition-all
+                    ${
+                      idx === 0
+                        ? "bg-[#1E40AF] w-4"
+                        : "bg-gray-300 dark:bg-gray-600"
                     }
-                    className="cursor-pointer border border-blue-500 text-blue-500 px-4 py-2 rounded-lg hover:bg-blue-500 hover:text-white transition"
-                  >
-                    Continuar →
-                  </button>
-                </div>
-              </Card>
-            );
-          })}
+                  `}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -243,26 +426,15 @@ function ContinueTrilhas() {
 
 function Categorias() {
   const itens = [
-    {
-      titulo: "Trilhas",
-      icon: BookOpen,
-    },
-    {
-      titulo: "Vídeos",
-      icon: PlayCircle,
-    },
-    {
-      titulo: "Recursos",
-      icon: Link,
-    },
+    { titulo: "Trilhas", icon: BookOpen },
+    { titulo: "Vídeos", icon: PlayCircle },
+    { titulo: "Recursos", icon: Link },
   ];
 
   return (
     <section
       className="pb-20 pt-15 transition-colors"
-      style={{
-        backgroundColor: "var(--bg-color)",
-      }}
+      style={{ backgroundColor: "var(--bg-color)" }}
     >
       <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-3 gap-8">
         {itens.map((item) => {
@@ -279,18 +451,14 @@ function Categorias() {
 
               <h3
                 className="mt-4 font-semibold text-lg"
-                style={{
-                  color: "var(--text-color)",
-                }}
+                style={{ color: "var(--text-color)" }}
               >
                 {item.titulo}
               </h3>
 
               <p
                 className="text-sm mt-2"
-                style={{
-                  color: "var(--text-color)",
-                }}
+                style={{ color: "var(--text-color)" }}
               >
                 {item.titulo === "Trilhas" &&
                   "Percursos de aprendizagem organizados por temas, reunindo conteúdos em uma sequência para desenvolver conhecimentos e habilidades profissionais."}

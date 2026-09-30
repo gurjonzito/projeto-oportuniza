@@ -11,6 +11,7 @@ import {
   updateVideoCurated,
   updateVideoTags,
   listarTodosVideos,
+  listarVideosCurados, // ⚠️ nova importação
 } from '../repositories/videoRepository'
 
 const router = Router()
@@ -37,20 +38,39 @@ function mapVideo(v: any) {
 
 // ─── Rotas PÚBLICAS ──────────────────────────────────────────────────────
 
+// ⚠️ ALTERADO: se tiver query, busca no YouTube; se não, lista todos os curados
 router.get('/', async (req, res, next) => {
   try {
-    const query = (req.query.q as string) || 'mercado de trabalho jovem'
-    const videos = await searchVideos(query)
-    res.json({ videos: videos.map(mapVideo) })
-  } catch (err) { next(err) }
+    const query = req.query.q as string | undefined
+
+    if (query && query.trim()) {
+      const videos = await searchVideos(query.trim())
+      return res.json({ videos: videos.map(mapVideo) })
+    }
+
+    // Sem query → retorna todos os vídeos curados do banco
+    const videos = await listarVideosCurados()
+    return res.json({ videos: videos.map(mapVideo) })
+  } catch (err) {
+    next(err)
+  }
 })
 
 router.get('/search', async (req, res, next) => {
   try {
-    const query = (req.query.q as string) || 'mercado de trabalho jovem'
-    const videos = await searchVideos(query)
+    const query = (req.query.q as string) || ''
+
+    if (!query.trim()) {
+      // Sem query → retorna todos os curados
+      const videos = await listarVideosCurados()
+      return res.json({ videos: videos.map(mapVideo) })
+    }
+
+    const videos = await searchVideos(query.trim())
     res.json({ videos: videos.map(mapVideo) })
-  } catch (err) { next(err) }
+  } catch (err) {
+    next(err)
+  }
 })
 
 // ─── Rotas ADMIN ─────────────────────────────────────────────────────────
@@ -61,7 +81,9 @@ router.get('/admin/all', authMiddleware, async (req, res, next) => {
   try {
     const videos = await listarTodosVideos()
     res.json({ videos: videos.map(mapVideo) })
-  } catch (err) { next(err) }
+  } catch (err) {
+    next(err)
+  }
 })
 
 // Descobrir vídeos por termo nos canais cadastrados (NÃO salva nada)
@@ -94,7 +116,9 @@ router.patch('/:id/curated', authMiddleware, async (req, res, next) => {
       req.body.isCurated
     )
     res.json({ video })
-  } catch (err) { next(err) }
+  } catch (err) {
+    next(err)
+  }
 })
 
 router.patch('/:id/tags', authMiddleware, async (req, res, next) => {
@@ -104,7 +128,9 @@ router.patch('/:id/tags', authMiddleware, async (req, res, next) => {
       req.body.tags
     )
     res.json({ video })
-  } catch (err) { next(err) }
+  } catch (err) {
+    next(err)
+  }
 })
 
 export { router as videoRoutes }

@@ -45,6 +45,19 @@ export async function listarTodosVideos() {
   });
 }
 
+// ⚠️ NOVA FUNÇÃO: lista todos os vídeos curados (para a página pública /videos)
+export async function listarVideosCurados() {
+  return prisma.video.findMany({
+    where: { isCurated: true },
+    include: {
+      canal: true,
+    },
+    orderBy: {
+      cachedEm: "desc",
+    },
+  });
+}
+
 export async function createVideo(data: any) {
   return prisma.video.create({ data })
 }
