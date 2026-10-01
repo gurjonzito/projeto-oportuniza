@@ -102,19 +102,13 @@ export default function Pagination({
           flex items-center gap-1
           px-2 py-1.5
           rounded-2xl
-
-          /* Tema claro */
-          bg-white
-          border border-gray-200
-          shadow-[0_1px_3px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.04)]
-
-          /* Tema escuro — destacando do fundo #252b42 */
-          dark:bg-[#2E3553]
-          dark:border-[#414A6B]
-          dark:shadow-[0_2px_12px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.05)]
-
           backdrop-blur-sm
         "
+        style={{
+          backgroundColor: "var(--card-bg)",
+          border: "1px solid var(--border-color)",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04)",
+        }}
       >
         {/* Botão anterior */}
         <button
@@ -124,27 +118,31 @@ export default function Pagination({
           className="
             w-8 h-8 rounded-lg
             flex items-center justify-center
-
-            text-gray-500
-            hover:bg-gray-100
-            hover:text-[#1E40AF]
-
-            dark:text-gray-300
-            dark:hover:bg-white/10
-            dark:hover:text-white
-
             transition-all duration-150
             disabled:opacity-30
             disabled:cursor-not-allowed
-            disabled:hover:bg-transparent
             cursor-pointer
           "
+          style={{ color: "var(--text-muted)" }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.backgroundColor = "var(--hover-bg)";
+              e.currentTarget.style.color = "#1E40AF";
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.color = "var(--text-muted)";
+          }}
         >
           <ChevronLeft size={16} strokeWidth={2.5} />
         </button>
 
         {/* Divisor */}
-        <div className="w-px h-5 bg-gray-200 dark:bg-[#414A6B] mx-0.5" />
+        <div
+          className="w-px h-5 mx-0.5"
+          style={{ backgroundColor: "var(--border-color)" }}
+        />
 
         {/* Lista */}
         <div
@@ -175,10 +173,9 @@ export default function Pagination({
                   aria-hidden="true"
                   className="
                     w-8 h-8 flex items-center justify-center
-                    text-gray-400
-                    dark:text-gray-400
                     text-xs font-bold select-none
                   "
+                  style={{ color: "var(--text-muted)" }}
                 >
                   ···
                 </span>
@@ -202,27 +199,26 @@ export default function Pagination({
                   font-semibold
                   transition-all duration-150
                   cursor-pointer
-
-                  ${
-                    isActive
-                      ? `
-                        bg-[#1E40AF] text-white
-                        shadow-[0_2px_8px_rgba(30,64,175,0.45)]
-                        dark:bg-[#1E40AF]
-                        dark:text-white
-                        dark:shadow-[0_2px_10px_rgba(30,64,175,0.7)]
-                      `
-                      : `
-                        text-gray-600
-                        hover:bg-gray-100
-                        hover:text-[#1E40AF]
-
-                        dark:text-gray-200
-                        dark:hover:bg-white/10
-                        dark:hover:text-white
-                      `
-                  }
                 `}
+                style={{
+                  backgroundColor: isActive ? "#1E40AF" : "transparent",
+                  color: isActive ? "#ffffff" : "var(--text-color)",
+                  boxShadow: isActive
+                    ? "0 2px 10px rgba(30,64,175,0.45)"
+                    : "none",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = "var(--hover-bg)";
+                    e.currentTarget.style.color = "#1E40AF";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.backgroundColor = "transparent";
+                    e.currentTarget.style.color = "var(--text-color)";
+                  }
+                }}
               >
                 {p}
               </button>
@@ -231,7 +227,10 @@ export default function Pagination({
         </div>
 
         {/* Divisor */}
-        <div className="w-px h-5 bg-gray-200 dark:bg-[#414A6B] mx-0.5" />
+        <div
+          className="w-px h-5 mx-0.5"
+          style={{ backgroundColor: "var(--border-color)" }}
+        />
 
         {/* Botão próximo */}
         <button
@@ -241,21 +240,22 @@ export default function Pagination({
           className="
             w-8 h-8 rounded-lg
             flex items-center justify-center
-
-            text-gray-500
-            hover:bg-gray-100
-            hover:text-[#1E40AF]
-
-            dark:text-gray-300
-            dark:hover:bg-white/10
-            dark:hover:text-white
-
             transition-all duration-150
             disabled:opacity-30
             disabled:cursor-not-allowed
-            disabled:hover:bg-transparent
             cursor-pointer
           "
+          style={{ color: "var(--text-muted)" }}
+          onMouseEnter={(e) => {
+            if (!e.currentTarget.disabled) {
+              e.currentTarget.style.backgroundColor = "var(--hover-bg)";
+              e.currentTarget.style.color = "#1E40AF";
+            }
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = "transparent";
+            e.currentTarget.style.color = "var(--text-muted)";
+          }}
         >
           <ChevronRight size={16} strokeWidth={2.5} />
         </button>

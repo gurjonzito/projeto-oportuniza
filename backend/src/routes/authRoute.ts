@@ -57,7 +57,8 @@ router.post("/logout", (req, res) => {
   return res.json({ ok: true });
 });
 
-router.get("/me", authMiddleware, (req, res) => {
+// ⚠️ Renomeado para não conflitar com /user/me
+router.get("/admin/me", authMiddleware, (req, res) => {
   return res.json({ admin: (req as any).admin });
 });
 

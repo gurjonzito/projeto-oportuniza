@@ -1,4 +1,10 @@
-import { BookOpen, PlayCircle, Link, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  BookOpen,
+  PlayCircle,
+  Link,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -23,10 +29,7 @@ function Hero() {
   return (
     <section
       className="pt-20 pb-20 relative transition-colors"
-      style={{
-        backgroundColor: "#1E40AF",
-        color: "white",
-      }}
+      style={{ backgroundColor: "#1E40AF", color: "white" }}
     >
       <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 gap-10 items-center">
         <div>
@@ -61,6 +64,7 @@ function Hero() {
           <img
             src="/pics/pic-home.jpg"
             className="rounded-3xl shadow-xl w-72"
+            alt="Home"
           />
         </div>
       </div>
@@ -89,7 +93,7 @@ function Hero() {
 function ContinueTrilhas() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isAuthenticated, isLoading: loadingSession } = useSession();
+  const { isAuthenticated, isLoading: loadingSession, user } = useSession();
 
   const [trilhas, setTrilhas] = useState<TrilhaProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,25 +102,30 @@ function ContinueTrilhas() {
   const [podeVoltar, setPodeVoltar] = useState(false);
   const [podeAvancar, setPodeAvancar] = useState(false);
 
-  // ─── Carrega as trilhas ─────────────────────────────────────
+  const requestIdRef = useRef(0);
+
   useEffect(() => {
     if (loadingSession) return;
 
-    if (!isAuthenticated) {
+    if (!isAuthenticated || !user) {
       setTrilhas([]);
       setLoading(false);
       return;
     }
 
-    let cancelado = false;
+    const requestId = ++requestIdRef.current;
 
     async function carregarTrilhas() {
       try {
-        setLoading(true);
-        const data = await getTrilhasProgress();
-        if (cancelado) return;
+        setLoading((prevLoading) => {
+          if (trilhas.length === 0) return true;
+          return prevLoading;
+        });
 
-        // Remove trilhas concluídas (reforço no frontend)
+        const data = await getTrilhasProgress();
+
+        if (requestId !== requestIdRef.current) return;
+
         const emAndamento = data.filter(
           (t) =>
             !(t.totalVideos > 0 && t.videosConcluidos === t.totalVideos)
@@ -124,23 +133,19 @@ function ContinueTrilhas() {
 
         setTrilhas(emAndamento);
       } catch (error) {
-        if (!cancelado) {
-          console.error("Erro ao carregar trilhas em andamento:", error);
-          setTrilhas([]);
-        }
+        if (requestId !== requestIdRef.current) return;
+        console.error("Erro ao carregar trilhas em andamento:", error);
       } finally {
-        if (!cancelado) setLoading(false);
+        if (requestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
     }
 
     carregarTrilhas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, loadingSession, user?.id, location.key]);
 
-    return () => {
-      cancelado = true;
-    };
-  }, [isAuthenticated, loadingSession, location.key]);
-
-  // ─── Atualiza estado das setas conforme o scroll ────────────
   function atualizarSetas() {
     const el = scrollRef.current;
     if (!el) return;
@@ -166,14 +171,12 @@ function ContinueTrilhas() {
     };
   }, [trilhas]);
 
-  // ─── Função que rola o carrossel ────────────────────────────
   function scrollPor(direcao: "esquerda" | "direita") {
     const el = scrollRef.current;
     if (!el) return;
 
-    // Largura de um card + gap
     const card = el.querySelector<HTMLElement>("[data-card]");
-    const cardWidth = card?.offsetWidth ?? 360;
+    const cardWidth = card?.offsetWidth ?? 340;
     const gap = 24;
     const passo = cardWidth + gap;
 
@@ -183,10 +186,9 @@ function ContinueTrilhas() {
     });
   }
 
-  // Se terminou de carregar e não há nada, não mostra a seção
-  if (!loading && trilhas.length === 0) {
-    return null;
-  }
+  if (loadingSession) return null;
+
+  if (!loading && trilhas.length === 0) return null;
 
   return (
     <section
@@ -194,7 +196,6 @@ function ContinueTrilhas() {
       style={{ backgroundColor: "var(--bg-color)" }}
     >
       <div className="max-w-6xl mx-auto px-6">
-        {/* ─── Cabeçalho ──────────────────────────────────── */}
         <p
           className="text-sm text-center"
           style={{ color: "var(--text-color)" }}
@@ -216,7 +217,6 @@ function ContinueTrilhas() {
           Retome suas trilhas e continue evoluindo.
         </p>
 
-        {/* ─── Carrossel ───────────────────────────────────── */}
         <div className="relative group/carousel">
           {/* Seta ESQUERDA */}
           <button
@@ -226,8 +226,7 @@ function ContinueTrilhas() {
             disabled={!podeVoltar}
             className={`
               hidden md:flex
-              absolute left-0 top-1/2 -translate-y-1/2
-              z-20
+              absolute left-0 top-1/2 -translate-y-1/2 z-20
               w-11 h-11 rounded-full
               items-center justify-center
               bg-white/95 dark:bg-[#2E3553]/95
@@ -254,8 +253,7 @@ function ContinueTrilhas() {
             disabled={!podeAvancar}
             className={`
               hidden md:flex
-              absolute right-0 top-1/2 -translate-y-1/2
-              z-20
+              absolute right-0 top-1/2 -translate-y-1/2 z-20
               w-11 h-11 rounded-full
               items-center justify-center
               bg-white/95 dark:bg-[#2E3553]/95
@@ -274,7 +272,6 @@ function ContinueTrilhas() {
             <ChevronRight size={22} strokeWidth={2.5} />
           </button>
 
-          {/* Gradiente à esquerda (fade) */}
           {podeVoltar && (
             <div
               className="
@@ -287,7 +284,6 @@ function ContinueTrilhas() {
             />
           )}
 
-          {/* Gradiente à direita (fade) */}
           {podeAvancar && (
             <div
               className="
@@ -300,7 +296,6 @@ function ContinueTrilhas() {
             />
           )}
 
-          {/* ─── Scroll horizontal ──────────────────────── */}
           <div
             ref={scrollRef}
             className="
@@ -318,8 +313,7 @@ function ContinueTrilhas() {
             }}
           >
             {loading
-              ? // ─── Skeletons durante o loading ─────────
-                Array.from({ length: 3 }).map((_, idx) => (
+              ? Array.from({ length: 3 }).map((_, idx) => (
                   <div
                     key={`skeleton-${idx}`}
                     className="shrink-0 snap-start w-85 md:w-95 rounded-2xl animate-pulse"
@@ -329,8 +323,7 @@ function ContinueTrilhas() {
                     }}
                   />
                 ))
-              : // ─── Cards reais ──────────────────────────
-                trilhas.map((trilha) => {
+              : trilhas.map((trilha) => {
                   const progresso =
                     trilha.totalVideos > 0
                       ? Math.round(
@@ -344,11 +337,7 @@ function ContinueTrilhas() {
                     <div
                       key={trilha.slug}
                       data-card
-                      className="
-                        shrink-0
-                        snap-start
-                        w-85 md:w-95
-                      "
+                      className="shrink-0 snap-start w-85 md:w-95"
                     >
                       <Card className="h-full">
                         <span className="text-blue-500 text-sm font-semibold">
@@ -400,7 +389,6 @@ function ContinueTrilhas() {
                 })}
           </div>
 
-          {/* ─── Indicador de progresso (bolinhas) ──────── */}
           {!loading && trilhas.length > 1 && (
             <div className="flex justify-center gap-1.5 mt-4">
               {trilhas.map((t, idx) => (

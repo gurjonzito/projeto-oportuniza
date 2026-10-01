@@ -1,22 +1,7 @@
 import api from "./api";
 
-// Habilita envio de cookies em todas as requisições
-api.defaults.withCredentials = true;
-
-// Redireciona para login se não autenticado
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (
-      err.response?.status === 401 &&
-      window.location.pathname.startsWith("/admin") &&
-      !window.location.pathname.includes("/admin/login")
-    ) {
-      window.location.href = "/admin/login";
-    }
-    return Promise.reject(err);
-  },
-);
+// ⚠️ O withCredentials já está definido em `api.ts`.
+// ⚠️ O interceptor de 401 já está definido em `api.ts`.
 
 export async function loginAdmin(
   email: string,
@@ -31,7 +16,8 @@ export async function logoutAdmin(): Promise<void> {
 
 export async function checkAuth(): Promise<boolean> {
   try {
-    await api.get("/auth/me");
+    // ⚠️ Rota do admin — não conflita mais com /user/me
+    await api.get("/auth/admin/me");
     return true;
   } catch {
     return false;

@@ -8,11 +8,24 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// ─── Rotas que NÃO devem receber Bearer ────────────────────────────
+const ROTAS_PUBLICAS = [
+  "/auth/login",
+  "/auth/logout",
+  "/auth/register",
+  "/auth/cadastro",
+  "/auth/forgot-password",
+  "/auth/reset-password",
+];
+
 // ─── Request interceptor: injeta o JWT do Neon Auth ────────────────
 api.interceptors.request.use(
   async (config) => {
-    // Admin próprio — não injeta Bearer do Neon
-    if (config.url?.startsWith("/auth")) {
+    const isRotaPublica = ROTAS_PUBLICAS.some((rota) =>
+      config.url?.startsWith(rota)
+    );
+
+    if (isRotaPublica) {
       return config;
     }
 
@@ -27,7 +40,7 @@ api.interceptors.request.use(
         }
       }
 
-      // Tentativa 2 (fallback): getSession() — funciona em todas as versões
+      // Tentativa 2 (fallback): getSession()
       if (!token) {
         const { data: session } = await authClient.getSession();
         token = (session as any)?.session?.token;
@@ -35,12 +48,9 @@ api.interceptors.request.use(
 
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.debug("[api] Bearer injetado:", token.slice(0, 20) + "...");
-      } else {
-        console.debug("[api] Nenhum token disponível — seguindo sem header");
       }
     } catch (err) {
-      console.debug("[api] Erro ao obter token:", err);
+      console.error("[api] Erro ao obter token:", err);
     }
 
     return config;
@@ -54,6 +64,7 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       const path = window.location.pathname;
+
       if (path.startsWith("/admin") && !path.includes("/admin/login")) {
         window.location.href = "/admin/login";
       } else if (path.startsWith("/user")) {

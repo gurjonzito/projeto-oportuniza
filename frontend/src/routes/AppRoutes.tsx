@@ -18,8 +18,6 @@ import Login from "../pages/Login";
 import Account from "../pages/Account";
 import Preferences from "../pages/Preferences";
 import AuthViewPage from "../pages/AuthViewPage";
-
-// ⚠️ NOVO IMPORT: componente customizado de reset de senha
 import ResetPassword from "../pages/ResetPassword";
 
 import Seguranca from "../pages/legal/Seguranca";
@@ -48,14 +46,18 @@ export default function AppRoutes() {
         <Route path="/player/:id" element={<Player />} />
         <Route path="/mobile" element={<Mobile />} />
         <Route path="/trilhas/:slug" element={<Playlist />} />
+
+        {/* Legal */}
         <Route path="/seguranca" element={<Seguranca />} />
         <Route path="/termos" element={<Termos />} />
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/privacidade" element={<Privacidade />} />
+
+        {/* Conta do usuário */}
         <Route path="/user" element={<Account />} />
         <Route path="/preferencias" element={<Preferences />} />
 
-        {/* Auth */}
+        {/* Autenticação */}
         <Route path="/login" element={<Login />} />
         <Route path="/cadastro" element={<Login />} />
         <Route path="/esqueci-senha" element={<AuthViewPage />} />
