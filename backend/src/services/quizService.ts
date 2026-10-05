@@ -80,63 +80,70 @@ export async function gerarQuiz(videoId: string) {
 
   console.log(`Gerando quiz para o vídeo ${videoId}...`);
 
+  // ⚠️ Chamada de IA FORA da transação (pode demorar)
   const quiz = await gerarComIA(video.titulo, video.resumoIA);
 
   // ==========================================================
-  // SALVAMENTO
+  // SALVAMENTO — apenas insert, sem findUnique dentro
   // ==========================================================
 
-  const quizSalvo = await prisma.$transaction(async (tx) => {
-    const novoQuiz = await tx.quiz.create({
-      data: {
-        videoId: video.id,
-        titulo: quiz.titulo,
-        modeloIA: "gemini-3.5-flash-lite",
-      },
-    });
-
-    for (let i = 0; i < quiz.questoes.length; i++) {
-      const questao = quiz.questoes[i];
-
-      await tx.quizQuestion.create({
+  const novoQuiz = await prisma.$transaction(
+    async (tx) => {
+      const quizCriado = await tx.quiz.create({
         data: {
-          quizId: novoQuiz.id,
-          pergunta: questao.pergunta,
-          explicacao: questao.explicacao,
-          ordem: i + 1,
-
-          alternativas: {
-            create: questao.alternativas.map(
-              (alternativa, alternativaIndex) => ({
-                texto: alternativa.texto,
-                correta: alternativa.correta,
-                ordem: alternativaIndex + 1,
-              }),
-            ),
-          },
+          videoId: video.id,
+          titulo: quiz.titulo,
+          modeloIA: "gemini-2.5-flash-lite",
         },
       });
-    }
 
-    return tx.quiz.findUnique({
-      where: {
-        id: novoQuiz.id,
-      },
-      include: {
-        questoes: {
-          orderBy: {
-            ordem: "asc",
-          },
-          include: {
+      for (let i = 0; i < quiz.questoes.length; i++) {
+        const questao = quiz.questoes[i];
+
+        await tx.quizQuestion.create({
+          data: {
+            quizId: quizCriado.id,
+            pergunta: questao.pergunta,
+            explicacao: questao.explicacao,
+            ordem: i + 1,
+
             alternativas: {
-              orderBy: {
-                ordem: "asc",
-              },
+              create: questao.alternativas.map(
+                (alternativa, alternativaIndex) => ({
+                  texto: alternativa.texto,
+                  correta: alternativa.correta,
+                  ordem: alternativaIndex + 1,
+                })
+              ),
             },
+          },
+        });
+      }
+
+      return quizCriado;
+    },
+    {
+      maxWait: 15000,
+      timeout: 30000,
+    }
+  );
+
+  // ==========================================================
+  // BUSCA FORA DA TRANSAÇÃO (evita estourar o timeout)
+  // ==========================================================
+
+  const quizSalvo = await prisma.quiz.findUnique({
+    where: { id: novoQuiz.id },
+    include: {
+      questoes: {
+        orderBy: { ordem: "asc" },
+        include: {
+          alternativas: {
+            orderBy: { ordem: "asc" },
           },
         },
       },
-    });
+    },
   });
 
   if (!quizSalvo) {
@@ -154,7 +161,7 @@ export async function gerarQuiz(videoId: string) {
 
 async function gerarComIA(
   tituloVideo: string,
-  resumo: string,
+  resumo: string
 ): Promise<QuizGeradoIA> {
   const prompt = `
 Você é um especialista em educação e criação de avaliações
@@ -330,11 +337,11 @@ LEMBRE-SE:
   for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
     try {
       console.log(
-        `Gerando quiz com Gemini - tentativa ${tentativa}/${MAX_TENTATIVAS}`,
+        `Gerando quiz com Gemini - tentativa ${tentativa}/${MAX_TENTATIVAS}`
       );
 
       const response = await genAI.models.generateContent({
-        model: "gemini-3.5-flash-lite",
+        model: "gemini-2.5-flash-lite",
         contents: prompt,
       });
 
@@ -382,8 +389,9 @@ LEMBRE-SE:
   }
 
   throw new Error(
-    `Não foi possível gerar um quiz válido após ${MAX_TENTATIVAS} tentativas. ${ultimoErro?.message ?? ""
-    }`,
+    `Não foi possível gerar um quiz válido após ${MAX_TENTATIVAS} tentativas. ${
+      ultimoErro?.message ?? ""
+    }`
   );
 }
 
@@ -429,7 +437,7 @@ function validarQuiz(quiz: QuizGeradoIA): void {
 
   if (quiz.questoes.length !== 5) {
     throw new Error(
-      `Quantidade inválida de questões: ${quiz.questoes.length}. Esperado: 5.`,
+      `Quantidade inválida de questões: ${quiz.questoes.length}. Esperado: 5.`
     );
   }
 
@@ -450,17 +458,17 @@ function validarQuiz(quiz: QuizGeradoIA): void {
 
     if (questao.alternativas.length !== 4) {
       throw new Error(
-        `Questão ${numeroQuestao} possui ${questao.alternativas.length} alternativas. Esperado: 4.`,
+        `Questão ${numeroQuestao} possui ${questao.alternativas.length} alternativas. Esperado: 4.`
       );
     }
 
     const quantidadeCorretas = questao.alternativas.filter(
-      (alternativa) => alternativa.correta === true,
+      (alternativa) => alternativa.correta === true
     ).length;
 
     if (quantidadeCorretas !== 1) {
       throw new Error(
-        `Questão ${numeroQuestao} possui ${quantidadeCorretas} respostas corretas. Esperado: 1.`,
+        `Questão ${numeroQuestao} possui ${quantidadeCorretas} respostas corretas. Esperado: 1.`
       );
     }
 
@@ -469,13 +477,13 @@ function validarQuiz(quiz: QuizGeradoIA): void {
 
       if (!alternativa.texto || typeof alternativa.texto !== "string") {
         throw new Error(
-          `Questão ${numeroQuestao}, alternativa ${numeroAlternativa} está sem texto.`,
+          `Questão ${numeroQuestao}, alternativa ${numeroAlternativa} está sem texto.`
         );
       }
 
       if (typeof alternativa.correta !== "boolean") {
         throw new Error(
-          `Questão ${numeroQuestao}, alternativa ${numeroAlternativa} possui "correta" inválido.`,
+          `Questão ${numeroQuestao}, alternativa ${numeroAlternativa} possui "correta" inválido.`
         );
       }
     });
@@ -520,7 +528,7 @@ export interface RespostaQuiz {
 export async function corrigirQuiz(
   quizId: string,
   userId: string,
-  respostas: RespostaQuiz[],
+  respostas: RespostaQuiz[]
 ) {
   const quiz = await prisma.quiz.findUnique({
     where: {
@@ -550,19 +558,17 @@ export async function corrigirQuiz(
     throw new Error("Respostas inválidas.");
   }
 
-  // Todas as questões precisam ser respondidas
   if (respostas.length !== quiz.questoes.length) {
     throw new Error(
-      `O quiz possui ${quiz.questoes.length} questões e todas devem ser respondidas.`,
+      `O quiz possui ${quiz.questoes.length} questões e todas devem ser respondidas.`
     );
   }
 
-  // Evita enviar a mesma questão duas vezes
   const questionIds = respostas.map((resposta) => resposta.questionId);
 
   if (new Set(questionIds).size !== questionIds.length) {
     throw new Error(
-      "Não é permitido responder a mesma questão mais de uma vez.",
+      "Não é permitido responder a mesma questão mais de uma vez."
     );
   }
 
@@ -576,7 +582,7 @@ export async function corrigirQuiz(
     }
 
     const alternativaSelecionada = questao.alternativas.find(
-      (alternativa) => alternativa.id === resposta.optionId,
+      (alternativa) => alternativa.id === resposta.optionId
     );
 
     if (!alternativaSelecionada) {
@@ -584,12 +590,12 @@ export async function corrigirQuiz(
     }
 
     const alternativaCorreta = questao.alternativas.find(
-      (alternativa) => alternativa.correta === true,
+      (alternativa) => alternativa.correta === true
     );
 
     if (!alternativaCorreta) {
       throw new Error(
-        `A questão ${questao.ordem} não possui uma alternativa correta configurada.`,
+        `A questão ${questao.ordem} não possui uma alternativa correta configurada.`
       );
     }
 
@@ -619,56 +625,44 @@ export async function corrigirQuiz(
     };
   });
 
-  // ==========================================================
-  // PONTUAÇÃO
-  // ==========================================================
-
   const totalQuestoes = quiz.questoes.length;
-
   const pontuacao = acertos;
-
   const percentual = totalQuestoes > 0 ? (pontuacao / totalQuestoes) * 100 : 0;
 
   // ==========================================================
-  // SALVAMENTO DA TENTATIVA
+  // SALVAMENTO DA TENTATIVA (transação curta)
   // ==========================================================
 
-  const tentativa = await prisma.$transaction(async (tx) => {
-    const novaTentativa = await tx.quizAttempt.create({
-      data: {
-        userId,
-        quizId,
-        pontuacao,
-        total: totalQuestoes,
-        percentual,
-      },
-    });
-
-    // Salva cada resposta
-    for (const resultado of resultadoQuestoes) {
-      await tx.quizAnswer.create({
+  const tentativa = await prisma.$transaction(
+    async (tx) => {
+      const novaTentativa = await tx.quizAttempt.create({
         data: {
-          attemptId: novaTentativa.id,
-          questionId: resultado.questionId,
-          optionId: resultado.alternativaSelecionada.id,
-          correta: resultado.acertou,
+          userId,
+          quizId,
+          pontuacao,
+          total: totalQuestoes,
+          percentual,
         },
       });
+
+      for (const resultado of resultadoQuestoes) {
+        await tx.quizAnswer.create({
+          data: {
+            attemptId: novaTentativa.id,
+            questionId: resultado.questionId,
+            optionId: resultado.alternativaSelecionada.id,
+            correta: resultado.acertou,
+          },
+        });
+      }
+
+      return novaTentativa;
+    },
+    {
+      maxWait: 10000,
+      timeout: 20000,
     }
-
-    return tx.quizAttempt.findUnique({
-      where: {
-        id: novaTentativa.id,
-      },
-      include: {
-        respostas: true,
-      },
-    });
-  });
-
-  if (!tentativa) {
-    throw new Error("Não foi possível salvar a tentativa.");
-  }
+  );
 
   // ==========================================================
   // RETORNO
@@ -686,7 +680,7 @@ export async function corrigirQuiz(
 
 export async function corrigirQuizAnonimo(
   quizId: string,
-  respostas: RespostaQuiz[],
+  respostas: RespostaQuiz[]
 ) {
   const quiz = await prisma.quiz.findUnique({
     where: { id: quizId },
@@ -704,23 +698,26 @@ export async function corrigirQuizAnonimo(
   if (!Array.isArray(respostas)) throw new Error("Respostas inválidas.");
   if (respostas.length !== quiz.questoes.length) {
     throw new Error(
-      `O quiz possui ${quiz.questoes.length} questões e todas devem ser respondidas.`,
+      `O quiz possui ${quiz.questoes.length} questões e todas devem ser respondidas.`
     );
   }
 
   const questionIds = respostas.map((r) => r.questionId);
   if (new Set(questionIds).size !== questionIds.length) {
-    throw new Error("Não é permitido responder a mesma questão mais de uma vez.");
+    throw new Error(
+      "Não é permitido responder a mesma questão mais de uma vez."
+    );
   }
 
   let acertos = 0;
 
   const resultadoQuestoes = quiz.questoes.map((questao) => {
     const resposta = respostas.find((r) => r.questionId === questao.id);
-    if (!resposta) throw new Error(`A questão ${questao.ordem} não foi respondida.`);
+    if (!resposta)
+      throw new Error(`A questão ${questao.ordem} não foi respondida.`);
 
     const alternativaSelecionada = questao.alternativas.find(
-      (a) => a.id === resposta.optionId,
+      (a) => a.id === resposta.optionId
     );
     if (!alternativaSelecionada) {
       throw new Error(`Alternativa inválida para a questão ${questao.ordem}.`);
@@ -737,8 +734,14 @@ export async function corrigirQuizAnonimo(
     return {
       questionId: questao.id,
       pergunta: questao.pergunta,
-      alternativaSelecionada: { id: alternativaSelecionada.id, texto: alternativaSelecionada.texto },
-      alternativaCorreta: { id: alternativaCorreta.id, texto: alternativaCorreta.texto },
+      alternativaSelecionada: {
+        id: alternativaSelecionada.id,
+        texto: alternativaSelecionada.texto,
+      },
+      alternativaCorreta: {
+        id: alternativaCorreta.id,
+        texto: alternativaCorreta.texto,
+      },
       acertou,
       explicacao: questao.explicacao,
     };
@@ -749,7 +752,7 @@ export async function corrigirQuizAnonimo(
 
   // sem prisma.$transaction — nada é salvo
   return {
-    id: crypto.randomUUID(), // id temporário só pro frontend
+    id: crypto.randomUUID(),
     pontuacao: acertos,
     total,
     percentual,
