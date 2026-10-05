@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
+import { notifySessionChanged } from "../hooks/useSession";
 
 import {
   BookOpen,
@@ -91,6 +92,7 @@ export default function Login() {
           return;
         }
 
+        notifySessionChanged(); // 👈 avisa todos os useSession
         navigate("/");
         return;
       }
@@ -107,6 +109,7 @@ export default function Login() {
         return;
       }
 
+      notifySessionChanged(); // 👈 avisa todos os useSession
       navigate("/");
     } catch (err) {
       console.error("Erro:", err);
@@ -125,6 +128,8 @@ export default function Login() {
         provider: "google",
         callbackURL: window.location.origin + "/",
       });
+      // O redirecionamento do Google volta para a home, então o
+      // notifySessionChanged vai ser disparado no focus da janela
     } catch (err) {
       console.error("Erro no Google:", err);
       setError("Não foi possível entrar com Google. Tente novamente.");

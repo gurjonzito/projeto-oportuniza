@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSession, signOut } from "../lib/auth-client";
+import { notifySessionChanged } from "../hooks/useSession";
 import { User, Settings, LogOut, ChevronDown } from "lucide-react";
 import ThemeToggle from "../components/ThemeToggle";
 import api from "../services/api";
@@ -22,19 +23,16 @@ export default function Navbar() {
       return;
     }
 
-    // Busca a foto atualizada do backend
     api
       .get("/user/me")
       .then(({ data }) => {
         setFoto(data.image ?? session.user.image ?? null);
       })
       .catch(() => {
-        // fallback pro que vem do Neon Auth (foto do Google)
         setFoto(session.user.image ?? null);
       });
   }, [session]);
 
-  // ─── Escuta o evento de "foto atualizada" disparado pelo Account.tsx ───
   useEffect(() => {
     function handleFotoAtualizada(e: Event) {
       const novaFoto = (e as CustomEvent).detail as string | null;
@@ -56,7 +54,10 @@ export default function Navbar() {
   async function handleLogout() {
     try {
       await signOut();
+    } catch (err) {
+      console.error("Erro ao sair:", err);
     } finally {
+      notifySessionChanged(); // 👈 avisa todos os useSession
       setDropdownOpen(false);
       setMenuOpen(false);
       navigate("/");

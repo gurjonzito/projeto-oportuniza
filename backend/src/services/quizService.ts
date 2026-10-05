@@ -93,7 +93,7 @@ export async function gerarQuiz(videoId: string) {
         data: {
           videoId: video.id,
           titulo: quiz.titulo,
-          modeloIA: "gemini-2.5-flash-lite",
+          modeloIA: "gemini-3.5-flash-lite",
         },
       });
 
@@ -341,7 +341,7 @@ LEMBRE-SE:
       );
 
       const response = await genAI.models.generateContent({
-        model: "gemini-2.5-flash-lite",
+        model: "gemini-3.5-flash-lite",
         contents: prompt,
       });
 
