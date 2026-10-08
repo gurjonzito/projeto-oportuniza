@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
 import { notifySessionChanged } from "../hooks/useSession";
+import { ForgotPasswordForm, authLocalization } from "@neondatabase/auth-ui";
 
 import {
   BookOpen,
@@ -39,7 +40,8 @@ function GoogleIcon({ size = 18 }: { size?: number }) {
 export default function Login() {
   const navigate = useNavigate();
 
-  const [view, setView] = useState<"login" | "cadastro">("login");
+  // "login" | "cadastro" | "forgot"
+  const [view, setView] = useState<"login" | "cadastro" | "forgot">("login");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,8 +57,9 @@ export default function Login() {
   const [success, setSuccess] = useState("");
 
   const isCadastro = view === "cadastro";
+  const isForgot = view === "forgot";
 
-  function trocarView(novaView: "login" | "cadastro") {
+  function trocarView(novaView: "login" | "cadastro" | "forgot") {
     setView(novaView);
     setError("");
     setSuccess("");
@@ -66,7 +69,7 @@ export default function Login() {
     setError("");
     setSuccess("");
 
-    if (!email || !password) {
+    if (!email || (!isForgot && !password)) {
       setError("Preencha todos os campos obrigatórios.");
       return;
     }
@@ -92,7 +95,7 @@ export default function Login() {
           return;
         }
 
-        notifySessionChanged(); // 👈 avisa todos os useSession
+        notifySessionChanged();
         navigate("/");
         return;
       }
@@ -109,7 +112,7 @@ export default function Login() {
         return;
       }
 
-      notifySessionChanged(); // 👈 avisa todos os useSession
+      notifySessionChanged();
       navigate("/");
     } catch (err) {
       console.error("Erro:", err);
@@ -128,8 +131,6 @@ export default function Login() {
         provider: "google",
         callbackURL: window.location.origin + "/",
       });
-      // O redirecionamento do Google volta para a home, então o
-      // notifySessionChanged vai ser disparado no focus da janela
     } catch (err) {
       console.error("Erro no Google:", err);
       setError("Não foi possível entrar com Google. Tente novamente.");
@@ -172,179 +173,60 @@ export default function Login() {
             </div>
 
             <h1 className="text-white text-2xl font-bold leading-tight">
-              {isCadastro ? "Crie sua conta" : "Bem-vindo de volta"}
+              {isForgot
+                ? "Recuperar senha"
+                : isCadastro
+                  ? "Crie sua conta"
+                  : "Bem-vindo de volta"}
             </h1>
             <p className="text-blue-200 text-sm mt-1">
-              {isCadastro
-                ? "Comece sua jornada de aprendizado"
-                : "Acesse trilhas de aprendizado gratuitas"}
+              {isForgot
+                ? "Enviaremos um link para você criar uma nova senha"
+                : isCadastro
+                  ? "Comece sua jornada de aprendizado"
+                  : "Acesse trilhas de aprendizado gratuitas"}
             </p>
           </div>
 
-          {/* Abas */}
-          <div
-            className="flex border-b"
-            style={{ borderColor: "var(--border-color, #e5e7eb)" }}
-          >
-            <button
-              type="button"
-              onClick={() => trocarView("login")}
-              className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
-                view === "login"
-                  ? "border-[#1E40AF] text-[#1E40AF]"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
+          {/* Abas — só aparecem em login/cadastro */}
+          {!isForgot && (
+            <div
+              className="flex border-b"
+              style={{ borderColor: "var(--border-color, #e5e7eb)" }}
             >
-              Entrar
-            </button>
-            <button
-              type="button"
-              onClick={() => trocarView("cadastro")}
-              className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
-                view === "cadastro"
-                  ? "border-[#1E40AF] text-[#1E40AF]"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
-              }`}
-            >
-              Cadastrar
-            </button>
-          </div>
+              <button
+                type="button"
+                onClick={() => trocarView("login")}
+                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${view === "login"
+                    ? "border-[#1E40AF] text-[#1E40AF]"
+                    : "border-transparent text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                Entrar
+              </button>
+              <button
+                type="button"
+                onClick={() => trocarView("cadastro")}
+                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${view === "cadastro"
+                    ? "border-[#1E40AF] text-[#1E40AF]"
+                    : "border-transparent text-gray-400 hover:text-gray-600"
+                  }`}
+              >
+                Cadastrar
+              </button>
+            </div>
+          )}
 
           {/* Conteúdo */}
           <div className={`px-7 ${isCadastro ? "py-5" : "py-6"}`}>
-            <div className="flex flex-col gap-4">
-              <div
-                className={`flex flex-col ${isCadastro ? "gap-2.5" : "gap-3"}`}
-              >
-                {/* Nome (só cadastro) */}
-                {isCadastro && (
-                  <div className="flex flex-col gap-1">
-                    <label
-                      className="text-xs font-semibold"
-                      style={{ color: "var(--text-muted, #6b7280)" }}
-                    >
-                      Nome completo
-                    </label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Seu nome"
-                      className="auth-input w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
-                    />
-                  </div>
-                )}
+            {isForgot ? (
+              // ─── Fluxo "Esqueci minha senha" via componente do Neon ───
+              <div className="flex flex-col gap-4">
+                <ForgotPasswordForm localization={authLocalization} />
 
-                {/* Email */}
-                <div className="flex flex-col gap-1">
-                  <label
-                    className="text-xs font-semibold"
-                    style={{ color: "var(--text-muted, #6b7280)" }}
-                  >
-                    Email
-                  </label>
-                  <div className="relative">
-                    <Mail
-                      size={15}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                      style={{ color: "var(--text-muted, #9ca3af)" }}
-                    />
-                    <input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSubmit();
-                      }}
-                      placeholder="seu@email.com"
-                      className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
-                    />
-                  </div>
-                </div>
-
-                {/* Senha */}
-                <div className="flex flex-col gap-1">
-                  <label
-                    className="text-xs font-semibold"
-                    style={{ color: "var(--text-muted, #6b7280)" }}
-                  >
-                    Senha
-                  </label>
-
-                  <div className="relative">
-                    <Lock
-                      size={15}
-                      className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                      style={{ color: "var(--text-muted, #9ca3af)" }}
-                    />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSubmit();
-                      }}
-                      placeholder="••••••••"
-                      className="auth-input w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
-                      style={{ color: "var(--text-muted, #9ca3af)" }}
-                    >
-                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Confirmar senha (só cadastro) */}
-                {isCadastro && (
-                  <div className="flex flex-col gap-1">
-                    <label
-                      className="text-xs font-semibold"
-                      style={{ color: "var(--text-muted, #6b7280)" }}
-                    >
-                      Confirmar senha
-                    </label>
-                    <div className="relative">
-                      <Lock
-                        size={15}
-                        className="absolute left-3.5 top-1/2 -translate-y-1/2"
-                        style={{ color: "var(--text-muted, #9ca3af)" }}
-                      />
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSubmit();
-                        }}
-                        placeholder="••••••••"
-                        className="auth-input w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
-                      />
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
-                        style={{ color: "var(--text-muted, #9ca3af)" }}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff size={15} />
-                        ) : (
-                          <Eye size={15} />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Sucesso */}
                 {success && (
                   <div
-                    className="flex items-start gap-2 text-xs font-medium px-3 py-2 rounded-lg"
+                    className="flex items-start gap-2 text-xs font-medium px-3 py-2 rounded-lg mt-4"
                     style={{
                       color: "#059669",
                       backgroundColor: "rgba(16, 185, 129, 0.10)",
@@ -355,101 +237,256 @@ export default function Login() {
                   </div>
                 )}
 
-                {/* Erro */}
-                {error && (
-                  <p
-                    className="text-xs font-medium px-3 py-2 rounded-lg"
-                    style={{
-                      color: "#dc2626",
-                      backgroundColor: "rgba(239, 68, 68, 0.10)",
-                    }}
-                  >
-                    {error}
-                  </p>
-                )}
-
-                {/* Botão submit */}
                 <button
                   type="button"
-                  onClick={handleSubmit}
-                  disabled={loading || googleLoading}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 mt-0.5"
+                  onClick={() => trocarView("login")}
+                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-4 w-full"
                 >
-                  {loading && (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  )}
-                  {loading
-                    ? isCadastro
-                      ? "Criando conta..."
-                      : "Entrando..."
-                    : isCadastro
-                      ? "Criar conta"
-                      : "Entrar"}
+                  <ArrowLeft size={13} />
+                  Voltar para o login
                 </button>
+              </div>
+            ) : (
+              // ─── Login / Cadastro (fluxo existente) ─────────────────
+              <div className="flex flex-col gap-4">
+                <div
+                  className={`flex flex-col ${isCadastro ? "gap-2.5" : "gap-3"}`}
+                >
+                  {/* Nome (só cadastro) */}
+                  {isCadastro && (
+                    <div className="flex flex-col gap-1">
+                      <label
+                        className="text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #6b7280)" }}
+                      >
+                        Nome completo
+                      </label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Seu nome"
+                        className="auth-input w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
+                      />
+                    </div>
+                  )}
 
-                {/* Divisor */}
-                <div className="relative my-1">
-                  <div
-                    className="absolute inset-0 flex items-center"
-                    aria-hidden="true"
-                  >
-                    <div
-                      className="w-full border-t"
-                      style={{ borderColor: "var(--border-color, #e5e7eb)" }}
-                    />
+                  {/* Email */}
+                  <div className="flex flex-col gap-1">
+                    <label
+                      className="text-xs font-semibold"
+                      style={{ color: "var(--text-muted, #6b7280)" }}
+                    >
+                      Email
+                    </label>
+                    <div className="relative">
+                      <Mail
+                        size={15}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      />
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSubmit();
+                        }}
+                        placeholder="seu@email.com"
+                        className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
+                      />
+                    </div>
                   </div>
-                  <div className="relative flex justify-center">
-                    <span
-                      className="px-3 text-xs"
+
+                  {/* Senha */}
+                  <div className="flex flex-col gap-1">
+                    <label
+                      className="text-xs font-semibold"
+                      style={{ color: "var(--text-muted, #6b7280)" }}
+                    >
+                      Senha
+                    </label>
+
+                    <div className="relative">
+                      <Lock
+                        size={15}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSubmit();
+                        }}
+                        placeholder="••••••••"
+                        className="auth-input w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
+                        style={{ color: "var(--text-muted, #9ca3af)" }}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={15} />
+                        ) : (
+                          <Eye size={15} />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* 👇 Link "Esqueci minha senha" */}
+                    {view === "login" && (
+                      <button
+                        type="button"
+                        onClick={() => trocarView("forgot")}
+                        className="self-end text-[11px] font-semibold text-[#23A6F0] hover:underline -mt-0.5"
+                      >
+                        Esqueci minha senha
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Confirmar senha (só cadastro) */}
+                  {isCadastro && (
+                    <div className="flex flex-col gap-1">
+                      <label
+                        className="text-xs font-semibold"
+                        style={{ color: "var(--text-muted, #6b7280)" }}
+                      >
+                        Confirmar senha
+                      </label>
+                      <div className="relative">
+                        <Lock
+                          size={15}
+                          className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                          style={{ color: "var(--text-muted, #9ca3af)" }}
+                        />
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") handleSubmit();
+                          }}
+                          placeholder="••••••••"
+                          className="auth-input w-full pl-10 pr-10 py-2.5 rounded-xl border text-sm outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20"
+                        />
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setShowConfirmPassword(!showConfirmPassword)
+                          }
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
+                          style={{ color: "var(--text-muted, #9ca3af)" }}
+                        >
+                          {showConfirmPassword ? (
+                            <EyeOff size={15} />
+                          ) : (
+                            <Eye size={15} />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Erro */}
+                  {error && (
+                    <p
+                      className="text-xs font-medium px-3 py-2 rounded-lg"
                       style={{
-                        backgroundColor: "var(--card-bg, white)",
-                        color: "var(--text-muted, #6b7280)",
+                        color: "#dc2626",
+                        backgroundColor: "rgba(239, 68, 68, 0.10)",
                       }}
                     >
-                      ou
-                    </span>
-                  </div>
-                </div>
-
-                {/* Botão Google */}
-                <button
-                  type="button"
-                  onClick={handleGoogle}
-                  disabled={loading || googleLoading}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border text-sm font-semibold transition hover:bg-black/5 disabled:opacity-60"
-                  style={{
-                    borderColor: "var(--border-color, #e5e7eb)",
-                    color: "var(--text-color, #111827)",
-                  }}
-                >
-                  {googleLoading ? (
-                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <GoogleIcon size={18} />
+                      {error}
+                    </p>
                   )}
-                  {googleLoading ? "Conectando..." : "Continuar com Google"}
-                </button>
 
-                {/* Voltar para login */}
-                {isCadastro && (
+                  {/* Botão submit */}
                   <button
                     type="button"
-                    onClick={() => trocarView("login")}
-                    className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-1"
+                    onClick={handleSubmit}
+                    disabled={loading || googleLoading}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 mt-0.5"
                   >
-                    <ArrowLeft size={13} />
-                    Já tenho conta
+                    {loading && (
+                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
+                    {loading
+                      ? isCadastro
+                        ? "Criando conta..."
+                        : "Entrando..."
+                      : isCadastro
+                        ? "Criar conta"
+                        : "Entrar"}
                   </button>
-                )}
+
+                  {/* Divisor */}
+                  <div className="relative my-1">
+                    <div
+                      className="absolute inset-0 flex items-center"
+                      aria-hidden="true"
+                    >
+                      <div
+                        className="w-full border-t"
+                        style={{ borderColor: "var(--border-color, #e5e7eb)" }}
+                      />
+                    </div>
+                    <div className="relative flex justify-center">
+                      <span
+                        className="px-3 text-xs"
+                        style={{
+                          backgroundColor: "var(--card-bg, white)",
+                          color: "var(--text-muted, #6b7280)",
+                        }}
+                      >
+                        ou
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Botão Google */}
+                  <button
+                    type="button"
+                    onClick={handleGoogle}
+                    disabled={loading || googleLoading}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border text-sm font-semibold transition hover:bg-black/5 disabled:opacity-60"
+                    style={{
+                      borderColor: "var(--border-color, #e5e7eb)",
+                      color: "var(--text-color, #111827)",
+                    }}
+                  >
+                    {googleLoading ? (
+                      <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <GoogleIcon size={18} />
+                    )}
+                    {googleLoading ? "Conectando..." : "Continuar com Google"}
+                  </button>
+
+                  {/* Voltar para login */}
+                  {isCadastro && (
+                    <button
+                      type="button"
+                      onClick={() => trocarView("login")}
+                      className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-1"
+                    >
+                      <ArrowLeft size={13} />
+                      Já tenho conta
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Footer */}
           <div
-            className={`px-7 text-center border-t ${
-              isCadastro ? "py-3" : "py-4"
-            }`}
+            className={`px-7 text-center border-t ${isCadastro ? "py-3" : "py-4"
+              }`}
             style={{
               borderColor: "var(--border-color, #e5e7eb)",
               backgroundColor: "var(--bg-subtle, #f9fafb)",
