@@ -62,6 +62,7 @@ export default function AppRoutes() {
         <Route path="/cadastro" element={<Login />} />
         <Route path="/esqueci-senha" element={<AuthViewPage />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} /> 
       </Route>
 
       {/* Login admin — fora do AdminLayout */}

@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "../config/prisma"; // ⚠️ Ajuste o caminho conforme seu projeto
+import { localization } from "better-auth-localization";
+import { prisma } from "../config/prisma";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -9,6 +10,13 @@ export const auth = betterAuth({
 
   baseURL: process.env.NEON_AUTH_BASE_URL,
   secret: process.env.NEON_AUTH_SECRET || process.env.BETTER_AUTH_SECRET,
+
+  plugins: [
+    localization({
+      defaultLocale: "pt-BR", // Usa as traduções embutidas em português
+      fallbackLocale: "default", // Fallback para inglês se faltar alguma tradução
+    }),
+  ],
 
   socialProviders: {
     google: {

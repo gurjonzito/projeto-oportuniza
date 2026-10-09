@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
 import { notifySessionChanged } from "../hooks/useSession";
-import { ForgotPasswordForm, authLocalization } from "@neondatabase/auth-ui";
+import { ForgotPasswordForm } from "@neondatabase/auth-ui";
 
 import {
   BookOpen,
@@ -222,7 +222,10 @@ export default function Login() {
             {isForgot ? (
               // ─── Fluxo "Esqueci minha senha" via componente do Neon ───
               <div className="flex flex-col gap-4">
-                <ForgotPasswordForm localization={authLocalization} />
+                <ForgotPasswordForm
+  {...({ redirectTo: `${window.location.origin}/reset-password` } as any)}
+  onSuccess={() => { /* ... */ }}
+/>
 
                 {success && (
                   <div
