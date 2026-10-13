@@ -1,6 +1,5 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { localization } from "better-auth-localization";
 import { prisma } from "../config/prisma";
 
 export const auth = betterAuth({
@@ -11,28 +10,16 @@ export const auth = betterAuth({
   baseURL: process.env.NEON_AUTH_BASE_URL,
   secret: process.env.NEON_AUTH_SECRET || process.env.BETTER_AUTH_SECRET,
 
-  plugins: [
-    localization({
-      defaultLocale: "pt-BR", // Usa as traduções embutidas em português
-      fallbackLocale: "default", // Fallback para inglês se faltar alguma tradução
-    }),
-  ],
-
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-
-      // ─── SOLUÇÃO 1: Mapeia a foto do Google para o objeto do usuário ───
-      mapProfileToUser: (profile) => {
-        return {
-          image: profile.picture,
-        };
-      },
+      mapProfileToUser: (profile) => ({
+        image: profile.picture,
+      }),
     },
   },
 
-  // ─── SOLUÇÃO 2: Sincroniza a foto com o seu banco Prisma ───
   databaseHooks: {
     user: {
       create: {

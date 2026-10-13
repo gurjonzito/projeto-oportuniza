@@ -2,6 +2,32 @@ import { ResetPasswordForm, authLocalization } from "@neondatabase/auth-ui";
 import { Link } from "react-router-dom";
 import { BookOpen } from "lucide-react";
 
+// Objeto de tradução com as chaves usadas pelo ResetPasswordForm.
+// O spread (...authLocalization) mantém os textos padrão como fallback
+// para qualquer chave que ainda não tenha sido traduzida.
+const ptBR = {
+  ...authLocalization,
+
+  // ─── Títulos e descrições ───────────────────────────────────────
+  RESET_PASSWORD: "Nova senha",
+  RESET_PASSWORD_DESCRIPTION: "Defina uma nova senha para acessar sua conta",
+
+  // ─── Labels e placeholders ──────────────────────────────────────
+  NEW_PASSWORD: "Nova senha",
+  NEW_PASSWORD_PLACEHOLDER: "Digite sua nova senha",
+  CONFIRM_PASSWORD: "Confirmar nova senha",
+  CONFIRM_PASSWORD_PLACEHOLDER: "Confirme sua nova senha",
+  PASSWORD: "Senha",
+  PASSWORD_PLACEHOLDER: "••••••••",
+
+  // ─── Botão principal ────────────────────────────────────────────
+  RESET_PASSWORD_ACTION: "Salvar nova senha",
+  SAVE_NEW_PASSWORD: "Salvar nova senha",
+
+  // ─── Link de voltar ─────────────────────────────────────────────
+  BACK_TO_SIGN_IN: "Voltar para o login",
+};
+
 export default function ResetPassword() {
   return (
     <div
@@ -45,9 +71,9 @@ export default function ResetPassword() {
             </p>
           </div>
 
-          {/* Formulário */}
+          {/* Formulário — com tradução pt-BR passada diretamente */}
           <div className="px-7 py-6">
-            <ResetPasswordForm localization={authLocalization} />
+            <ResetPasswordForm localization={ptBR} />
           </div>
 
           {/* Footer */}
