@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
 import { notifySessionChanged } from "../hooks/useSession";
@@ -52,6 +52,8 @@ export default function Login() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -59,15 +61,64 @@ export default function Login() {
   const isCadastro = view === "cadastro";
   const isForgot = view === "forgot";
 
+  // Detecta quando o usuário volta após clicar no link de verificação no e-mail
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("verified") === "1") {
+      setView("login");
+      setSuccess(
+        "E-mail confirmado com sucesso! Agora você já pode entrar com sua senha ou continuar com o Google."
+      );
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   function trocarView(novaView: "login" | "cadastro" | "forgot") {
     setView(novaView);
     setError("");
     setSuccess("");
+    setNeedsVerification(false);
+  }
+
+  async function reenviarLinkVerificacao() {
+    if (!email) {
+      setError("Informe seu e-mail acima para reenviar o link de confirmação.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+    setResendingEmail(true);
+
+    try {
+      const res = await authClient.sendVerificationEmail({
+        email,
+        callbackURL: `${window.location.origin}/login?verified=1`,
+      });
+
+      if (res?.error) {
+        setError(
+          res.error.message || "Não foi possível reenviar o e-mail de confirmação."
+        );
+        return;
+      }
+
+      setNeedsVerification(false);
+      setSuccess(
+        `Enviamos um novo link de confirmação para ${email}. Verifique sua caixa de entrada e spam.`
+      );
+    } catch (err) {
+      console.error("Erro ao reenviar verificação:", err);
+      setError("Erro ao reenviar o link de verificação.");
+    } finally {
+      setResendingEmail(false);
+    }
   }
 
   async function handleSubmit() {
     setError("");
     setSuccess("");
+    setNeedsVerification(false);
 
     if (!email || (!isForgot && !password)) {
       setError("Preencha todos os campos obrigatórios.");
@@ -91,6 +142,16 @@ export default function Login() {
         const res = await authClient.signIn.email({ email, password });
 
         if (res?.error) {
+          const msg = res.error.message?.toLowerCase() || "";
+
+          if (msg.includes("verified") || res.error.status === 403) {
+            setNeedsVerification(true);
+            setError(
+              "Seu e-mail ainda não foi verificado. Clique no link enviado para sua caixa de entrada."
+            );
+            return;
+          }
+
           setError(res.error.message || "Email ou senha incorretos.");
           return;
         }
@@ -100,11 +161,12 @@ export default function Login() {
         return;
       }
 
-      // ─── CADASTRO ───────────────────────────────────────────────────
+      // ─── CADASTRO (COM ENVIO DE LINK DE VERIFICAÇÃO) ───────────────
       const res = await authClient.signUp.email({
         email,
         password,
         name: name.trim(),
+        callbackURL: `${window.location.origin}/login?verified=1`,
       });
 
       if (res?.error) {
@@ -112,8 +174,13 @@ export default function Login() {
         return;
       }
 
-      notifySessionChanged();
-      navigate("/");
+      // Limpa senhas, volta para a aba de login e instrui a verificar o e-mail
+      setPassword("");
+      setConfirmPassword("");
+      setView("login");
+      setSuccess(
+        `Conta criada! Enviamos um link de confirmação para ${email}. Clique no link do e-mail para ativar sua conta.`
+      );
     } catch (err) {
       console.error("Erro:", err);
       setError("Ocorreu um erro. Tente novamente.");
@@ -124,6 +191,7 @@ export default function Login() {
 
   async function handleGoogle() {
     setError("");
+    setSuccess("");
     setGoogleLoading(true);
 
     try {
@@ -197,20 +265,22 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => trocarView("login")}
-                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${view === "login"
+                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
+                  view === "login"
                     ? "border-[#1E40AF] text-[#1E40AF]"
                     : "border-transparent text-gray-400 hover:text-gray-600"
-                  }`}
+                }`}
               >
                 Entrar
               </button>
               <button
                 type="button"
                 onClick={() => trocarView("cadastro")}
-                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${view === "cadastro"
+                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
+                  view === "cadastro"
                     ? "border-[#1E40AF] text-[#1E40AF]"
                     : "border-transparent text-gray-400 hover:text-gray-600"
-                  }`}
+                }`}
               >
                 Cadastrar
               </button>
@@ -223,9 +293,11 @@ export default function Login() {
               // ─── Fluxo "Esqueci minha senha" via componente do Neon ───
               <div className="flex flex-col gap-4">
                 <ForgotPasswordForm
-  {...({ redirectTo: `${window.location.origin}/reset-password` } as any)}
-  onSuccess={() => { /* ... */ }}
-/>
+                  {...({
+                    redirectTo: `${window.location.origin}/reset-password`,
+                  } as any)}
+                  onSuccess={() => {}}
+                />
 
                 {success && (
                   <div
@@ -250,7 +322,7 @@ export default function Login() {
                 </button>
               </div>
             ) : (
-              // ─── Login / Cadastro (fluxo existente) ─────────────────
+              // ─── Login / Cadastro ───────────────────────────────────
               <div className="flex flex-col gap-4">
                 <div
                   className={`flex flex-col ${isCadastro ? "gap-2.5" : "gap-3"}`}
@@ -340,7 +412,6 @@ export default function Login() {
                       </button>
                     </div>
 
-                    {/* 👇 Link "Esqueci minha senha" */}
                     {view === "login" && (
                       <button
                         type="button"
@@ -395,17 +466,43 @@ export default function Login() {
                     </div>
                   )}
 
-                  {/* Erro */}
+                  {/* Sucesso (ex: link de verificação enviado ou confirmado) */}
+                  {success && (
+                    <div
+                      className="flex items-start gap-2 text-xs font-medium px-3 py-2.5 rounded-lg"
+                      style={{
+                        color: "#059669",
+                        backgroundColor: "rgba(16, 185, 129, 0.10)",
+                      }}
+                    >
+                      <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
+                      <span>{success}</span>
+                    </div>
+                  )}
+
+                  {/* Erro + botão opcional de reenviar link */}
                   {error && (
-                    <p
-                      className="text-xs font-medium px-3 py-2 rounded-lg"
+                    <div
+                      className="text-xs font-medium px-3 py-2.5 rounded-lg flex flex-col gap-1.5"
                       style={{
                         color: "#dc2626",
                         backgroundColor: "rgba(239, 68, 68, 0.10)",
                       }}
                     >
-                      {error}
-                    </p>
+                      <p>{error}</p>
+                      {needsVerification && (
+                        <button
+                          type="button"
+                          onClick={reenviarLinkVerificacao}
+                          disabled={resendingEmail}
+                          className="self-start font-semibold underline hover:opacity-80 disabled:opacity-60"
+                        >
+                          {resendingEmail
+                            ? "Reenviando..."
+                            : "Reenviar link de confirmação"}
+                        </button>
+                      )}
+                    </div>
                   )}
 
                   {/* Botão submit */}
@@ -488,8 +585,9 @@ export default function Login() {
 
           {/* Footer */}
           <div
-            className={`px-7 text-center border-t ${isCadastro ? "py-3" : "py-4"
-              }`}
+            className={`px-7 text-center border-t ${
+              isCadastro ? "py-3" : "py-4"
+            }`}
             style={{
               borderColor: "var(--border-color, #e5e7eb)",
               backgroundColor: "var(--bg-subtle, #f9fafb)",
