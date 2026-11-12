@@ -143,15 +143,25 @@ export default function Login() {
 
         if (res?.error) {
           const msg = res.error.message?.toLowerCase() || "";
+          const status = res.error.status;
 
-          if (msg.includes("verified") || res.error.status === 403) {
+          // OPÇÃO A IMPLEMENTADA AQUI: Detecção abrangente de erro de e-mail não verificado
+          if (
+            msg.includes("verif") || 
+            msg.includes("not verified") ||
+            msg.includes("confirmed") ||
+            status === 403 || 
+            status === 401 ||
+            status === 400 // Alguns retornos do Neon podem vir como 400
+          ) {
             setNeedsVerification(true);
             setError(
-              "Seu e-mail ainda não foi verificado. Clique no link enviado para sua caixa de entrada."
+              "Seu e-mail ainda não foi verificado ou as credenciais estão incorretas. Se você acabou de se cadastrar, clique abaixo para reenviar o link."
             );
             return;
           }
 
+          // Outros erros (como senha incorreta)
           setError(res.error.message || "Email ou senha incorretos.");
           return;
         }
