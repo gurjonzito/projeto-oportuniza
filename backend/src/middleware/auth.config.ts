@@ -10,6 +10,13 @@ export const auth = betterAuth({
   baseURL: process.env.NEON_AUTH_BASE_URL,
   secret: process.env.NEON_AUTH_SECRET || process.env.BETTER_AUTH_SECRET,
 
+  account: {
+    accountLinking: {
+      enabled: true,
+      trustedProviders: ["google"], // Permite vincular automaticamente se o e-mail for igual
+    },
+  },
+
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID!,
