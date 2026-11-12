@@ -4,7 +4,7 @@ import { authClient } from "../lib/auth-client";
 
 const api = axios.create({
   baseURL: "/",
-  timeout: 10000,
+  timeout: 60000,
   withCredentials: true,
 });
 

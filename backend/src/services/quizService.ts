@@ -164,6 +164,7 @@ async function gerarComIA(
   resumo: string
 ): Promise<QuizGeradoIA> {
   const prompt = `
+
 Você é um especialista em educação e criação de avaliações
 para estudantes iniciantes.
 
@@ -179,9 +180,11 @@ INFORMAÇÕES DA AULA
 ============================================================
 
 Título do vídeo:
+
 ${tituloVideo}
 
 Resumo da aula:
+
 ${resumo}
 
 ============================================================
@@ -328,13 +331,22 @@ LEMBRE-SE:
 - linguagem simples e didática;
 - sem Markdown;
 - somente JSON válido.
+
 `.trim();
 
-  const MAX_TENTATIVAS = 3;
+  // Aumentado para 4 tentativas
+  const MAX_TENTATIVAS = 4;
+
+  // Intervalos progressivos entre tentativas
+  const intervalosEspera = [3000, 6000, 10000];
 
   let ultimoErro: any = null;
 
-  for (let tentativa = 1; tentativa <= MAX_TENTATIVAS; tentativa++) {
+  for (
+    let tentativa = 1;
+    tentativa <= MAX_TENTATIVAS;
+    tentativa++
+  ) {
     try {
       console.log(
         `Gerando quiz com Gemini - tentativa ${tentativa}/${MAX_TENTATIVAS}`
@@ -357,32 +369,56 @@ LEMBRE-SE:
 
       validarQuiz(quiz);
 
-      console.log(`Quiz gerado com sucesso na tentativa ${tentativa}.`);
+      console.log(
+        `Quiz gerado com sucesso na tentativa ${tentativa}.`
+      );
 
       return quiz;
+
     } catch (error: any) {
       ultimoErro = error;
 
-      console.warn(`Tentativa ${tentativa} falhou:`, error?.message ?? error);
+      console.warn(
+        `Tentativa ${tentativa} falhou:`,
+        error?.message ?? error
+      );
 
-      const isUltimaTentativa = tentativa === MAX_TENTATIVAS;
+      const isUltimaTentativa =
+        tentativa === MAX_TENTATIVAS;
 
       if (isUltimaTentativa) {
         break;
       }
 
-      if (error?.status === 503) {
-        const espera = 2000 * tentativa;
+      // Identifica erros temporários da API Gemini
+      const statusErro = Number(
+        error?.status ??
+        error?.response?.status ??
+        error?.error?.code
+      );
 
-        console.log(`Gemini indisponível. Aguardando ${espera}ms...`);
+      const errosTemporarios = [429, 500, 502, 503, 504];
+
+      if (errosTemporarios.includes(statusErro)) {
+        const espera = intervalosEspera[tentativa - 1];
+
+        console.log(
+          `Gemini temporariamente indisponível (HTTP ${statusErro}). ` +
+          `Aguardando ${espera}ms antes da próxima tentativa...`
+        );
 
         await esperar(espera);
+
         continue;
       }
 
+      // Outros erros: tenta novamente com intervalo menor
       const espera = 1000 * tentativa;
 
-      console.log(`Resposta inválida. Tentando novamente em ${espera}ms...`);
+      console.log(
+        `Resposta inválida ou erro inesperado. ` +
+        `Tentando novamente em ${espera}ms...`
+      );
 
       await esperar(espera);
     }
