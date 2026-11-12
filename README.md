@@ -48,16 +48,8 @@ The project was created with the purpose of helping young people in their profes
 
 ## Screenshots
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="./assets/home.png" width="250"/>
-    </td>
-    <td align="center">
-      <img src="./assets/contact.png" width="250"/>
-    </td>
-  </tr>
-</table>
+<img src="./assets/home.png"/>
+<img src="./assets/contact.png"/>
 
 ---
 
@@ -66,7 +58,7 @@ The project was created with the purpose of helping young people in their profes
 Clone the repository:
 
 ```bash
-git clone https://github.com/gurjonzito/projeto-oportuniza.git
+$ git clone https://github.com/gurjonzito/projeto-oportuniza.git
 ```
 
 ---
