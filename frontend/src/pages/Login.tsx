@@ -93,7 +93,7 @@ export default function Login() {
     try {
       const res = await authClient.sendVerificationEmail({
         email,
-        callbackURL: `${window.location.origin}/login?verified=1`,
+        callbackURL: `${window.location.origin}/login`,
       });
 
       if (res?.error) {
@@ -166,7 +166,7 @@ export default function Login() {
         email,
         password,
         name: name.trim(),
-        callbackURL: `${window.location.origin}/login?verified=1`,
+        callbackURL: `${window.location.origin}/login`,
       });
 
       if (res?.error) {
