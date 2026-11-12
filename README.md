@@ -21,8 +21,7 @@
 
 ## About
 
-Oportuniza is a Full Stack web platform developed as a Final Course Project (TCC) for the Bachelor's Degree in Information Systems.
-The project was created with the purpose of helping young people in their professional development through a curated educational video platform, bringing together organized and accessible content focused on employability, technology, professional skills and career growth.
+Oportuniza is a Full Stack web platform developed as a Final Course Project (TCC) for the Bachelor's Degree in Information Systems. The project was created with the purpose of helping young people in their professional development through a curated educational video platform, bringing together organized and accessible content focused on employability, technology, professional skills and career growth.
 
 ---
 
