@@ -49,7 +49,8 @@ The project was created with the purpose of helping young people in their profes
 ## Screenshots
 
 <img src="./assets/home.png"/>
-<img src="./assets/contact.png"/>
+<img src="./assets/about.png"/>
+<img src="./assets/trilhas.png"/>
 
 ---
 
