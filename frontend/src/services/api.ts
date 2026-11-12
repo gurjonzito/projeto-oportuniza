@@ -1,6 +1,4 @@
-// frontend/src/services/api.ts
 import axios from "axios";
-import { authClient } from "../lib/auth-client";
 
 const api = axios.create({
   baseURL: "/",
@@ -8,7 +6,6 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// ─── Rotas que NÃO devem receber Bearer ────────────────────────────
 const ROTAS_PUBLICAS = [
   "/auth/login",
   "/auth/logout",
@@ -18,39 +15,85 @@ const ROTAS_PUBLICAS = [
   "/auth/reset-password",
 ];
 
-// ─── Request interceptor: injeta o JWT do Neon Auth ────────────────
+let tokenAtual: string | null = null;
+let semSessao = false;
+let buscandoToken: Promise<string | null> | null = null;
+
+function limparToken() {
+  tokenAtual = null;
+  semSessao = false;
+  buscandoToken = null;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("oportuniza:session-changed", limparToken);
+  window.addEventListener("focus", limparToken);
+}
+
+async function obterToken(): Promise<string | null> {
+  if (tokenAtual) return tokenAtual;
+  if (semSessao) return null;
+  if (buscandoToken) return buscandoToken;
+
+  buscandoToken = (async () => {
+    try {
+      const authUrl = import.meta.env.VITE_NEON_AUTH_URL;
+
+      if (!authUrl) {
+        throw new Error("VITE_NEON_AUTH_URL não configurada.");
+      }
+
+      const response = await fetch(
+        `${authUrl.replace(/\/+$/, "")}/token`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            accept: "application/json",
+          },
+        },
+      );
+
+      if (response.status === 401) {
+        semSessao = true;
+        return null;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Neon Auth retornou HTTP ${response.status}`);
+      }
+
+      const data: { token?: string } = await response.json();
+
+      if (!data.token) {
+        throw new Error("JWT não encontrado na resposta do Neon Auth.");
+      }
+
+      tokenAtual = data.token;
+      return tokenAtual;
+    } catch (error) {
+      console.error("[api] Erro ao obter JWT:", error);
+      return null;
+    } finally {
+      buscandoToken = null;
+    }
+  })();
+
+  return buscandoToken;
+}
+
 api.interceptors.request.use(
   async (config) => {
     const isRotaPublica = ROTAS_PUBLICAS.some((rota) =>
-      config.url?.startsWith(rota)
+      config.url?.startsWith(rota),
     );
 
-    if (isRotaPublica) {
-      return config;
-    }
+    if (isRotaPublica) return config;
 
-    try {
-      let token: string | undefined;
+    const token = await obterToken();
 
-      // Tentativa 1: authClient.token() — versões novas do SDK
-      if (typeof (authClient as any).token === "function") {
-        const { data, error } = await (authClient as any).token();
-        if (!error && data?.token) {
-          token = data.token;
-        }
-      }
-
-      // Tentativa 2 (fallback): getSession()
-      if (!token) {
-        const { data: session } = await authClient.getSession();
-        token = (session as any)?.session?.token;
-      }
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    } catch (err) {
-      console.error("[api] Erro ao obter token:", err);
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
@@ -58,11 +101,16 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// ─── Response interceptor: trata 401 ────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      const temToken = !!error.config?.headers?.Authorization;
+
+      if (temToken) {
+        limparToken();
+      }
+
       const path = window.location.pathname;
 
       if (path.startsWith("/admin") && !path.includes("/admin/login")) {

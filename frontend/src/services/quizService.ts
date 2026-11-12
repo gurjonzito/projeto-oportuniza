@@ -1,3 +1,4 @@
+
 import api from "./api";
 import type { Quiz } from "../types/quiz";
 
@@ -6,13 +7,9 @@ export async function gerarQuiz(
 ): Promise<Quiz | null> {
   if (!videoId) return null;
 
-  try {
-    const { data } = await api.get(`/api/quiz/${videoId}`, {
-      timeout: 60000,
-    });
-    return data;
-  } catch (error) {
-    console.error("Erro ao buscar quiz:", error);
-    throw error;
-  }
+  const { data } = await api.get(`/api/quiz/${videoId}`, {
+    timeout: 90000,
+  });
+
+  return data;
 }
