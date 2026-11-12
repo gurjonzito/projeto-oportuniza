@@ -1,4 +1,6 @@
+
 import type { Trilha } from "../types/trilha";
+import api from "./api";
 
 export type RespostasQuestionario = {
   objetivo: string;
@@ -19,20 +21,13 @@ type RespostaAPI = {
   justificativa: string;
 };
 
-const API_URL =
-  import.meta.env.VITE_API_URL;
-
 export async function recomendarTrilhas(
   respostas: RespostasQuestionario,
   trilhasDisponiveis: Trilha[]
 ): Promise<TrilhaRecomendada[]> {
-  const response = await fetch(`${API_URL}/api/recomendacoes`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    credentials: "include",
-    body: JSON.stringify({
+  const { data: resultados } = await api.post<RespostaAPI[]>(
+    "/api/recomendacoes",
+    {
       respostas,
       trilhas: trilhasDisponiveis.map((trilha) => ({
         id: String(trilha.id),
@@ -42,18 +37,11 @@ export async function recomendarTrilhas(
         nivel: trilha.nivel ?? "Não informado",
         totalVideos: trilha.videos?.length ?? 0,
       })),
-    }),
-  });
-
-  if (!response.ok) {
-    const erro = await response.text();
-
-    throw new Error(
-      `Erro ao obter recomendações: ${response.status} - ${erro}`
-    );
-  }
-
-  const resultados: RespostaAPI[] = await response.json();
+    },
+    {
+      timeout: 60000,
+    }
+  );
 
   return resultados
     .map(({ id, compatibilidade, justificativa }) => {
@@ -61,9 +49,7 @@ export async function recomendarTrilhas(
         (t) => String(t.id) === String(id)
       );
 
-      if (!trilha) {
-        return null;
-      }
+      if (!trilha) return null;
 
       return {
         trilha,
@@ -72,6 +58,7 @@ export async function recomendarTrilhas(
       };
     })
     .filter(
-      (resultado): resultado is TrilhaRecomendada => resultado !== null
+      (resultado): resultado is TrilhaRecomendada =>
+        resultado !== null
     );
 }

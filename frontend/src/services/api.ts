@@ -3,7 +3,7 @@ import axios from "axios";
 import { authClient } from "../lib/auth-client";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/",
+  baseURL: "/",
   timeout: 10000,
   withCredentials: true,
 });
