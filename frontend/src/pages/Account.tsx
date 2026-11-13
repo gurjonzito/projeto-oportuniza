@@ -683,7 +683,7 @@ export default function Account() {
                     key={item.id}
                     type="button"
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition ${
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition cursor-pointer ${
                       active
                         ? "bg-[#1E40AF]/10 text-[#1E40AF]"
                         : "hover:bg-black/5 dark:hover:bg-white/5"
@@ -769,7 +769,7 @@ export default function Account() {
                         type="button"
                         onClick={() => inputFotoRef.current?.click()}
                         disabled={uploadingFoto}
-                        className="mt-2 text-xs font-semibold text-[#23A6F0] hover:underline disabled:opacity-60"
+                        className="mt-2 text-xs font-semibold text-[#23A6F0] hover:underline disabled:opacity-60 enabled:cursor-pointer disabled:cursor-not-allowed"
                       >
                         {uploadingFoto ? "Enviando..." : "Alterar foto"}
                       </button>
@@ -904,7 +904,7 @@ export default function Account() {
                       type="button"
                       onClick={salvarPerfil}
                       disabled={loadingProfile}
-                      className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+                      className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 enabled:cursor-pointer disabled:cursor-not-allowed"
                     >
                       {loadingProfile ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1013,7 +1013,7 @@ export default function Account() {
                       type="button"
                       onClick={salvarCadastro}
                       disabled={loadingComplementary}
-                      className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+                      className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 enabled:cursor-pointer disabled:cursor-not-allowed"
                     >
                       {loadingComplementary ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1096,7 +1096,7 @@ export default function Account() {
                         type="button"
                         onClick={criarSenha}
                         disabled={creatingPassword}
-                        className="flex items-center justify-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 w-fit"
+                        className="flex items-center justify-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 w-fit enabled:cursor-pointer disabled:cursor-not-allowed"
                       >
                         {creatingPassword ? (
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1165,7 +1165,7 @@ export default function Account() {
                           type="button"
                           onClick={alterarSenha}
                           disabled={loadingPassword}
-                          className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+                          className="flex items-center gap-2 bg-[#1E40AF] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 enabled:cursor-pointer disabled:cursor-not-allowed"
                         >
                           {loadingPassword ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -1228,7 +1228,7 @@ function PasswordInput({
         <button
           type="button"
           onClick={() => setShow(!show)}
-          className="absolute right-3.5 top-1/2 -translate-y-1/2"
+          className="absolute right-3.5 top-1/2 -translate-y-1/2 cursor-pointer"
           style={{ color: "var(--text-muted, #9ca3af)" }}
           aria-label={show ? "Ocultar senha" : "Mostrar senha"}
         >

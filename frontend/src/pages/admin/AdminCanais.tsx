@@ -125,7 +125,7 @@ export default function AdminCanais() {
               e.stopPropagation();
               openEdit(row);
             }}
-            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition"
+            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition cursor-pointer"
           >
             <Pencil size={14} />
           </button>
@@ -135,7 +135,7 @@ export default function AdminCanais() {
               handleDelete(row.id);
             }}
             disabled={deletingId === row.id}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition disabled:opacity-40"
+            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition disabled:opacity-40 enabled:cursor-pointer disabled:cursor-not-allowed"
           >
             {deletingId === row.id ? (
               <div className="w-3.5 h-3.5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
@@ -173,7 +173,7 @@ export default function AdminCanais() {
             <button
               onClick={() => setModalOpen(false)}
               disabled={saving}
-              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition disabled:opacity-60"
+              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition disabled:opacity-60 enabled:cursor-pointer disabled:cursor-not-allowed"
               style={{
                 borderColor: "var(--border-color, #e5e7eb)",
                 color: "var(--text-color)",
@@ -184,7 +184,7 @@ export default function AdminCanais() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60 enabled:cursor-pointer disabled:cursor-not-allowed"
             >
               {saving && (
                 <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />

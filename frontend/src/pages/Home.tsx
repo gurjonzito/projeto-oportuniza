@@ -238,7 +238,7 @@ function ContinueTrilhas() {
               hover:bg-white dark:hover:bg-[#2E3553]
               hover:text-[#1E40AF] dark:hover:text-[#818cf8]
               disabled:opacity-0 disabled:pointer-events-none
-              cursor-pointer
+              enabled:cursor-pointer
               -translate-x-1/2
             `}
           >

@@ -115,7 +115,9 @@ function SortableTrilhaRow({
               onClick={() => handleSync(trilha)}
               disabled={syncing}
               title="Sincronizar com o YouTube"
-              className="p-1.5 rounded-lg transition disabled:opacity-40"
+              className={`p-1.5 rounded-lg transition enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 ${
+                syncing ? "cursor-wait" : ""
+              }`}
               style={{ color: "#8b5cf6" }}
             >
               <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
@@ -123,14 +125,14 @@ function SortableTrilhaRow({
           )}
           <button
             onClick={() => openEdit(trilha)}
-            className="p-1.5 rounded-lg transition"
+            className="p-1.5 rounded-lg transition cursor-pointer"
             style={{ color: "#3b82f6" }}
           >
             <Pencil size={14} />
           </button>
           <button
             onClick={() => handleDelete(trilha.id)}
-            className="p-1.5 rounded-lg transition"
+            className="p-1.5 rounded-lg transition cursor-pointer"
             style={{ color: "#ef4444" }}
           >
             <Trash2 size={14} />
@@ -357,14 +359,14 @@ export default function AdminTrilhas() {
             {ordemAlterada && (
               <button
                 onClick={handleSalvarOrdem}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-semibold"
+                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-semibold cursor-pointer"
               >
                 Salvar Ordem
               </button>
             )}
             <button
               onClick={openImport}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition cursor-pointer"
             >
               <Download size={15} />
               Importar Playlist
@@ -517,7 +519,7 @@ export default function AdminTrilhas() {
           <>
             <button
               onClick={() => setImportOpen(false)}
-              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
+              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition cursor-pointer"
               style={{
                 borderColor: "var(--border-color, #e5e7eb)",
                 color: "var(--text-color)",
@@ -528,7 +530,7 @@ export default function AdminTrilhas() {
             <button
               onClick={handleImport}
               disabled={importing}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
               {importing && (
                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -577,7 +579,7 @@ export default function AdminTrilhas() {
           <>
             <button
               onClick={() => setEditOpen(false)}
-              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
+              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition cursor-pointer"
               style={{
                 borderColor: "var(--border-color, #e5e7eb)",
                 color: "var(--text-color)",
@@ -588,7 +590,7 @@ export default function AdminTrilhas() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
               {saving && (
                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

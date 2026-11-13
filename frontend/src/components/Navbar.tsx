@@ -1,4 +1,4 @@
-// frontend/src/components/Navbar.tsx
+
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useSession, signOut } from "../lib/auth-client";
@@ -57,7 +57,7 @@ export default function Navbar() {
     } catch (err) {
       console.error("Erro ao sair:", err);
     } finally {
-      notifySessionChanged(); // 👈 avisa todos os useSession
+      notifySessionChanged();
       setDropdownOpen(false);
       setMenuOpen(false);
       navigate("/");
@@ -91,7 +91,7 @@ export default function Navbar() {
     <header className="fixed top-0 left-0 w-full bg-[#1E40AF] z-50 shadow-md">
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-8 h-20">
         <h1 className="text-white text-xl font-bold tracking-wide shrink-0">
-          <Link to="/" className="hover:opacity-80 transition">
+          <Link to="/" className="hover:opacity-80 transition cursor-pointer">
             Oportuniza
           </Link>
         </h1>
@@ -101,7 +101,7 @@ export default function Navbar() {
             <Link
               key={to}
               to={to}
-              className="hover:opacity-75 transition whitespace-nowrap"
+              className="hover:opacity-75 transition whitespace-nowrap cursor-pointer"
             >
               {label}
             </Link>
@@ -118,7 +118,7 @@ export default function Navbar() {
             >
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition rounded-full pl-1 pr-3 py-1"
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 transition rounded-full pl-1 pr-3 py-1 cursor-pointer"
               >
                 {foto ? (
                   <img
@@ -160,7 +160,7 @@ export default function Navbar() {
                       navigate("/user");
                       setDropdownOpen(false);
                     }}
-                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition cursor-pointer"
                   >
                     <User size={14} className="text-gray-400" />
                     Minha conta
@@ -171,7 +171,7 @@ export default function Navbar() {
                       navigate("/preferencias");
                       setDropdownOpen(false);
                     }}
-                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"
+                    className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition cursor-pointer"
                   >
                     <Settings size={14} className="text-gray-400" />
                     Preferências
@@ -180,7 +180,7 @@ export default function Navbar() {
                   <div className="border-t border-gray-100 mt-1 pt-1">
                     <button
                       onClick={handleLogout}
-                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition"
+                      className="flex items-center gap-2.5 w-full px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition cursor-pointer"
                     >
                       <LogOut size={14} />
                       Sair
@@ -192,7 +192,7 @@ export default function Navbar() {
           ) : (
             <button
               onClick={handleLogin}
-              className="hidden md:flex items-center bg-white/10 border border-white/30 text-white px-4 py-2 rounded-lg font-medium hover:bg-white/20 transition text-sm"
+              className="hidden md:flex items-center bg-white/10 border border-white/30 text-white px-4 py-2 rounded-lg font-medium hover:bg-white/20 transition text-sm cursor-pointer"
             >
               Entrar / Cadastrar
             </button>
@@ -201,7 +201,7 @@ export default function Navbar() {
           <div className="lg:hidden relative w-8 h-8">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="absolute top-0 left-0 w-8 h-8 flex flex-col justify-center items-center gap-1.5"
+              className="absolute top-0 left-0 w-8 h-8 flex flex-col justify-center items-center gap-1.5 cursor-pointer"
             >
               <span
                 className={`block h-0.5 w-6 bg-white transition-transform origin-center ${
@@ -233,7 +233,7 @@ export default function Navbar() {
             <Link
               key={to}
               to={to}
-              className="hover:opacity-75 transition text-sm"
+              className="hover:opacity-75 transition text-sm cursor-pointer"
               onClick={() => setMenuOpen(false)}
             >
               {label}
@@ -266,7 +266,7 @@ export default function Navbar() {
                     navigate("/user");
                     setMenuOpen(false);
                   }}
-                  className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition"
+                  className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition cursor-pointer"
                 >
                   <User size={14} />
                   Minha conta
@@ -277,7 +277,7 @@ export default function Navbar() {
                     navigate("/preferencias");
                     setMenuOpen(false);
                   }}
-                  className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition"
+                  className="flex items-center gap-2 text-sm text-white/80 hover:text-white transition cursor-pointer"
                 >
                   <Settings size={14} />
                   Preferências
@@ -285,7 +285,7 @@ export default function Navbar() {
 
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 text-sm text-red-300 hover:text-red-200 transition"
+                  className="flex items-center gap-2 text-sm text-red-300 hover:text-red-200 transition cursor-pointer"
                 >
                   <LogOut size={14} />
                   Sair
@@ -297,7 +297,7 @@ export default function Navbar() {
                   handleLogin();
                   setMenuOpen(false);
                 }}
-                className="flex items-center bg-white/10 border border-white/30 text-white px-5 py-2.5 rounded-lg font-medium text-sm"
+                className="flex items-center bg-white/10 border border-white/30 text-white px-5 py-2.5 rounded-lg font-medium text-sm cursor-pointer"
               >
                 Entrar / Cadastrar
               </button>

@@ -177,7 +177,7 @@ export default function AdminVideos() {
           <button
             key={t.id}
             onClick={() => setAba(t.id)}
-            className={`px-4 py-2 text-sm font-semibold border-b-2 transition ${
+            className={`px-4 py-2 text-sm font-semibold border-b-2 transition cursor-pointer ${
               aba === t.id
                 ? "border-[#1E40AF] text-[#1E40AF]"
                 : "border-transparent text-gray-400 hover:text-gray-600"
@@ -211,7 +211,7 @@ export default function AdminVideos() {
             <button
               onClick={handleBuscar}
               disabled={buscando || !termo.trim()}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
             >
               {buscando ? (
                 <Loader2 size={15} className="animate-spin" />
@@ -295,7 +295,7 @@ export default function AdminVideos() {
                         <button
                           onClick={() => handleCurar(v)}
                           disabled={curandoId === v.youtubeVideoId}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E40AF] text-white text-xs font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1E40AF] text-white text-xs font-semibold hover:bg-blue-700 transition enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {curandoId === v.youtubeVideoId ? (
                             <Loader2 size={12} className="animate-spin" />
@@ -310,7 +310,7 @@ export default function AdminVideos() {
                         href={`https://www.youtube.com/watch?v=${v.youtubeVideoId}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+                        className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition cursor-pointer"
                         title="Abrir no YouTube"
                       >
                         <ExternalLink size={14} />
@@ -402,7 +402,7 @@ export default function AdminVideos() {
                     <div className="mt-auto flex items-center gap-2 pt-2">
                       <button
                         onClick={() => handleToggleCurado(v)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
                           v.isCurated
                             ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
                             : "bg-green-100 text-green-700 hover:bg-green-200"
@@ -423,7 +423,7 @@ export default function AdminVideos() {
 
                       <button
                         onClick={() => openTagsModal(v)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition cursor-pointer"
                         title="Editar tags"
                       >
                         <Tag size={14} />
@@ -433,7 +433,7 @@ export default function AdminVideos() {
                         href={`https://www.youtube.com/watch?v=${v.youtubeVideoId}`}
                         target="_blank"
                         rel="noreferrer"
-                        className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+                        className="ml-auto p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition cursor-pointer"
                         title="Abrir no YouTube"
                       >
                         <ExternalLink size={14} />
@@ -457,7 +457,7 @@ export default function AdminVideos() {
           <>
             <button
               onClick={() => setEditingTags(null)}
-              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
+              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition cursor-pointer"
               style={{
                 borderColor: "var(--border-color, #e5e7eb)",
                 color: "var(--text-color)",
@@ -468,7 +468,7 @@ export default function AdminVideos() {
             <button
               onClick={saveTags}
               disabled={savingTags}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
               {savingTags && (
                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

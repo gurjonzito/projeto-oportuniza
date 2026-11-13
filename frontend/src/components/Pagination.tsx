@@ -107,7 +107,8 @@ export default function Pagination({
         style={{
           backgroundColor: "var(--card-bg)",
           border: "1px solid var(--border-color)",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04)",
+          boxShadow:
+            "0 2px 12px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.04)",
         }}
       >
         {/* Botão anterior */}
@@ -121,7 +122,7 @@ export default function Pagination({
             transition-all duration-150
             disabled:opacity-30
             disabled:cursor-not-allowed
-            cursor-pointer
+            enabled:cursor-pointer
           "
           style={{ color: "var(--text-muted)" }}
           onMouseEnter={(e) => {
@@ -243,7 +244,7 @@ export default function Pagination({
             transition-all duration-150
             disabled:opacity-30
             disabled:cursor-not-allowed
-            cursor-pointer
+            enabled:cursor-pointer
           "
           style={{ color: "var(--text-muted)" }}
           onMouseEnter={(e) => {

@@ -73,7 +73,10 @@ function SortableCategoriaRow({
         </button>
       </td>
       <td className="px-4 py-3">
-        <span className="font-semibold" style={{ color: "var(--text-color)" }}>
+        <span
+          className="font-semibold"
+          style={{ color: "var(--text-color)" }}
+        >
           {categoria.nome}
         </span>
       </td>
@@ -88,13 +91,13 @@ function SortableCategoriaRow({
         <div className="flex items-center gap-1">
           <button
             onClick={() => openEdit(categoria)}
-            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition"
+            className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-500 transition cursor-pointer"
           >
             <Pencil size={14} />
           </button>
           <button
             onClick={() => handleDelete(categoria.id)}
-            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition"
+            className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 transition cursor-pointer"
           >
             <Trash2 size={14} />
           </button>
@@ -188,14 +191,14 @@ export default function AdminCategorias() {
             {ordemAlterada && (
               <button
                 onClick={handleSalvarOrdem}
-                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-semibold"
+                className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 text-sm font-semibold cursor-pointer"
               >
                 Salvar Ordem
               </button>
             )}
             <button
               onClick={openNew}
-              className="px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition text-sm font-semibold"
+              className="px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition text-sm font-semibold cursor-pointer"
             >
               Nova Categoria
             </button>
@@ -203,7 +206,10 @@ export default function AdminCategorias() {
         }
       />
 
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
         <div
           className="rounded-xl border overflow-hidden"
           style={{
@@ -254,7 +260,7 @@ export default function AdminCategorias() {
           <>
             <button
               onClick={() => setModalOpen(false)}
-              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
+              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition cursor-pointer"
               style={{
                 borderColor: "var(--border-color, #e5e7eb)",
                 color: "var(--text-color)",
@@ -264,7 +270,7 @@ export default function AdminCategorias() {
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition"
+              className="px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition cursor-pointer"
             >
               Salvar
             </button>
@@ -283,7 +289,9 @@ export default function AdminCategorias() {
           <Field label="Descrição">
             <textarea
               value={form.descricao}
-              onChange={(e) => setForm({ ...form, descricao: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, descricao: e.target.value })
+              }
               rows={3}
               placeholder="Breve descrição da categoria..."
               className="input-admin resize-none"

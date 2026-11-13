@@ -104,7 +104,7 @@ export default function AdminLogin() {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 mt-1"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 mt-1 enabled:cursor-pointer disabled:cursor-not-allowed"
           >
             {loading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {loading ? "Entrando..." : "Entrar"}

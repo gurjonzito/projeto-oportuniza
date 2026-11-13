@@ -71,7 +71,7 @@ export default function AdminOverview() {
             <button
               key={s.path}
               onClick={() => navigate(s.path)}
-              className="flex items-start gap-4 p-5 rounded-xl border text-left hover:border-blue-300 hover:shadow-sm transition-all group"
+              className="flex items-start gap-4 p-5 rounded-xl border text-left hover:border-blue-300 hover:shadow-sm transition-all group cursor-pointer"
               style={{
                 backgroundColor: "var(--card-bg, white)",
                 borderColor: "var(--border-color, #e5e7eb)",

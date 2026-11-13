@@ -150,7 +150,7 @@ export default function AdminRecursos() {
           <button
             type="button"
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1E40AF] text-white hover:bg-blue-700 transition cursor-pointer"
           >
             <Plus size={16} />
             Novo recurso
@@ -255,7 +255,7 @@ export default function AdminRecursos() {
                       href={recurso.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-blue-600 hover:underline truncate"
+                      className="flex items-center gap-1 text-blue-600 hover:underline truncate cursor-pointer"
                       title={recurso.url}
                     >
                       <span className="truncate">{recurso.url}</span>
@@ -281,7 +281,7 @@ export default function AdminRecursos() {
                       <button
                         type="button"
                         onClick={() => openEdit(recurso)}
-                        className="p-1.5 rounded-lg transition"
+                        className="p-1.5 rounded-lg transition cursor-pointer"
                         style={{
                           color: "#3b82f6",
                         }}
@@ -293,7 +293,7 @@ export default function AdminRecursos() {
                       <button
                         type="button"
                         onClick={() => handleDelete(recurso.id)}
-                        className="p-1.5 rounded-lg transition"
+                        className="p-1.5 rounded-lg transition cursor-pointer"
                         style={{
                           color: "#ef4444",
                         }}
@@ -322,7 +322,7 @@ export default function AdminRecursos() {
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition"
+              className="px-4 py-2 rounded-lg text-sm border hover:bg-gray-50 transition cursor-pointer"
               style={{
                 borderColor: "var(--border-color, #e5e7eb)",
                 color: "var(--text-color)",
@@ -335,7 +335,7 @@ export default function AdminRecursos() {
               type="button"
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-[#1E40AF] text-white font-semibold hover:bg-blue-700 transition disabled:opacity-60 enabled:cursor-pointer disabled:cursor-not-allowed"
             >
               {saving && (
                 <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />

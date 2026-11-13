@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
@@ -147,12 +148,12 @@ export default function Login() {
 
           // OPÇÃO A IMPLEMENTADA AQUI: Detecção abrangente de erro de e-mail não verificado
           if (
-            msg.includes("verif") || 
+            msg.includes("verif") ||
             msg.includes("not verified") ||
             msg.includes("confirmed") ||
-            status === 403 || 
+            status === 403 ||
             status === 401 ||
-            status === 400 // Alguns retornos do Neon podem vir como 400
+            status === 400
           ) {
             setNeedsVerification(true);
             setError(
@@ -244,7 +245,7 @@ export default function Login() {
               </div>
               <Link
                 to="/"
-                className="text-white font-bold text-lg hover:opacity-80 transition"
+                className="text-white font-bold text-lg hover:opacity-80 transition cursor-pointer"
               >
                 Oportuniza
               </Link>
@@ -275,7 +276,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => trocarView("login")}
-                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
+                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 cursor-pointer ${
                   view === "login"
                     ? "border-[#1E40AF] text-[#1E40AF]"
                     : "border-transparent text-gray-400 hover:text-gray-600"
@@ -286,7 +287,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => trocarView("cadastro")}
-                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 ${
+                className={`flex-1 py-2.5 text-sm font-semibold transition border-b-2 cursor-pointer ${
                   view === "cadastro"
                     ? "border-[#1E40AF] text-[#1E40AF]"
                     : "border-transparent text-gray-400 hover:text-gray-600"
@@ -300,7 +301,6 @@ export default function Login() {
           {/* Conteúdo */}
           <div className={`px-7 ${isCadastro ? "py-5" : "py-6"}`}>
             {isForgot ? (
-              // ─── Fluxo "Esqueci minha senha" via componente do Neon ───
               <div className="flex flex-col gap-4">
                 <ForgotPasswordForm
                   {...({
@@ -325,14 +325,13 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => trocarView("login")}
-                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-4 w-full"
+                  className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-4 w-full cursor-pointer"
                 >
                   <ArrowLeft size={13} />
                   Voltar para o login
                 </button>
               </div>
             ) : (
-              // ─── Login / Cadastro ───────────────────────────────────
               <div className="flex flex-col gap-4">
                 <div
                   className={`flex flex-col ${isCadastro ? "gap-2.5" : "gap-3"}`}
@@ -411,7 +410,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 transition cursor-pointer"
                         style={{ color: "var(--text-muted, #9ca3af)" }}
                       >
                         {showPassword ? (
@@ -426,7 +425,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={() => trocarView("forgot")}
-                        className="self-end text-[11px] font-semibold text-[#23A6F0] hover:underline -mt-0.5"
+                        className="self-end text-[11px] font-semibold text-[#23A6F0] hover:underline -mt-0.5 cursor-pointer"
                       >
                         Esqueci minha senha
                       </button>
@@ -463,7 +462,7 @@ export default function Login() {
                           onClick={() =>
                             setShowConfirmPassword(!showConfirmPassword)
                           }
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 transition"
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 transition cursor-pointer"
                           style={{ color: "var(--text-muted, #9ca3af)" }}
                         >
                           {showConfirmPassword ? (
@@ -476,7 +475,7 @@ export default function Login() {
                     </div>
                   )}
 
-                  {/* Sucesso (ex: link de verificação enviado ou confirmado) */}
+                  {/* Sucesso */}
                   {success && (
                     <div
                       className="flex items-start gap-2 text-xs font-medium px-3 py-2.5 rounded-lg"
@@ -505,7 +504,7 @@ export default function Login() {
                           type="button"
                           onClick={reenviarLinkVerificacao}
                           disabled={resendingEmail}
-                          className="self-start font-semibold underline hover:opacity-80 disabled:opacity-60"
+                          className="self-start font-semibold underline hover:opacity-80 disabled:opacity-60 enabled:cursor-pointer"
                         >
                           {resendingEmail
                             ? "Reenviando..."
@@ -520,7 +519,7 @@ export default function Login() {
                     type="button"
                     onClick={handleSubmit}
                     disabled={loading || googleLoading}
-                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 mt-0.5"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 enabled:cursor-pointer mt-0.5"
                   >
                     {loading && (
                       <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -563,7 +562,7 @@ export default function Login() {
                     type="button"
                     onClick={handleGoogle}
                     disabled={loading || googleLoading}
-                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border text-sm font-semibold transition hover:bg-black/5 disabled:opacity-60"
+                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border text-sm font-semibold transition hover:bg-black/5 disabled:opacity-60 enabled:cursor-pointer"
                     style={{
                       borderColor: "var(--border-color, #e5e7eb)",
                       color: "var(--text-color, #111827)",
@@ -582,7 +581,7 @@ export default function Login() {
                     <button
                       type="button"
                       onClick={() => trocarView("login")}
-                      className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-1"
+                      className="flex items-center justify-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline mt-1 cursor-pointer"
                     >
                       <ArrowLeft size={13} />
                       Já tenho conta
@@ -603,7 +602,10 @@ export default function Login() {
               backgroundColor: "var(--bg-subtle, #f9fafb)",
             }}
           >
-            <Link to="/" className="text-xs text-[#23A6F0] hover:underline">
+            <Link
+              to="/"
+              className="text-xs text-[#23A6F0] hover:underline cursor-pointer"
+            >
               ← Voltar para o Oportuniza
             </Link>
           </div>

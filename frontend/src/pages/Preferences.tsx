@@ -109,11 +109,11 @@ export function aplicarPreferenciasGlobais() {
 // =========================================================
 
 export default function Preferences() {
-  // ⚠️ Inicializa lendo do localStorage, evitando o "flash" de padrão
+  // Inicializa lendo do localStorage, evitando o "flash" de padrão
   const [prefs, setPrefs] = useState<Preferencias>(carregarPreferencias);
   const [message, setMessage] = useState("");
 
-  // ─── Aplica mudanças em tempo real ────────────────────────
+  // Aplica mudanças em tempo real
   useEffect(() => {
     aplicarTema(prefs.tema);
     aplicarTamanhoFonte(prefs.tamanhoFonte);
@@ -126,7 +126,7 @@ export default function Preferences() {
     prefs.altoContraste,
   ]);
 
-  // ─── Atualiza uma preferência ─────────────────────────────
+  // Atualiza uma preferência
   function atualizar<K extends keyof Preferencias>(
     chave: K,
     valor: Preferencias[K]
@@ -134,7 +134,7 @@ export default function Preferences() {
     setPrefs((atual) => ({ ...atual, [chave]: valor }));
   }
 
-  // ─── Salva no localStorage ────────────────────────────────
+  // Salva no localStorage
   function salvar() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
@@ -158,11 +158,11 @@ export default function Preferences() {
       }}
     >
       <div className="max-w-4xl mx-auto">
-        {/* ─── Cabeçalho ─────────────────────────────────── */}
+        {/* Cabeçalho */}
         <div className="mb-8 flex items-start gap-3">
           <Link
             to="/user"
-            className="mt-1 p-2 rounded-xl border transition hover:bg-black/5"
+            className="mt-1 p-2 rounded-xl border transition hover:bg-black/5 cursor-pointer"
             style={{ borderColor: "var(--border-color, #e5e7eb)" }}
             aria-label="Voltar para a conta"
           >
@@ -179,7 +179,7 @@ export default function Preferences() {
           </div>
         </div>
 
-        {/* ─── Mensagem de sucesso ──────────────────────── */}
+        {/* Mensagem de sucesso */}
         {message && (
           <div className="mb-5 px-4 py-3 rounded-xl bg-green-500/10 text-green-600 text-sm font-medium flex items-center gap-2">
             <Check size={16} />
@@ -188,7 +188,7 @@ export default function Preferences() {
         )}
 
         <div className="flex flex-col gap-6">
-          {/* ═══════════════ APARÊNCIA ═══════════════ */}
+          {/* APARÊNCIA */}
           <section
             className="rounded-2xl border overflow-hidden"
             style={{
@@ -271,7 +271,7 @@ export default function Preferences() {
             </div>
           </section>
 
-          {/* ═══════════════ ACESSIBILIDADE ═══════════════ */}
+          {/* ACESSIBILIDADE */}
           <section
             className="rounded-2xl border overflow-hidden"
             style={{
@@ -315,12 +315,12 @@ export default function Preferences() {
             </div>
           </section>
 
-          {/* ─── Botão salvar ──────────────────────────── */}
+          {/* Botão salvar */}
           <div className="flex justify-end mt-2">
             <button
               type="button"
               onClick={salvar}
-              className="flex items-center gap-2 bg-[#1E40AF] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition"
+              className="flex items-center gap-2 bg-[#1E40AF] text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-700 transition cursor-pointer"
             >
               <Save size={16} />
               Salvar preferências
@@ -348,7 +348,7 @@ function BotaoTema({ ativo, onClick, icon, label }: BotaoTemaProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition ${
+      className={`flex flex-col items-center gap-2 py-4 rounded-xl border-2 transition cursor-pointer ${
         ativo ? "border-[#1E40AF]" : "border-transparent"
       }`}
       style={{
@@ -375,7 +375,7 @@ function BotaoTexto({ ativo, onClick, tamanho, label }: BotaoTextoProps) {
     <button
       type="button"
       onClick={onClick}
-      className={`flex items-center justify-center py-4 rounded-xl border-2 transition ${tamanho} ${
+      className={`flex items-center justify-center py-4 rounded-xl border-2 transition ${tamanho} cursor-pointer ${
         ativo ? "border-[#1E40AF]" : "border-transparent"
       }`}
       style={{
