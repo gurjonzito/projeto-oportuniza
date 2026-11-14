@@ -78,10 +78,16 @@ const opcoesSituacao = [
 ];
 
 const opcoesObjetivo = [
-  { value: "Conseguir meu primeiro emprego", label: "Conseguir meu primeiro emprego" },
+  {
+    value: "Conseguir meu primeiro emprego",
+    label: "Conseguir meu primeiro emprego",
+  },
   { value: "Conseguir um estágio", label: "Conseguir um estágio" },
   { value: "Melhorar meu currículo", label: "Melhorar meu currículo" },
-  { value: "Desenvolver novas habilidades", label: "Desenvolver novas habilidades" },
+  {
+    value: "Desenvolver novas habilidades",
+    label: "Desenvolver novas habilidades",
+  },
   { value: "Mudar de área profissional", label: "Mudar de área profissional" },
   { value: "Crescer profissionalmente", label: "Crescer profissionalmente" },
   { value: "Empreender", label: "Empreender" },
@@ -128,6 +134,7 @@ export default function Account() {
   const [activeSection, setActiveSection] = useState("perfil");
 
   // ESTADO NOVO: Bloqueia a tela de "Sessão não encontrada" enquanto tentamos recuperar a sessão
+  const tentativaRecuperacaoRef = useRef(false);
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
 
   // PERFIL
@@ -204,28 +211,44 @@ export default function Account() {
   // =========================================================
 
   useEffect(() => {
-    // Se o SDK já terminou o carregamento e não temos usuário na sessão
-    if (!isPending && !session?.user) {
-      setIsRecoveringSession(true);
+    if (isPending) return;
 
-      // Dispara o refetch para forçar o SDK a ler o cookie do Google
-      // Não esperamos retorno direto, pois a função pode retornar void
-      Promise.resolve(refetch())
-        .then(() => {
-          // Damos um pequeno delay (100ms) para o estado global do useSession
-          // propagar a atualização para o componente, se o cookie for válido
-          setTimeout(() => {
-            setIsRecoveringSession(false);
-          }, 100);
-        })
-        .catch((err) => {
-          console.error("Erro ao recuperar sessão:", err);
-          setIsRecoveringSession(false);
-        });
-    } else if (session?.user) {
-      // Se já logou ou o refetch atualizou o estado, libera a tela
+    if (session?.user) {
+      tentativaRecuperacaoRef.current = false;
       setIsRecoveringSession(false);
+      return;
     }
+
+    if (tentativaRecuperacaoRef.current) return;
+
+    tentativaRecuperacaoRef.current = true;
+    setIsRecoveringSession(true);
+
+    let cancelado = false;
+
+    async function recuperarSessao() {
+      try {
+        for (let tentativa = 0; tentativa < 3; tentativa++) {
+          await refetch();
+
+          if (cancelado) return;
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
+      } catch (error) {
+        console.error("Erro ao recuperar sessão:", error);
+      } finally {
+        if (!cancelado) {
+          setIsRecoveringSession(false);
+        }
+      }
+    }
+
+    recuperarSessao();
+
+    return () => {
+      cancelado = true;
+    };
   }, [isPending, session, refetch]);
 
   // =========================================================
@@ -243,7 +266,7 @@ export default function Account() {
       }
 
       const temSenha = accounts?.some(
-        (acc: any) => acc.providerId === "credential"
+        (acc: any) => acc.providerId === "credential",
       );
 
       setHasPassword(!!temSenha);
@@ -282,18 +305,18 @@ export default function Account() {
       if (resetError) {
         throw new Error(
           resetError.message ||
-          "Não foi possível enviar o e-mail para criar sua senha."
+            "Não foi possível enviar o e-mail para criar sua senha.",
         );
       }
 
       setMessage(
-        "Enviamos um link para o seu e-mail. Clique nele para criar sua senha."
+        "Enviamos um link para o seu e-mail. Clique nele para criar sua senha.",
       );
     } catch (error: any) {
       console.error("Erro ao criar senha:", error);
       setError(
         error?.message ||
-        "Não foi possível enviar o e-mail para criar sua senha. Tente novamente."
+          "Não foi possível enviar o e-mail para criar sua senha. Tente novamente.",
       );
     } finally {
       setCreatingPassword(false);
@@ -306,7 +329,7 @@ export default function Account() {
 
   useEffect(() => {
     fetch(
-      "https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome"
+      "https://servicodados.ibge.gov.br/api/v1/localidades/estados?orderBy=nome",
     )
       .then((response) => {
         if (!response.ok) throw new Error("Erro ao carregar estados.");
@@ -330,7 +353,7 @@ export default function Account() {
     setLoadingCidades(true);
 
     fetch(
-      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estado}/municipios?orderBy=nome`
+      `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${estado}/municipios?orderBy=nome`,
     )
       .then((response) => {
         if (!response.ok) throw new Error("Erro ao carregar cidades.");
@@ -361,13 +384,15 @@ export default function Account() {
         setPhone(
           usuario.profile?.telefone
             ? mascararTelefone(usuario.profile.telefone)
-            : ""
+            : "",
         );
 
         setBirthDate(
           usuario.profile?.dataNascimento
-            ? new Date(usuario.profile.dataNascimento).toISOString().split("T")[0]
-            : ""
+            ? new Date(usuario.profile.dataNascimento)
+                .toISOString()
+                .split("T")[0]
+            : "",
         );
 
         setEstado(usuario.profile?.estado ?? "");
@@ -399,9 +424,7 @@ export default function Account() {
   // ALTERAR FOTO
   // =========================================================
 
-  async function handleFotoSelecionada(
-    e: React.ChangeEvent<HTMLInputElement>
-  ) {
+  async function handleFotoSelecionada(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
 
@@ -431,9 +454,7 @@ export default function Account() {
       console.error("Erro ao enviar foto:", error);
 
       const msg =
-        error.response?.data?.error ||
-        error.message ||
-        "Erro ao enviar foto.";
+        error.response?.data?.error || error.message || "Erro ao enviar foto.";
 
       setError(msg);
     } finally {
@@ -468,13 +489,13 @@ export default function Account() {
       setPhone(
         dados.profile?.telefone
           ? mascararTelefone(dados.profile.telefone)
-          : phone
+          : phone,
       );
 
       setBirthDate(
         dados.profile?.dataNascimento
           ? new Date(dados.profile.dataNascimento).toISOString().split("T")[0]
-          : birthDate
+          : birthDate,
       );
 
       setEstado(dados.profile?.estado ?? estado);
@@ -562,7 +583,7 @@ export default function Account() {
 
       if (changeError) {
         throw new Error(
-          changeError.message || "Não foi possível alterar sua senha."
+          changeError.message || "Não foi possível alterar sua senha.",
         );
       }
 
@@ -715,10 +736,11 @@ export default function Account() {
                     key={item.id}
                     type="button"
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition cursor-pointer ${active
-                      ? "bg-[#1E40AF]/10 text-[#1E40AF]"
-                      : "hover:bg-black/5 dark:hover:bg-white/5"
-                      }`}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition cursor-pointer ${
+                      active
+                        ? "bg-[#1E40AF]/10 text-[#1E40AF]"
+                        : "hover:bg-black/5 dark:hover:bg-white/5"
+                    }`}
                   >
                     <Icon
                       size={18}
@@ -989,9 +1011,9 @@ export default function Account() {
                         className="text-xs mt-1 leading-relaxed"
                         style={{ color: "var(--text-muted, #6b7280)" }}
                       >
-                        Responder algumas informações é opcional, mas elas
-                        podem ajudar a oferecer uma experiência mais adequada
-                        aos seus objetivos.
+                        Responder algumas informações é opcional, mas elas podem
+                        ajudar a oferecer uma experiência mais adequada aos seus
+                        objetivos.
                       </p>
                     </div>
                   </div>
@@ -1117,8 +1139,8 @@ export default function Account() {
                             style={{ color: "var(--text-muted, #6b7280)" }}
                           >
                             Você entrou usando o Google. Se quiser, pode criar
-                            uma senha para acessar sua conta também por e-mail
-                            e senha.
+                            uma senha para acessar sua conta também por e-mail e
+                            senha.
                           </p>
                         </div>
                       </div>

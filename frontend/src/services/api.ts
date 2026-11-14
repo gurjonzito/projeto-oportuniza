@@ -1,4 +1,5 @@
-import axios from "axios";
+
+import axios, { type InternalAxiosRequestConfig } from "axios";
 
 const api = axios.create({
   baseURL: "/",
@@ -15,14 +16,15 @@ const ROTAS_PUBLICAS = [
   "/auth/reset-password",
 ];
 
+interface ApiRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+}
+
 let tokenAtual: string | null = null;
-let semSessao = false;
 let buscandoToken: Promise<string | null> | null = null;
 
 function limparToken() {
   tokenAtual = null;
-  semSessao = false;
-  buscandoToken = null;
 }
 
 if (typeof window !== "undefined") {
@@ -30,9 +32,11 @@ if (typeof window !== "undefined") {
   window.addEventListener("focus", limparToken);
 }
 
+const aguardar = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
 async function obterToken(): Promise<string | null> {
   if (tokenAtual) return tokenAtual;
-  if (semSessao) return null;
   if (buscandoToken) return buscandoToken;
 
   buscandoToken = (async () => {
@@ -43,34 +47,42 @@ async function obterToken(): Promise<string | null> {
         throw new Error("VITE_NEON_AUTH_URL não configurada.");
       }
 
-      const response = await fetch(
-        `${authUrl.replace(/\/+$/, "")}/token`,
-        {
+      const url = `${authUrl.replace(/\/+$/, "")}/token`;
+      const intervalos = [0, 500, 1000];
+
+      for (const intervalo of intervalos) {
+        if (intervalo > 0) {
+          await aguardar(intervalo);
+        }
+
+        const response = await fetch(url, {
           method: "GET",
           credentials: "include",
           headers: {
             accept: "application/json",
           },
-        },
-      );
+        });
 
-      if (response.status === 401) {
-        semSessao = true;
-        return null;
+        if (response.status === 401) {
+          continue;
+        }
+
+        if (!response.ok) {
+          throw new Error(`Neon Auth retornou HTTP ${response.status}`);
+        }
+
+        const data: { token?: string } = await response.json();
+
+        if (!data.token) {
+          throw new Error("JWT não encontrado na resposta do Neon Auth.");
+        }
+
+        tokenAtual = data.token;
+        return tokenAtual;
       }
 
-      if (!response.ok) {
-        throw new Error(`Neon Auth retornou HTTP ${response.status}`);
-      }
-
-      const data: { token?: string } = await response.json();
-
-      if (!data.token) {
-        throw new Error("JWT não encontrado na resposta do Neon Auth.");
-      }
-
-      tokenAtual = data.token;
-      return tokenAtual;
+      console.warn("[api] Neon Auth ainda não disponibilizou o JWT.");
+      return null;
     } catch (error) {
       console.error("[api] Erro ao obter JWT:", error);
       return null;
@@ -103,20 +115,29 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (error.response?.status === 401) {
-      const temToken = !!error.config?.headers?.Authorization;
+      const config = error.config as ApiRequestConfig | undefined;
+      const temToken = !!config?.headers?.Authorization;
 
-      if (temToken) {
+      // Se o backend recusou um JWT, tenta obter outro uma única vez.
+      if (temToken && config && !config._retry) {
+        config._retry = true;
         limparToken();
+
+        return api.request(config);
       }
 
-      const path = window.location.pathname;
+      // Só redireciona quando houve falha de autenticação
+      // após uma requisição que realmente levou um JWT.
+      if (temToken) {
+        const path = window.location.pathname;
 
-      if (path.startsWith("/admin") && !path.includes("/admin/login")) {
-        window.location.href = "/admin/login";
-      } else if (path.startsWith("/user")) {
-        window.location.href = "/login";
+        if (path.startsWith("/admin") && !path.includes("/admin/login")) {
+          window.location.href = "/admin/login";
+        } else if (path.startsWith("/user")) {
+          window.location.href = "/login";
+        }
       }
     }
 
