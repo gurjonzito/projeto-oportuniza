@@ -123,10 +123,12 @@ interface Usuario {
 // =========================================================
 
 export default function Account() {
-  // Agora extraímos também a função "refetch" para forçar a atualização da sessão
   const { data: session, isPending, refetch } = authClient.useSession();
 
   const [activeSection, setActiveSection] = useState("perfil");
+  
+  // ESTADO NOVO: Bloqueia a tela de "Sessão não encontrada" enquanto tentamos recuperar a sessão
+  const [isRecoveringSession, setIsRecoveringSession] = useState(false);
 
   // PERFIL
   const [name, setName] = useState("");
@@ -198,15 +200,19 @@ export default function Account() {
   }
 
   // =========================================================
-  // EFEITO PARA FORÇAR A ATUALIZAÇÃO DA SESSÃO APÓS LOGIN GOOGLE
+  // EFEITO PARA RECUPERAR A SESSÃO (CORRIGE O PROBLEMA DO GOOGLE)
   // =========================================================
 
   useEffect(() => {
-    // Se o isPending acabou (já checou a sessão inicial) mas o usuário ainda não está no state
-    // É provável que o cookie do OAuth tenha acabado de ser setado.
+    // Se o isPending acabou mas não há sessão, é porque viemos de um redirect
+    // e o SDK ainda não conseguiu ler o cookie.
     if (!isPending && !session?.user) {
+      setIsRecoveringSession(true);
+      
       // Força o SDK a buscar a sessão novamente no servidor
-      refetch();
+      refetch().finally(() => {
+        setIsRecoveringSession(false); // Libera a tela (se não achar, vai pro erro)
+      });
     }
   }, [isPending, session, refetch]);
 
@@ -569,10 +575,10 @@ export default function Account() {
   }
 
   // =========================================================
-  // LOADING
+  // LOADING (Incluindo a recuperação da sessão)
   // =========================================================
 
-  if (isPending) {
+  if (isPending || isRecoveringSession) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
