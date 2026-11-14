@@ -127,6 +127,10 @@ export default function Account() {
 
   const [activeSection, setActiveSection] = useState("perfil");
 
+  // ESTADO NOVO PARA EVITAR O REDIRECIONAMENTO ERRADO DO GOOGLE
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // PERFIL
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -195,6 +199,24 @@ export default function Account() {
     setMessage("");
     setError("");
   }
+
+  // =========================================================
+  // EFEITO PARA ESPERAR A SESSÃO DO GOOGLE CARREGAR
+  // =========================================================
+
+  useEffect(() => {
+    // Se o isPending do Neon terminou, damos um tempo extra (500ms)
+    // para garantir que o cookie/token do Google foi lido.
+    if (!isPending) {
+      timeoutRef.current = setTimeout(() => {
+        setIsSessionLoading(false);
+      }, 500);
+    }
+
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [isPending, session]);
 
   // =========================================================
   // VERIFICAR SE O USUÁRIO TEM SENHA CADASTRADA
@@ -555,10 +577,10 @@ export default function Account() {
   }
 
   // =========================================================
-  // LOADING
+  // LOADING (AGORA VERIFICA O NOSSO ESTADO EXTRA TAMBÉM)
   // =========================================================
 
-  if (isPending) {
+  if (isPending || isSessionLoading) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
