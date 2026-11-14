@@ -123,13 +123,10 @@ interface Usuario {
 // =========================================================
 
 export default function Account() {
-  const { data: session, isPending } = authClient.useSession();
+  // Agora extraímos também a função "refetch" para forçar a atualização da sessão
+  const { data: session, isPending, refetch } = authClient.useSession();
 
   const [activeSection, setActiveSection] = useState("perfil");
-
-  // ESTADO NOVO PARA EVITAR O REDIRECIONAMENTO ERRADO DO GOOGLE
-  const [isSessionLoading, setIsSessionLoading] = useState(true);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // PERFIL
   const [name, setName] = useState("");
@@ -201,22 +198,17 @@ export default function Account() {
   }
 
   // =========================================================
-  // EFEITO PARA ESPERAR A SESSÃO DO GOOGLE CARREGAR
+  // EFEITO PARA FORÇAR A ATUALIZAÇÃO DA SESSÃO APÓS LOGIN GOOGLE
   // =========================================================
 
   useEffect(() => {
-    // Se o isPending do Neon terminou, damos um tempo extra (500ms)
-    // para garantir que o cookie/token do Google foi lido.
-    if (!isPending) {
-      timeoutRef.current = setTimeout(() => {
-        setIsSessionLoading(false);
-      }, 500);
+    // Se o isPending acabou (já checou a sessão inicial) mas o usuário ainda não está no state
+    // É provável que o cookie do OAuth tenha acabado de ser setado.
+    if (!isPending && !session?.user) {
+      // Força o SDK a buscar a sessão novamente no servidor
+      refetch();
     }
-
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, [isPending, session]);
+  }, [isPending, session, refetch]);
 
   // =========================================================
   // VERIFICAR SE O USUÁRIO TEM SENHA CADASTRADA
@@ -577,10 +569,10 @@ export default function Account() {
   }
 
   // =========================================================
-  // LOADING (AGORA VERIFICA O NOSSO ESTADO EXTRA TAMBÉM)
+  // LOADING
   // =========================================================
 
-  if (isPending || isSessionLoading) {
+  if (isPending) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
