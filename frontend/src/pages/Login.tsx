@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
@@ -13,6 +12,7 @@ import {
   EyeOff,
   ArrowLeft,
   CheckCircle2,
+  KeyRound,
 } from "lucide-react";
 
 function GoogleIcon({ size = 18 }: { size?: number }) {
@@ -43,16 +43,23 @@ export default function Login() {
 
   // "login" | "cadastro" | "forgot"
   const [view, setView] = useState<"login" | "cadastro" | "forgot">("login");
+  
+  // Controla o passo do fluxo (formulário ou verificação de código)
+  const [step, setStep] = useState<"auth" | "verify">("auth");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
+  
+  // Estado para o código OTP
+  const [otpCode, setOtpCode] = useState("");
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [resendingEmail, setResendingEmail] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -67,23 +74,23 @@ export default function Login() {
     const params = new URLSearchParams(window.location.search);
     if (params.get("verified") === "1") {
       setView("login");
-      setSuccess(
-        "E-mail confirmado com sucesso! Agora você já pode entrar com sua senha ou continuar com o Google."
-      );
+      setSuccess("E-mail confirmado com sucesso! Agora você já pode entrar.");
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
 
   function trocarView(novaView: "login" | "cadastro" | "forgot") {
     setView(novaView);
+    setStep("auth");
     setError("");
     setSuccess("");
     setNeedsVerification(false);
+    setOtpCode("");
   }
 
   async function reenviarLinkVerificacao() {
     if (!email) {
-      setError("Informe seu e-mail acima para reenviar o link de confirmação.");
+      setError("Informe seu e-mail acima para reenviar o e-mail de confirmação.");
       return;
     }
 
@@ -98,21 +105,56 @@ export default function Login() {
       });
 
       if (res?.error) {
-        setError(
-          res.error.message || "Não foi possível reenviar o e-mail de confirmação."
-        );
+        setError(res.error.message || "Não foi possível reenviar o e-mail de confirmação.");
         return;
       }
 
       setNeedsVerification(false);
-      setSuccess(
-        `Enviamos um novo link de confirmação para ${email}. Verifique sua caixa de entrada e spam.`
-      );
+      setSuccess(`Enviamos um novo código de confirmação para ${email}.`);
     } catch (err) {
       console.error("Erro ao reenviar verificação:", err);
-      setError("Erro ao reenviar o link de verificação.");
+      setError("Erro ao reenviar o e-mail de verificação.");
     } finally {
       setResendingEmail(false);
+    }
+  }
+
+  // Valida o código OTP
+  async function handleVerifyOtp() {
+    if (!otpCode || otpCode.length < 6) {
+      setError("Digite o código de 6 dígitos enviado para seu e-mail.");
+      return;
+    }
+
+    setError("");
+    setVerifying(true);
+
+    try {
+      const { data, error } = await authClient.emailOtp.verifyEmail({
+        email,
+        otp: otpCode,
+      });
+
+      if (error) {
+        throw new Error(error.message || "Código inválido ou expirado.");
+      }
+
+      // Se a verificação retornar token ou usuário, a sessão foi criada
+      if (data && (data.token || data.user)) {
+        notifySessionChanged();
+        navigate("/");
+        return;
+      }
+
+      // Caso contrário, volta para o login com mensagem de sucesso
+      setStep("auth");
+      setView("login");
+      setSuccess("E-mail verificado com sucesso! Agora você pode fazer login.");
+    } catch (err: any) {
+      console.error("Erro ao verificar OTP:", err);
+      setError(err?.message || "Código inválido ou expirado. Tente novamente.");
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -146,7 +188,6 @@ export default function Login() {
           const msg = res.error.message?.toLowerCase() || "";
           const status = res.error.status;
 
-          // OPÇÃO A IMPLEMENTADA AQUI: Detecção abrangente de erro de e-mail não verificado
           if (
             msg.includes("verif") ||
             msg.includes("not verified") ||
@@ -156,13 +197,21 @@ export default function Login() {
             status === 400
           ) {
             setNeedsVerification(true);
-            setError(
-              "Seu e-mail ainda não foi verificado ou as credenciais estão incorretas. Se você acabou de se cadastrar, clique abaixo para reenviar o link."
-            );
+            setError("Seu e-mail ainda não foi verificado. Enviamos um novo código para você.");
+            
+            // MELHORIA: Redireciona para a tela de OTP e envia um novo código
+            setStep("verify");
+            try {
+              await authClient.sendVerificationEmail({ 
+                email, 
+                callbackURL: `${window.location.origin}/login` 
+              });
+            } catch (err) {
+              console.error("Erro ao enviar código no login:", err);
+            }
             return;
           }
 
-          // Outros erros (como senha incorreta)
           setError(res.error.message || "Email ou senha incorretos.");
           return;
         }
@@ -172,7 +221,7 @@ export default function Login() {
         return;
       }
 
-      // ─── CADASTRO (COM ENVIO DE LINK DE VERIFICAÇÃO) ───────────────
+      // ─── CADASTRO ──────────────────────────────────────────────────
       const res = await authClient.signUp.email({
         email,
         password,
@@ -185,13 +234,17 @@ export default function Login() {
         return;
       }
 
-      // Limpa senhas, volta para a aba de login e instrui a verificar o e-mail
       setPassword("");
       setConfirmPassword("");
-      setView("login");
-      setSuccess(
-        `Conta criada! Enviamos um link de confirmação para ${email}. Clique no link do e-mail para ativar sua conta.`
-      );
+      
+      // Se o e-mail não estiver verificado, muda para a tela de OTP
+      if (res.data?.user && !res.data.user.emailVerified) {
+        setStep("verify");
+        setSuccess(`Conta criada! Enviamos um código de 6 dígitos para ${email}.`);
+      } else {
+        setView("login");
+        setSuccess("Conta criada com sucesso! Faça login para continuar.");
+      }
     } catch (err) {
       console.error("Erro:", err);
       setError("Ocorreu um erro. Tente novamente.");
@@ -252,23 +305,27 @@ export default function Login() {
             </div>
 
             <h1 className="text-white text-2xl font-bold leading-tight">
-              {isForgot
-                ? "Recuperar senha"
-                : isCadastro
-                  ? "Crie sua conta"
-                  : "Bem-vindo de volta"}
+              {step === "verify"
+                ? "Verifique seu e-mail"
+                : isForgot
+                  ? "Recuperar senha"
+                  : isCadastro
+                    ? "Crie sua conta"
+                    : "Bem-vindo de volta"}
             </h1>
             <p className="text-blue-200 text-sm mt-1">
-              {isForgot
-                ? "Enviaremos um link para você criar uma nova senha"
-                : isCadastro
-                  ? "Comece sua jornada de aprendizado"
-                  : "Acesse trilhas de aprendizado gratuitas"}
+              {step === "verify"
+                ? `Enviamos um código de 6 dígitos para ${email}`
+                : isForgot
+                  ? "Enviaremos um link para você criar uma nova senha"
+                  : isCadastro
+                    ? "Comece sua jornada de aprendizado"
+                    : "Acesse trilhas de aprendizado gratuitas"}
             </p>
           </div>
 
-          {/* Abas — só aparecem em login/cadastro */}
-          {!isForgot && (
+          {/* Abas — só aparecem em login/cadastro e quando não está no passo de verificação */}
+          {!isForgot && step === "auth" && (
             <div
               className="flex border-b"
               style={{ borderColor: "var(--border-color, #e5e7eb)" }}
@@ -299,8 +356,94 @@ export default function Login() {
           )}
 
           {/* Conteúdo */}
-          <div className={`px-7 ${isCadastro ? "py-5" : "py-6"}`}>
-            {isForgot ? (
+          <div className={`px-7 ${step === "verify" ? "py-6" : isCadastro ? "py-5" : "py-6"}`}>
+            
+            {/* ─── TELA DE VERIFICAÇÃO DE CÓDIGO (OTP) ─────────────── */}
+            {step === "verify" ? (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold" style={{ color: "var(--text-muted, #6b7280)" }}>
+                    Código de verificação
+                  </label>
+                  <div className="relative">
+                    <KeyRound
+                      size={15}
+                      className="absolute left-3.5 top-1/2 -translate-y-1/2"
+                      style={{ color: "var(--text-muted, #9ca3af)" }}
+                    />
+                    <input
+                      type="text"
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleVerifyOtp();
+                      }}
+                      placeholder="000000"
+                      maxLength={6}
+                      className="auth-input w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none transition focus:border-[#1E40AF] focus:ring-2 focus:ring-[#1E40AF]/20 tracking-[0.3em] text-center font-mono text-sm"
+                    />
+                  </div>
+                </div>
+
+                {success && (
+                  <div
+                    className="flex items-start gap-2 text-xs font-medium px-3 py-2.5 rounded-lg"
+                    style={{ color: "#059669", backgroundColor: "rgba(16, 185, 129, 0.10)" }}
+                  >
+                    <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
+                    <span>{success}</span>
+                  </div>
+                )}
+
+                {error && (
+                  <div
+                    className="text-xs font-medium px-3 py-2.5 rounded-lg"
+                    style={{ color: "#dc2626", backgroundColor: "rgba(239, 68, 68, 0.10)" }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={verifying || otpCode.length < 6}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[#1E40AF] text-white text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-60 enabled:cursor-pointer mt-2"
+                >
+                  {verifying ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <CheckCircle2 size={16} />
+                  )}
+                  {verifying ? "Verificando..." : "Verificar código"}
+                </button>
+
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("auth");
+                      setOtpCode("");
+                      setError("");
+                      setSuccess("");
+                    }}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-[#23A6F0] hover:underline cursor-pointer"
+                  >
+                    <ArrowLeft size={13} />
+                    Voltar
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={reenviarLinkVerificacao}
+                    disabled={resendingEmail}
+                    className="text-xs font-semibold text-[#23A6F0] hover:underline disabled:opacity-60 enabled:cursor-pointer"
+                  >
+                    {resendingEmail ? "Reenviando..." : "Reenviar código"}
+                  </button>
+                </div>
+              </div>
+            ) : isForgot ? (
               <div className="flex flex-col gap-4">
                 <ForgotPasswordForm
                   {...({
@@ -312,10 +455,7 @@ export default function Login() {
                 {success && (
                   <div
                     className="flex items-start gap-2 text-xs font-medium px-3 py-2 rounded-lg mt-4"
-                    style={{
-                      color: "#059669",
-                      backgroundColor: "rgba(16, 185, 129, 0.10)",
-                    }}
+                    style={{ color: "#059669", backgroundColor: "rgba(16, 185, 129, 0.10)" }}
                   >
                     <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
                     <span>{success}</span>
@@ -332,17 +472,13 @@ export default function Login() {
                 </button>
               </div>
             ) : (
+              // ─── LOGIN / CADASTRO (FORMULÁRIO) ─────────────────────
               <div className="flex flex-col gap-4">
-                <div
-                  className={`flex flex-col ${isCadastro ? "gap-2.5" : "gap-3"}`}
-                >
+                <div className={`flex flex-col ${isCadastro ? "gap-2.5" : "gap-3"}`}>
                   {/* Nome (só cadastro) */}
                   {isCadastro && (
                     <div className="flex flex-col gap-1">
-                      <label
-                        className="text-xs font-semibold"
-                        style={{ color: "var(--text-muted, #6b7280)" }}
-                      >
+                      <label className="text-xs font-semibold" style={{ color: "var(--text-muted, #6b7280)" }}>
                         Nome completo
                       </label>
                       <input
@@ -357,10 +493,7 @@ export default function Login() {
 
                   {/* Email */}
                   <div className="flex flex-col gap-1">
-                    <label
-                      className="text-xs font-semibold"
-                      style={{ color: "var(--text-muted, #6b7280)" }}
-                    >
+                    <label className="text-xs font-semibold" style={{ color: "var(--text-muted, #6b7280)" }}>
                       Email
                     </label>
                     <div className="relative">
@@ -384,10 +517,7 @@ export default function Login() {
 
                   {/* Senha */}
                   <div className="flex flex-col gap-1">
-                    <label
-                      className="text-xs font-semibold"
-                      style={{ color: "var(--text-muted, #6b7280)" }}
-                    >
+                    <label className="text-xs font-semibold" style={{ color: "var(--text-muted, #6b7280)" }}>
                       Senha
                     </label>
 
@@ -413,11 +543,7 @@ export default function Login() {
                         className="absolute right-3.5 top-1/2 -translate-y-1/2 transition cursor-pointer"
                         style={{ color: "var(--text-muted, #9ca3af)" }}
                       >
-                        {showPassword ? (
-                          <EyeOff size={15} />
-                        ) : (
-                          <Eye size={15} />
-                        )}
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                       </button>
                     </div>
 
@@ -435,10 +561,7 @@ export default function Login() {
                   {/* Confirmar senha (só cadastro) */}
                   {isCadastro && (
                     <div className="flex flex-col gap-1">
-                      <label
-                        className="text-xs font-semibold"
-                        style={{ color: "var(--text-muted, #6b7280)" }}
-                      >
+                      <label className="text-xs font-semibold" style={{ color: "var(--text-muted, #6b7280)" }}>
                         Confirmar senha
                       </label>
                       <div className="relative">
@@ -459,17 +582,11 @@ export default function Login() {
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            setShowConfirmPassword(!showConfirmPassword)
-                          }
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                           className="absolute right-3.5 top-1/2 -translate-y-1/2 transition cursor-pointer"
                           style={{ color: "var(--text-muted, #9ca3af)" }}
                         >
-                          {showConfirmPassword ? (
-                            <EyeOff size={15} />
-                          ) : (
-                            <Eye size={15} />
-                          )}
+                          {showConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
                     </div>
@@ -479,24 +596,18 @@ export default function Login() {
                   {success && (
                     <div
                       className="flex items-start gap-2 text-xs font-medium px-3 py-2.5 rounded-lg"
-                      style={{
-                        color: "#059669",
-                        backgroundColor: "rgba(16, 185, 129, 0.10)",
-                      }}
+                      style={{ color: "#059669", backgroundColor: "rgba(16, 185, 129, 0.10)" }}
                     >
                       <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
                       <span>{success}</span>
                     </div>
                   )}
 
-                  {/* Erro + botão opcional de reenviar link */}
+                  {/* Erro + botão opcional de reenviar */}
                   {error && (
                     <div
                       className="text-xs font-medium px-3 py-2.5 rounded-lg flex flex-col gap-1.5"
-                      style={{
-                        color: "#dc2626",
-                        backgroundColor: "rgba(239, 68, 68, 0.10)",
-                      }}
+                      style={{ color: "#dc2626", backgroundColor: "rgba(239, 68, 68, 0.10)" }}
                     >
                       <p>{error}</p>
                       {needsVerification && (
@@ -506,9 +617,7 @@ export default function Login() {
                           disabled={resendingEmail}
                           className="self-start font-semibold underline hover:opacity-80 disabled:opacity-60 enabled:cursor-pointer"
                         >
-                          {resendingEmail
-                            ? "Reenviando..."
-                            : "Reenviar link de confirmação"}
+                          {resendingEmail ? "Reenviando..." : "Reenviar código de confirmação"}
                         </button>
                       )}
                     </div>
@@ -535,23 +644,11 @@ export default function Login() {
 
                   {/* Divisor */}
                   <div className="relative my-1">
-                    <div
-                      className="absolute inset-0 flex items-center"
-                      aria-hidden="true"
-                    >
-                      <div
-                        className="w-full border-t"
-                        style={{ borderColor: "var(--border-color, #e5e7eb)" }}
-                      />
+                    <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                      <div className="w-full border-t" style={{ borderColor: "var(--border-color, #e5e7eb)" }} />
                     </div>
                     <div className="relative flex justify-center">
-                      <span
-                        className="px-3 text-xs"
-                        style={{
-                          backgroundColor: "var(--card-bg, white)",
-                          color: "var(--text-muted, #6b7280)",
-                        }}
-                      >
+                      <span className="px-3 text-xs" style={{ backgroundColor: "var(--card-bg, white)", color: "var(--text-muted, #6b7280)" }}>
                         ou
                       </span>
                     </div>
@@ -563,10 +660,7 @@ export default function Login() {
                     onClick={handleGoogle}
                     disabled={loading || googleLoading}
                     className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border text-sm font-semibold transition hover:bg-black/5 disabled:opacity-60 enabled:cursor-pointer"
-                    style={{
-                      borderColor: "var(--border-color, #e5e7eb)",
-                      color: "var(--text-color, #111827)",
-                    }}
+                    style={{ borderColor: "var(--border-color, #e5e7eb)", color: "var(--text-color, #111827)" }}
                   >
                     {googleLoading ? (
                       <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
@@ -594,18 +688,10 @@ export default function Login() {
 
           {/* Footer */}
           <div
-            className={`px-7 text-center border-t ${
-              isCadastro ? "py-3" : "py-4"
-            }`}
-            style={{
-              borderColor: "var(--border-color, #e5e7eb)",
-              backgroundColor: "var(--bg-subtle, #f9fafb)",
-            }}
+            className={`px-7 text-center border-t ${isCadastro ? "py-3" : "py-4"}`}
+            style={{ borderColor: "var(--border-color, #e5e7eb)", backgroundColor: "var(--bg-subtle, #f9fafb)" }}
           >
-            <Link
-              to="/"
-              className="text-xs text-[#23A6F0] hover:underline cursor-pointer"
-            >
+            <Link to="/" className="text-xs text-[#23A6F0] hover:underline cursor-pointer">
               ← Voltar para o Oportuniza
             </Link>
           </div>
