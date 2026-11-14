@@ -126,7 +126,7 @@ export default function Account() {
   const { data: session, isPending, refetch } = authClient.useSession();
 
   const [activeSection, setActiveSection] = useState("perfil");
-  
+
   // ESTADO NOVO: Bloqueia a tela de "Sessão não encontrada" enquanto tentamos recuperar a sessão
   const [isRecoveringSession, setIsRecoveringSession] = useState(false);
 
@@ -204,15 +204,27 @@ export default function Account() {
   // =========================================================
 
   useEffect(() => {
-    // Se o isPending acabou mas não há sessão, é porque viemos de um redirect
-    // e o SDK ainda não conseguiu ler o cookie.
+    // Se o SDK já terminou o carregamento e não temos usuário na sessão
     if (!isPending && !session?.user) {
       setIsRecoveringSession(true);
-      
-      // Força o SDK a buscar a sessão novamente no servidor
-      refetch().finally(() => {
-        setIsRecoveringSession(false); // Libera a tela (se não achar, vai pro erro)
-      });
+
+      // Dispara o refetch para forçar o SDK a ler o cookie do Google
+      // Não esperamos retorno direto, pois a função pode retornar void
+      Promise.resolve(refetch())
+        .then(() => {
+          // Damos um pequeno delay (100ms) para o estado global do useSession
+          // propagar a atualização para o componente, se o cookie for válido
+          setTimeout(() => {
+            setIsRecoveringSession(false);
+          }, 100);
+        })
+        .catch((err) => {
+          console.error("Erro ao recuperar sessão:", err);
+          setIsRecoveringSession(false);
+        });
+    } else if (session?.user) {
+      // Se já logou ou o refetch atualizou o estado, libera a tela
+      setIsRecoveringSession(false);
     }
   }, [isPending, session, refetch]);
 
@@ -703,11 +715,10 @@ export default function Account() {
                     key={item.id}
                     type="button"
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition cursor-pointer ${
-                      active
-                        ? "bg-[#1E40AF]/10 text-[#1E40AF]"
-                        : "hover:bg-black/5 dark:hover:bg-white/5"
-                    }`}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl text-left transition cursor-pointer ${active
+                      ? "bg-[#1E40AF]/10 text-[#1E40AF]"
+                      : "hover:bg-black/5 dark:hover:bg-white/5"
+                      }`}
                   >
                     <Icon
                       size={18}
